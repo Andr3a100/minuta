@@ -17,6 +17,7 @@ import os
 import re
 import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 
@@ -58,26 +59,51 @@ class ModelloAnthropic:
                         uso.get("output_tokens"))
 
 
-class ModelloCompatibileOpenAI:
-    """Qualunque servizio con l'interfaccia chat/completions (OpenAI, Mistral...).
+def chiave_openai() -> str:
+    return os.environ.get("OPENAI_API_KEY") or os.environ["MINUTA_API_KEY"]
 
-    Chiave in MINUTA_API_KEY, indirizzo in MINUTA_BASE_URL.
+
+def carica_env(percorso: Path) -> None:
+    """Legge le chiavi da un file .env locale, senza mai stamparle."""
+    if not percorso.exists():
+        return
+    for riga in percorso.read_text("utf-8").splitlines():
+        riga = riga.strip()
+        if riga and not riga.startswith("#") and "=" in riga:
+            nome, valore = riga.split("=", 1)
+            if valore.strip():
+                os.environ.setdefault(nome.strip(), valore.strip())
+
+
+def modelli_openai(indirizzo: str = "https://api.openai.com/v1") -> list[str]:
+    """I modelli disponibili sull'account: solo i nomi."""
+    domanda = urllib.request.Request(f"{indirizzo}/models",
+                                     headers={"authorization": f"Bearer {chiave_openai()}"})
+    with urllib.request.urlopen(domanda, timeout=60) as r:
+        return sorted(m["id"] for m in json.load(r)["data"])
+
+
+class ModelloCompatibileOpenAI:
+    """OpenAI, o qualunque servizio con la stessa interfaccia chat/completions.
+
+    Chiave in OPENAI_API_KEY; indirizzo diverso da OpenAI in MINUTA_BASE_URL.
     """
 
     def __init__(self, nome: str, indirizzo: str | None = None, massimo: int = 4000):
         self.nome = nome
-        self.indirizzo = (indirizzo or os.environ.get("MINUTA_BASE_URL", "")).rstrip("/")
+        self.indirizzo = (indirizzo or os.environ.get("MINUTA_BASE_URL")
+                          or "https://api.openai.com/v1").rstrip("/")
         self.massimo = massimo
 
     def scrivi(self, sistema: str, richiesta: str) -> Risposta:
         corpo = json.dumps({
-            "model": self.nome, "max_tokens": self.massimo,
+            "model": self.nome, "max_completion_tokens": self.massimo,
             "messages": [{"role": "system", "content": sistema},
                          {"role": "user", "content": richiesta}],
         }).encode()
         domanda = urllib.request.Request(
             f"{self.indirizzo}/chat/completions", data=corpo, method="POST",
-            headers={"authorization": f"Bearer {os.environ['MINUTA_API_KEY']}",
+            headers={"authorization": f"Bearer {chiave_openai()}",
                      "content-type": "application/json"})
         with urllib.request.urlopen(domanda, timeout=300) as r:
             dati = json.load(r)

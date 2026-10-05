@@ -35,11 +35,17 @@ def main(argomenti: list[str] | None = None) -> int:
     bozza.add_argument("--modello", default=None, help="finto, anthropic, openai")
     bozza.add_argument("--uscita", type=Path, default=Path("bozze"))
     comandi.add_parser("dataset", help="esempi pseudonimizzati per l'addestramento (livello 2)")
+    comandi.add_parser("modelli", help="i modelli disponibili sull'account OpenAI")
     a = lettore.parse_args(argomenti)
+    model.carica_env(RADICE / ".env")
 
     config = archive.carica_config(RADICE / "config/studio.json")
     db = archive.apri(RADICE / "minuta.db")
 
+    if a.comando == "modelli":
+        for nome in model.modelli_openai():
+            print(nome)
+        return 0
     if a.comando == "importa":
         atti = archive.importa(RADICE / "archivio/pdf", db, config)
         for atto in atti:

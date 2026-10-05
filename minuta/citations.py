@@ -39,6 +39,7 @@ DECRETO = re.compile(
     r"|(?P<num_breve>\d+)/(?P<anno_breve>\d{4}))", re.I)
 MEDESIMO = re.compile(r"\bart\.\s*(?P<numero>\d+)\s+del medesimo decreto", re.I)
 RINVIO_BREVE = re.compile(r"\(art\.\s*(?P<numero>\d+)\)")
+CAUSA_UE = re.compile(r"\bC-(?P<numero>\d+)/(?P<anno>\d{2})\b")
 SENTENZA = re.compile(
     r"\bCass\.(?:\s*civ\.)?(?:,\s*(?:sez\.\s*[\w.]+|Sez\.\s*Un\.|S\.U\.))?,?\s*"
     r"(?P<giorno>\d{1,2})\s+(?P<mese>[a-z]+)\s+(?P<anno>\d{4}),?\s*n\.\s*(?P<numero>\d+)",
@@ -76,6 +77,9 @@ def estrai(testo: str) -> list[Citazione]:
         trovate.append((posizione, Citazione(chiave, m.group(0), "norma")))
     for m in SENTENZA.finditer(testo):
         chiave = f"cass. {m.group('numero')}/{m.group('anno')}"
+        trovate.append((m.start(), Citazione(chiave, m.group(0), "sentenza")))
+    for m in CAUSA_UE.finditer(testo):
+        chiave = f"cgue C-{m.group('numero')}/{m.group('anno')}"
         trovate.append((m.start(), Citazione(chiave, m.group(0), "sentenza")))
     viste, risultato = set(), []
     for _, citazione in sorted(trovate, key=lambda t: t[0]):
@@ -140,6 +144,8 @@ class Massimario:
         voce = self.voci.get(citazione.chiave)
         if voce and voce.get("stato") == "verificata":
             return "verificata"
+        if voce:
+            return "da verificare: nel massimario, non ancora controllata sulla fonte"
         if citazione.tipo == "sentenza":
             return "da verificare: sentenza non presente nel massimario"
         return "da verificare: norma non presente nel massimario"

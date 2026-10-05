@@ -33,3 +33,9 @@ def test_una_norma_fuori_dal_massimario(massimario):
 def test_indirizzi_normattiva_degli_allegati():
     assert citations.indirizzo_normattiva("c.c. art. 1224").endswith(";262:2~art1224")
     assert citations.indirizzo_normattiva("c.p.c. art. 642").endswith(";1443:1~art642")
+
+
+def test_le_cause_europee_si_riconoscono(massimario):
+    stati = citations.controlla("come chiarito dalla Corte di giustizia nella causa C-585/20", massimario)
+    assert stati == [{"citazione": "C-585/20", "chiave": "cgue C-585/20",
+                      "stato": "da verificare: nel massimario, non ancora controllata sulla fonte"}]
