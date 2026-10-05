@@ -87,3 +87,13 @@ def test_le_regole_dello_studio_arrivano_al_modello(db, fascicolo, config, profi
     assert "REGOLE DELLO STUDIO:" in bozza.inviato
     assert "qui 2 fatture, euro 80,00" in bozza.inviato
     assert "cgue C-585/20" in bozza.inviato  # fra le citazioni ammesse
+
+
+def test_senza_precedenti_sull_argomento_si_usano_gli_atti_dell_avvocato(
+        db, fascicolo, config, profilo, massimario, tmp_path):
+    fascicolo["stile"] = "dini"  # Dini non ha atti sulla stampa di cataloghi
+    bozza = prepara(db, fascicolo, config, profilo, massimario, tmp_path)
+    assert len(bozza.esempi) == 2
+    autori = {db.execute("select autore from atti where id = ?", (i,)).fetchone()[0]
+              for i in bozza.esempi}
+    assert autori == {"dini"}

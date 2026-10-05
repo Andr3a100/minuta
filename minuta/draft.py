@@ -199,6 +199,19 @@ def prepara(db: sqlite3.Connection, fascicolo: dict, config: dict, profilo: dict
     # 1. I precedenti più vicini, nello stile dell'avvocato che firmerà.
     domanda = fascicolo["rapporto"]
     trovati = search.cerca(db, domanda, tipo="ricorso", autore=stile, quanti=2)
+    # Per imitare uno stile non servono atti sullo stesso argomento: servono atti
+    # dello stesso avvocato e dello stesso tipo. Se la ricerca non ne trova
+    # abbastanza, si aggiungono i più recenti.
+    if len(trovati) < 2:
+        presi = {r.atto_id for r in trovati}
+        for riga in db.execute(
+                "select * from atti where autore = ? and tipo like 'ricorso%' order by data desc",
+                (stile,)):
+            if len(trovati) >= 2:
+                break
+            if riga["id"] not in presi:
+                trovati.append(search.Risultato(riga["id"], riga["file"], 0.0, riga["autore"],
+                                                riga["tipo"], riga["data"], "esempio di stile"))
 
     # 2. Pseudonimizzazione: il fascicolo senza prefisso, ogni esempio con il suo.
     noti = {config["studio"]: "STUDIO", avvocato: "PERSONA", **sensibili_del_fascicolo(fascicolo)}
