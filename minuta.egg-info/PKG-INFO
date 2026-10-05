@@ -1,8 +1,0 @@
-Metadata-Version: 2.4
-Name: minuta
-Version: 0.1.0
-Summary: Minuta: l'assistente supervisionato di uno studio legale
-Requires-Python: >=3.12
-Requires-Dist: pymupdf>=1.24
-Provides-Extra: test
-Requires-Dist: pytest>=8; extra == "test"

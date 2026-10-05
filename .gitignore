@@ -5,3 +5,4 @@ registro/
 .env
 addestramento/
 bozze/
+*.egg-info/
