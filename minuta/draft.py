@@ -1,0 +1,225 @@
+"""La bozza: dal fascicolo e dai precedenti dello studio, con la sua provenienza.
+
+Il percorso è sempre lo stesso, e ogni passo lascia una traccia:
+1. cerca nell'archivio i precedenti più vicini, nello stile scelto;
+2. pseudonimizza il fascicolo e gli esempi, ciascuno con il suo prefisso;
+3. controlla che niente di riconoscibile stia per partire;
+4. chiede la bozza al modello e registra la chiamata;
+5. scarta i segnaposto di altri fascicoli, ricompone i nomi veri;
+6. verifica ogni citazione sul massimario;
+7. consegna una BOZZA, con la provenienza di ogni paragrafo.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import sqlite3
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+
+from . import citations, search
+from .leaks import fughe
+from .model import Modello
+from .pseudonym import Pseudonimizzatore, segnaposto_estranei
+
+SISTEMA = """Sei l'assistente di uno studio legale italiano. Prepari BOZZE che un \
+avvocato rivedrà, correggerà e firmerà: non scrivi mai un atto definitivo.
+Regole:
+1. Usa solo i fatti del FASCICOLO. Se manca un dato, scrivi [DA COMPLETARE: che cosa manca].
+2. Cita solo le norme dell'elenco CITAZIONI AMMESSE. Se ne serve un'altra, scrivila preceduta \
+da [DA VERIFICARE]. Non citare mai sentenze che non ti sono state date.
+3. Mantieni i segnaposto fra parentesi quadre esattamente come sono. Non usare mai i \
+segnaposto degli esempi (quelli che cominciano con E1_ o E2_): appartengono ad altri clienti.
+4. Segui lo STILE dello studio: intestazione, titolo, ordine delle sezioni, formule.
+5. Alla fine di ogni paragrafo scrivi la sua provenienza fra parentesi graffe: \
+{fonte: fascicolo}, {fonte: profilo}, {fonte: E1}, {fonte: E2}, oppure {fonte: modello} se è \
+un testo tuo."""
+
+TITOLI_STILE = {
+    "sarti": {"fatti": "PREMESSO CHE", "diritto": "CONSIDERATO CHE",
+              "conclusioni": "TUTTO CIÒ PREMESSO E CONSIDERATO, la ricorrente CHIEDE"},
+    "dini": {"fatti": "1. I fatti", "diritto": "2. Il credito e la prova scritta",
+             "conclusioni": "3. Conclusioni"},
+}
+
+
+# Elementi che cambiano la natura di un ricorso. Se la bozza ne parla e il
+# fascicolo no, il passaggio viene quasi sempre da un precedente di un altro
+# cliente: le norme citate esistono, ma non si applicano a questo caso.
+ELEMENTI = {
+    "assegno o cambiale": r"\bassegn[oi]\b|\bcambial[ei]\b|\bprotest",
+    "provvisoria esecuzione": r"provvisori[ae] esecuzione|esecuzione provvisoria|"
+                              r"provvisoriamente esecutivo|\bart\. 642\b",
+    "riconoscimento di debito": r"riconosciment[oi] del debito|piano di rientro",
+    "locazione": r"\blocazion|\bconduttore\b|\blocatore\b",
+    "consumatore": r"\bconsumator|scopi estranei all'attività",
+    "subappalto": r"\bsubappalt",
+}
+
+
+def pertinenza(paragrafi: list[dict], fascicolo: dict) -> list[str]:
+    """Gli elementi presenti nella bozza ma assenti dal fascicolo."""
+    fatti = json.dumps(fascicolo, ensure_ascii=False).lower()
+    avvisi = []
+    for elemento, regola in ELEMENTI.items():
+        if re.search(regola, fatti, re.I):
+            continue
+        dove = [f"{n} ({p['fonte']})" for n, p in enumerate(paragrafi, start=1)
+                if re.search(regola, p["testo"], re.I)]
+        if dove:
+            avvisi.append(f"PERTINENZA: la bozza parla di {elemento} (paragrafi {', '.join(dove)}), "
+                          "ma il fascicolo no. Verificare se si applica a questo caso.")
+    return avvisi
+
+
+@dataclass
+class Bozza:
+    testo: str
+    modello: str
+    paragrafi: list[dict] = field(default_factory=list)  # testo, fonte
+    citazioni: list[dict] = field(default_factory=list)
+    avvisi: list[str] = field(default_factory=list)
+    esempi: list[str] = field(default_factory=list)
+    inviato: str = ""
+
+
+def euro(valore: float) -> str:
+    return f"{valore:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def data_it(iso: str) -> str:
+    anno, mese, giorno = iso.split("-")
+    return f"{giorno}.{mese}.{anno}"
+
+
+def sensibili_del_fascicolo(fascicolo: dict) -> dict[str, str]:
+    """I dati del fascicolo da non far uscire, con il loro tipo."""
+    noti = {}
+    for parte in ("ricorrente", "intimata"):
+        dati = fascicolo[parte]
+        noti[dati["nome"]] = "SOGGETTO"
+        noti[dati["piva"]] = "PIVA"
+        noti[dati["sede"]] = "INDIRIZZO"
+        if dati.get("rappresentante"):
+            noti[dati["rappresentante"]] = "PERSONA"
+    return noti
+
+
+def dati_del_fascicolo(fascicolo: dict, avvocato: str) -> str:
+    totale = sum(f["importo"] for f in fascicolo["fatture"])
+    fatture = ", ".join(f"n. {f['numero']} del {data_it(f['data'])} (euro {euro(f['importo'])})"
+                        for f in fascicolo["fatture"])
+    r, i = fascicolo["ricorrente"], fascicolo["intimata"]
+    righe = {
+        "TIPO DI ATTO": fascicolo["tipo"], "GIUDICE": fascicolo["giudice"],
+        "RICORRENTE": r["nome"], "PIVA RICORRENTE": r["piva"], "SEDE RICORRENTE": r["sede"],
+        "RAPPRESENTANTE": r.get("rappresentante", "[DA COMPLETARE]"),
+        "INTIMATA": i["nome"], "PIVA INTIMATA": i["piva"], "SEDE INTIMATA": i["sede"],
+        "AVVOCATO": avvocato, "RAPPORTO": fascicolo["rapporto"], "FATTURE": fatture,
+        "TOTALE": euro(totale), "DIFFIDA": data_it(fascicolo["diffida"]),
+        "INTERESSI": fascicolo.get("interessi", ""), "DOCUMENTI": "; ".join(fascicolo["documenti"]),
+    }
+    return "\n".join(f"{k}: {v}" for k, v in righe.items())
+
+
+def registra(cartella: Path, voce: dict) -> None:
+    cartella.mkdir(parents=True, exist_ok=True)
+    with open(cartella / "uso-ai.jsonl", "a", encoding="utf-8") as f:
+        f.write(json.dumps(voce, ensure_ascii=False) + "\n")
+
+
+def prepara(db: sqlite3.Connection, fascicolo: dict, config: dict, profilo: dict,
+            massimario: citations.Massimario, modello: Modello, registro: Path) -> Bozza:
+    stile = fascicolo["stile"]
+    avvocato = next(a["nome"] for a in config["avvocati"] if a["id"] == stile)
+
+    # 1. I precedenti più vicini, nello stile dell'avvocato che firmerà.
+    domanda = fascicolo["rapporto"]
+    trovati = search.cerca(db, domanda, tipo="ricorso", autore=stile, quanti=2)
+
+    # 2. Pseudonimizzazione: il fascicolo senza prefisso, ogni esempio con il suo.
+    noti = {config["studio"]: "STUDIO", avvocato: "PERSONA", **sensibili_del_fascicolo(fascicolo)}
+    fascicolo_ps = Pseudonimizzatore(noti=noti)
+    dati = fascicolo_ps.nascondi(dati_del_fascicolo(fascicolo, avvocato))
+    sensibili = set(noti) | set(fascicolo_ps.tabella.values())
+    blocchi_esempi = []
+    for n, risultato in enumerate(trovati, start=1):
+        testo = db.execute("select testo from atti where id = ?", (risultato.atto_id,)).fetchone()[0]
+        esempio_ps = Pseudonimizzatore(prefisso=f"E{n}_", noti={config["studio"]: "STUDIO"})
+        nascosto = esempio_ps.nascondi(testo)
+        sensibili |= set(esempio_ps.tabella.values())
+        blocchi_esempi.append(f"ESEMPIO E{n} (atto {risultato.atto_id}, {risultato.data})\n{nascosto}")
+
+    regole = profilo["autori"][stile]
+    stile_json = json.dumps({"intestazione": regole["intestazione"], "titolo": regole["titolo"],
+                             "sezioni": regole["sezioni"], **TITOLI_STILE[stile],
+                             "formule": list(regole["formule_proprie"])[:8]},
+                            ensure_ascii=False)
+    richiesta = "\n".join([
+        dati, f"STILE: {stile_json}",
+        "CITAZIONI AMMESSE: " + "; ".join(massimario.ammesse()),
+        *blocchi_esempi, "FINE ESEMPI",
+        "Scrivi la bozza completa dell'atto."])
+
+    # 3. La prova delle fughe: se qualcosa di riconoscibile sta per partire, ci si ferma.
+    trovate = fughe(SISTEMA + "\n" + richiesta, sensibili)
+    if trovate:
+        raise RuntimeError(f"invio bloccato, dati riconoscibili nel testo: {trovate}")
+
+    # 4. La chiamata al modello, registrata.
+    risposta = modello.scrivi(SISTEMA, richiesta)
+    registra(registro, {
+        "quando": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "fascicolo": fascicolo["id"], "modello": risposta.modello,
+        "inviato_sha256": hashlib.sha256((SISTEMA + richiesta).encode()).hexdigest(),
+        "caratteri_inviati": len(SISTEMA + richiesta), "token_in": risposta.token_in,
+        "token_out": risposta.token_out, "esempi": [r.atto_id for r in trovati],
+        "controllo_fughe": "superato", "approvata_da": None})
+
+    # 5. Segnaposto di altri fascicoli: non si ricompongono mai.
+    avvisi = []
+    estranei = segnaposto_estranei(risposta.testo)
+    if estranei:
+        avvisi.append(f"CONTAMINAZIONE: la bozza usa segnaposto di altri fascicoli {estranei}; "
+                      "quei passaggi vanno riscritti.")
+    paragrafi = []
+    for blocco in re.split(r"\n\s*\n", risposta.testo.strip()):
+        fonte = re.search(r"\{fonte:\s*([^}]+)\}\s*$", blocco)
+        testo = re.sub(r"\s*\{fonte:[^}]*\}\s*$", "", blocco).strip()
+        paragrafi.append({"testo": fascicolo_ps.ricomponi(testo),
+                          "fonte": fonte.group(1).strip() if fonte else "non dichiarata"})
+    avvisi += pertinenza(paragrafi, fascicolo)
+    senza_fonte = [p for p in paragrafi if p["fonte"] == "non dichiarata"]
+    if senza_fonte:
+        avvisi.append(f"{len(senza_fonte)} paragrafi senza provenienza dichiarata.")
+    testo = "\n\n".join(p["testo"] for p in paragrafi)
+
+    # 6. Le citazioni, una per una.
+    stati = citations.controlla(testo, massimario)
+    for c in stati:
+        if c["stato"] != "verificata":
+            avvisi.append(f"Citazione {c['stato']}: «{c['citazione']}».")
+    if "[DA COMPLETARE" in testo:
+        avvisi.append("Dati da completare: " + "; ".join(re.findall(r"\[DA COMPLETARE: ([^\]]+)\]", testo)))
+
+    return Bozza(testo, risposta.modello, paragrafi, stati, avvisi,
+                 [r.atto_id for r in trovati], richiesta)
+
+
+def in_markdown(bozza: Bozza, fascicolo: dict) -> str:
+    """La bozza come la legge l'avvocato: testo, provenienza, note."""
+    adesso = datetime.now().strftime("%d.%m.%Y %H:%M")
+    righe = [f"> **BOZZA** · fascicolo {fascicolo['id']} · preparata da Minuta il {adesso} "
+             f"con il modello «{bozza.modello}» · esempi dall'archivio: "
+             f"{', '.join(bozza.esempi) or 'nessuno'}. Non è un atto: va riletta, corretta e "
+             "firmata da un avvocato.", ""]
+    for p in bozza.paragrafi:
+        righe += [p["testo"], "", f"<sub>provenienza: {p['fonte']}</sub>", ""]
+    righe += ["---", "", "## Note per l'avvocato", ""]
+    righe += [f"- {a}" for a in bozza.avvisi] or ["- Nessun avviso."]
+    righe += ["", "## Citazioni", ""]
+    righe += [f"- {c['citazione']} · {c['stato']}" for c in bozza.citazioni]
+    return "\n".join(righe) + "\n"

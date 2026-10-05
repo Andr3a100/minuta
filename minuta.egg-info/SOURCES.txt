@@ -1,0 +1,12 @@
+pyproject.toml
+minuta/__init__.py
+minuta/archive.py
+minuta/citations.py
+minuta/leaks.py
+minuta/pseudonym.py
+minuta/search.py
+minuta.egg-info/PKG-INFO
+minuta.egg-info/SOURCES.txt
+minuta.egg-info/dependency_links.txt
+minuta.egg-info/requires.txt
+minuta.egg-info/top_level.txt

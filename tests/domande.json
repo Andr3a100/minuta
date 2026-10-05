@@ -1,0 +1,12 @@
+[
+  {"domanda": "provvisoria esecuzione per assegno bancario protestato", "atteso": "10"},
+  {"domanda": "riconoscimento del debito con piano di rientro non rispettato", "atteso": "05"},
+  {"domanda": "canoni di locazione non pagati dal conduttore", "atteso": "04"},
+  {"domanda": "consumatore, riparazione impianto di riscaldamento, interessi legali", "atteso": "02"},
+  {"domanda": "manutenzione degli automezzi di una flotta", "atteso": "03"},
+  {"domanda": "impianto di climatizzazione collaudato, saldo dell'appalto", "atteso": "08"},
+  {"domanda": "stampa di materiale promozionale per manifestazioni", "atteso": "07"},
+  {"domanda": "fornitura di imballaggi in cartone a un supermercato", "atteso": "01"},
+  {"domanda": "canone di assistenza informatica non pagato", "atteso": "06"},
+  {"domanda": "lettera di diffida e messa in mora con termine di quindici giorni", "atteso": "09"}
+]

@@ -1,0 +1,8 @@
+{
+  "studio": "Studio Meridiana",
+  "indirizzo": "Via delle Meridiane 12",
+  "avvocati": [
+    {"id": "sarti", "nome": "Elena Sarti"},
+    {"id": "dini", "nome": "Marco Dini"}
+  ]
+}

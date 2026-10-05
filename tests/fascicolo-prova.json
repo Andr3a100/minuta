@@ -1,0 +1,16 @@
+{
+  "id": "2026-041",
+  "tipo": "ricorso decreto ingiuntivo",
+  "giudice": "Tribunale di Modena",
+  "stile": "sarti",
+  "ricorrente": {"nome": "Officine Grafiche Taddei S.r.l.", "piva": "03555440361", "sede": "Via delle Rotative 3, Modena", "rappresentante": "Giorgio Taddei"},
+  "intimata": {"nome": "Hotel Belvedere Sestola S.r.l.", "piva": "02888990364", "sede": "Via del Cimone 21, Sestola (MO)"},
+  "rapporto": "la stampa di cataloghi e di materiale promozionale per la stagione invernale 2025/2026",
+  "fatture": [
+    {"numero": "455/2025", "data": "2025-11-14", "importo": 6840.00},
+    {"numero": "489/2025", "data": "2025-12-05", "importo": 3120.50}
+  ],
+  "diffida": "2026-02-10",
+  "interessi": "commerciali",
+  "documenti": ["ordini scritti dell'intimata", "fatture n. 455/2025 e n. 489/2025", "documenti di trasporto sottoscritti per ricevuta", "estratto autentico delle scritture contabili", "diffida a mezzo PEC del 10.02.2026"]
+}

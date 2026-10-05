@@ -1,0 +1,13 @@
+{
+  "_nota": "Per ogni atto, i dati che non devono mai uscire dallo studio. Serve alla prova delle fughe: dopo la pseudonimizzazione nessuna di queste stringhe deve comparire, maiuscole o minuscole. Tutti i dati sono inventati.",
+  "01-2019-sarti-imballaggi-bassi": ["Imballaggi Bassi", "Bassi", "Giovanni", "BSSGNN58A12C107T", "03456780361", "Via delle Serre", "Elena", "Sarti", "SRTLNE71C45F257Q", "Via delle Meridiane", "elena.sarti@pec-avvocati.example", "Lanza", "02987650364", "Viale dei Tigli"],
+  "02-2020-sarti-termoidraulica-galli": ["Galli", "Andrea", "02765430367", "Via dei Calderai", "Elena", "Sarti", "SRTLNE71C45F257Q", "Via delle Meridiane", "elena.sarti@pec-avvocati.example", "Rinaldi", "Ottavio", "RNLTTV63E12F257K", "Via del Pozzo Antico"],
+  "03-2021-dini-officine-righi": ["Righi", "Paola", "RGHPLA66B44D711N", "03111220368", "Via dell'Officina", "Marco", "Dini", "DNIMRC80H03F257B", "marco.dini@pec-avvocati.example", "Studio Meridiana", "Via delle Meridiane", "Logistica Emiliana", "02444550369", "Via dei Magazzini"],
+  "04-2022-dini-benassi-locazione": ["Benassi", "Laura", "BNSLRA55M50F257W", "Via dei Glicini", "Marco", "Dini", "DNIMRC80H03F257B", "marco.dini@pec-avvocati.example", "Studio Meridiana", "Via delle Meridiane", "Ghirardini", "Paolo", "GHRPLA79T21F257H", "Via della Ghiara"],
+  "05-2022-sarti-edilnova": ["Edilnova", "03777880360", "Via delle Fornaci", "Stefano", "Corni", "Elena", "Sarti", "SRTLNE71C45F257Q", "Via delle Meridiane", "elena.sarti@pec-avvocati.example", "Marchetti", "02222330365", "Via del Cantiere Vecchio"],
+  "06-2023-dini-datanet": ["Datanet", "03888990366", "Via dei Server", "Luca", "Montanari", "Marco", "Dini", "marco.dini@pec-avvocati.example", "Neri", "Bruni", "02555660362", "Via dei Conti"],
+  "07-2024-sarti-tipografia-ronchi": ["Ronchi", "Marta", "03999000363", "Via dei Caratteri", "Elena", "Sarti", "SRTLNE71C45F257Q", "Via delle Meridiane", "elena.sarti@pec-avvocati.example", "Bellini", "02666770361", "Viale delle Feste"],
+  "08-2025-dini-climatek": ["Climatek", "03123450367", "Via del Freddo", "Davide", "Fontana", "Marco", "Dini", "DNIMRC80H03F257B", "marco.dini@pec-avvocati.example", "Studio Meridiana", "Via delle Meridiane", "Ugolini", "02345670368", "Via del Legno"],
+  "09-2025-dini-diffida-valli": ["Studio Meridiana", "Via delle Meridiane", "Valli", "Rita", "Via del Mercato", "gastronomiavalli@pec-imprese.example", "Imballaggi Bassi", "03456780361", "Via delle Serre", "IT40S0542811101000000123456", "Marco", "Dini"],
+  "10-2026-sarti-ferramenta-corradini": ["Corradini", "Enrico", "03222110364", "Via delle Viti", "Elena", "Sarti", "SRTLNE71C45F257Q", "Via delle Meridiane", "elena.sarti@pec-avvocati.example", "Edil Frignano", "02777880369", "Via dei Castagni"]
+}

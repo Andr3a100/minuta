@@ -1,0 +1,123 @@
+{
+  "c.c. art. 1224": {
+    "chiave": "c.c. art. 1224",
+    "indirizzo": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262:2~art1224",
+    "verificata_il": "2026-10-05",
+    "stato": "verificata",
+    "fonte": "Normattiva, testo vigente",
+    "tipo": "norma",
+    "usata_negli_atti": 2,
+    "esempio": "artt. 1224 e 1284 c.c.",
+    "primo_atto": "02"
+  },
+  "c.c. art. 1282": {
+    "chiave": "c.c. art. 1282",
+    "indirizzo": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262:2~art1282",
+    "verificata_il": "2026-10-05",
+    "stato": "verificata",
+    "fonte": "Normattiva, testo vigente",
+    "tipo": "norma",
+    "usata_negli_atti": 1,
+    "esempio": "artt. 1224 e 1282 c.c.",
+    "primo_atto": "04"
+  },
+  "c.c. art. 1284": {
+    "chiave": "c.c. art. 1284",
+    "indirizzo": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262:2~art1284",
+    "verificata_il": "2026-10-05",
+    "stato": "verificata",
+    "fonte": "Normattiva, testo vigente",
+    "tipo": "norma",
+    "usata_negli_atti": 1,
+    "esempio": "artt. 1224 e 1284 c.c.",
+    "primo_atto": "02"
+  },
+  "c.p.c. art. 633": {
+    "chiave": "c.p.c. art. 633",
+    "indirizzo": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443:1~art633",
+    "verificata_il": "2026-10-05",
+    "stato": "verificata",
+    "fonte": "Normattiva, testo vigente",
+    "tipo": "norma",
+    "usata_negli_atti": 9,
+    "esempio": "artt. 633 e 634 c.p.c.",
+    "primo_atto": "01"
+  },
+  "c.p.c. art. 634": {
+    "chiave": "c.p.c. art. 634",
+    "indirizzo": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443:1~art634",
+    "verificata_il": "2026-10-05",
+    "stato": "verificata",
+    "fonte": "Normattiva, testo vigente",
+    "tipo": "norma",
+    "usata_negli_atti": 6,
+    "esempio": "artt. 633 e 634 c.p.c.",
+    "primo_atto": "01"
+  },
+  "c.p.c. art. 641": {
+    "chiave": "c.p.c. art. 641",
+    "indirizzo": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443:1~art641",
+    "verificata_il": "2026-10-05",
+    "stato": "verificata",
+    "fonte": "Normattiva, testo vigente",
+    "tipo": "norma",
+    "usata_negli_atti": 3,
+    "esempio": "art. 641 c.p.c.",
+    "primo_atto": "01"
+  },
+  "c.p.c. art. 642": {
+    "chiave": "c.p.c. art. 642",
+    "indirizzo": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443:1~art642",
+    "verificata_il": "2026-10-05",
+    "stato": "verificata",
+    "fonte": "Normattiva, testo vigente",
+    "tipo": "norma",
+    "usata_negli_atti": 2,
+    "esempio": "art. 642, secondo comma, c.p.c.",
+    "primo_atto": "05"
+  },
+  "d.lgs. 231/2002 art. 4": {
+    "chiave": "d.lgs. 231/2002 art. 4",
+    "indirizzo": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2002-10-09;231~art4",
+    "verificata_il": "2026-10-05",
+    "stato": "verificata",
+    "fonte": "Normattiva, testo vigente",
+    "tipo": "norma",
+    "usata_negli_atti": 4,
+    "esempio": "art. 4 del medesimo decreto",
+    "primo_atto": "01"
+  },
+  "d.lgs. 231/2002 art. 5": {
+    "chiave": "d.lgs. 231/2002 art. 5",
+    "indirizzo": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2002-10-09;231~art5",
+    "verificata_il": "2026-10-05",
+    "stato": "verificata",
+    "fonte": "Normattiva, testo vigente",
+    "tipo": "norma",
+    "usata_negli_atti": 7,
+    "esempio": "art. 5 del D.Lgs. 9 ottobre 2002, n. 231",
+    "primo_atto": "01"
+  },
+  "d.lgs. 231/2002 art. 6": {
+    "chiave": "d.lgs. 231/2002 art. 6",
+    "indirizzo": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2002-10-09;231~art6",
+    "verificata_il": "2026-10-05",
+    "stato": "verificata",
+    "fonte": "Normattiva, testo vigente",
+    "tipo": "norma",
+    "usata_negli_atti": 6,
+    "esempio": "art. 6 del D.Lgs. 231/2002",
+    "primo_atto": "01"
+  },
+  "d.p.r. 115/2002 art. 14": {
+    "chiave": "d.p.r. 115/2002 art. 14",
+    "indirizzo": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art14",
+    "verificata_il": "2026-10-05",
+    "stato": "verificata",
+    "fonte": "Normattiva, testo vigente",
+    "tipo": "norma",
+    "usata_negli_atti": 8,
+    "esempio": "art. 14 del D.P.R. 30 maggio 2002, n. 115",
+    "primo_atto": "01"
+  }
+}
