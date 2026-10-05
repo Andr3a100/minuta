@@ -18,7 +18,7 @@ ottobre 2026, su un solo tipo di atto: il ricorso per decreto ingiuntivo.
 | Ritrova i precedenti, filtrando per tipo, autore e periodo | `search.py` | provato |
 | Ricava il profilo dello studio: stile di ogni avvocato, formule con i loro atti | `profile.py` | provato |
 | Costruisce il massimario e verifica le norme su Normattiva | `citations.py` | provato |
-| Prepara la bozza: provenienza, citazioni, pertinenza, segnaposto di altri clienti | `draft.py` | provato con il modello finto |
+| Prepara la bozza: provenienza, citazioni, pertinenza, completezza, segnaposto di altri clienti | `draft.py` | provato con il modello finto e con OpenAI |
 | Parla con i modelli in cloud: OpenAI (provato il 5 ottobre 2026 con gpt-6.1-sol e gpt-6-astra) e Anthropic (non ancora provato) | `model.py` | OpenAI provato; Anthropic PROCEDURA |
 | Esporta gli esempi per l'addestramento (livello 2), pseudonimizzati | `__main__.py` | provato |
 
