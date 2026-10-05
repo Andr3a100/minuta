@@ -48,8 +48,8 @@ GENERICHE = {
     "officine", "meccaniche", "logistica", "imballaggi", "supermercati",
     "termoidraulica", "costruzioni", "tipografia", "agenzia", "eventi",
     "impianti", "mobilificio", "ferramenta", "edil", "gastronomia", "studio",
-    "associato", "commercialisti", "soluzioni", "emiliana", "frignano", "di",
-    "del", "della", "e", "&",
+    "associato", "commercialisti", "soluzioni", "emiliana", "frignano", "albergo",
+    "hotel", "di", "del", "della", "e", "&",
 }
 FORME = re.compile(rf"\s*{FORMA}$")
 
@@ -94,7 +94,10 @@ class Pseudonimizzatore:
             trovati[m.group(1)] = "PIVA"
         for m in INDIRIZZO.finditer(testo):
             trovati[m.group(0)] = "INDIRIZZO"
-        soggetti = [m.group(0).strip() for m in SOCIETA.finditer(testo)]
+        # I soggetti e le persone già noti si spezzano come quelli trovati nel testo:
+        # «il sig. Taddei» va nascosto anche se il fascicolo dice «Giorgio Taddei».
+        soggetti = [v for v, t in self.noti.items() if t == "SOGGETTO"]
+        soggetti += [m.group(0).strip() for m in SOCIETA.finditer(testo)]
         soggetti += [m.group(0).strip() for m in STUDIO_ASSOCIATO.finditer(testo)]
         for soggetto in soggetti:
             soggetto = re.sub(r"^(?:Per|contro|Spett\.le)\s*:?\s*", "", soggetto)
@@ -105,7 +108,7 @@ class Pseudonimizzatore:
             for parola in re.findall(rf"{NOME}|{NOME_MAIUSCOLO}", senza_forma):
                 if parola.lower() not in GENERICHE:
                     trovati.setdefault(parola, "SOGGETTO")
-        persone = []
+        persone = [v for v, t in self.noti.items() if t == "PERSONA"]
         for regola in (PERSONA_CON_CF, PERSONA_CON_TITOLO, PERSONA_CON_RUOLO):
             persone += [m.group(1) for m in regola.finditer(testo)]
         for persona in persone:

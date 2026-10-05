@@ -142,6 +142,8 @@ create table if not exists sezioni(
     atto_id text, ordine integer, ruolo text, testo text);
 create virtual table if not exists indice using fts5(
     atto_id unindexed, ruolo unindexed, testo, tokenize='trigram');
+create table if not exists riservati(
+    atto_id text, valore text, tipo text);
 """
 
 
@@ -160,6 +162,7 @@ def importa(cartella: Path, db: sqlite3.Connection, config: dict) -> list[Atto]:
             db.execute("delete from atti where id = ?", (atto.id,))
             db.execute("delete from sezioni where atto_id = ?", (atto.id,))
             db.execute("delete from indice where atto_id = ?", (atto.id,))
+            db.execute("delete from riservati where atto_id = ?", (atto.id,))
             db.execute("insert into atti values (?, ?, ?, ?, ?, ?, ?, ?)",
                        (atto.id, atto.file, atto.data, atto.autore, atto.tipo,
                         atto.giudice, atto.valore, atto.testo))
@@ -168,6 +171,66 @@ def importa(cartella: Path, db: sqlite3.Connection, config: dict) -> list[Atto]:
                            (atto.id, ordine, ruolo, testo))
                 db.execute("insert into indice values (?, ?, ?)", (atto.id, ruolo, testo))
     return atti
+
+
+def importa_testo(db: sqlite3.Connection, atto_id: str, file: str, testo: str, *, autore: str,
+                  tipo: str, giudice: str | None, valore: float | None, data: str,
+                  riservati: dict[str, str] | None = None) -> Atto:
+    """Un atto firmato, arrivato come testo: entra fra gli esempi dello studio.
+
+    riservati sono i dati del suo cliente, presi dal fascicolo: quando l'atto
+    farà da esempio per un altro cliente, si nascondono anche se nessuna regola
+    li riconoscerebbe (un nome senza titolo, una forma abbreviata).
+    """
+    paragrafi = [normalizza(p) for p in re.split(r"\n\s*\n", testo) if p.strip()]
+    righe = [r for p in paragrafi for r in ([p] if len(p) > 80 else p.split("\n")) if r]
+    atto = Atto(id=atto_id, file=file, testo="\n".join(righe), paragrafi=righe, data=data,
+                autore=autore, tipo=tipo, giudice=giudice, valore=valore)
+    atto.sezioni = dividi(righe)
+    with db:
+        for tabella in ("atti", "sezioni", "indice", "riservati"):
+            colonna = "id" if tabella == "atti" else "atto_id"
+            db.execute(f"delete from {tabella} where {colonna} = ?", (atto_id,))
+        db.execute("insert into atti values (?, ?, ?, ?, ?, ?, ?, ?)",
+                   (atto.id, atto.file, atto.data, atto.autore, atto.tipo, atto.giudice,
+                    atto.valore, atto.testo))
+        for ordine, (ruolo, testo_sezione) in enumerate(atto.sezioni):
+            db.execute("insert into sezioni values (?, ?, ?, ?)", (atto.id, ordine, ruolo, testo_sezione))
+            db.execute("insert into indice values (?, ?, ?)", (atto.id, ruolo, testo_sezione))
+        for valore_riservato, tipo_riservato in (riservati or {}).items():
+            db.execute("insert into riservati values (?, ?, ?)",
+                       (atto.id, valore_riservato, tipo_riservato))
+    return atto
+
+
+def riservati(db: sqlite3.Connection, atto_id: str) -> dict[str, str]:
+    return {r["valore"]: r["tipo"] for r in
+            db.execute("select valore, tipo from riservati where atto_id = ?", (atto_id,))}
+
+
+def approvati(db: sqlite3.Connection) -> set[str]:
+    """Gli atti entrati nell'archivio da una bozza di Minuta approvata."""
+    return {r["id"] for r in db.execute("select id from atti where file like 'approvati/%'")}
+
+
+def salva_approvato(cartella: Path, testo: str, scheda: dict) -> Path:
+    """L'atto firmato resta in due file, testo e scheda: il database si può sempre
+    ricostruire, gli atti firmati non vanno persi."""
+    cartella.mkdir(parents=True, exist_ok=True)
+    (cartella / f"{scheda['atto_id']}.txt").write_text(testo + "\n", "utf-8")
+    percorso = cartella / f"{scheda['atto_id']}.json"
+    percorso.write_text(json.dumps(scheda, ensure_ascii=False, indent=2) + "\n", "utf-8")
+    return percorso
+
+
+def importa_approvato(percorso: Path, db: sqlite3.Connection) -> Atto:
+    scheda = json.loads(percorso.read_text("utf-8"))
+    testo = (percorso.parent / f"{scheda['atto_id']}.txt").read_text("utf-8")
+    return importa_testo(db, file=f"approvati/{scheda['atto_id']}", testo=testo, **scheda)
+
+
+def importa_approvati(cartella: Path, db: sqlite3.Connection) -> list[Atto]:
+    return [importa_approvato(p, db) for p in sorted(cartella.glob("*.json"))]
 
 
 def carica_config(percorso: Path) -> dict:

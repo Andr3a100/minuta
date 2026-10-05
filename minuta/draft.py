@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import citations, search
+from . import archive, citations, learning, search
 from .leaks import fughe
 from .model import Modello
 from .pseudonym import Pseudonimizzatore, segnaposto_estranei
@@ -190,28 +190,52 @@ def registra(cartella: Path, voce: dict) -> None:
         f.write(json.dumps(voce, ensure_ascii=False) + "\n")
 
 
+def scegli_esempi(db: sqlite3.Connection, stile: str, domanda: str, curatela: dict,
+                  quanti: int = 2) -> list[search.Risultato]:
+    """Gli atti che fanno da esempio: dello stesso avvocato e dello stesso tipo.
+
+    Prima i più vicini per argomento. Per imitare uno stile non servono atti
+    sullo stesso argomento, quindi se la ricerca non basta si aggiungono i
+    modelli indicati dall'avvocato e poi i più recenti; mai gli atti esclusi.
+    """
+    esclusi = learning.esclusi(curatela)
+    trovati = search.cerca(db, domanda, tipo="ricorso", autore=stile, quanti=quanti,
+                           escludi=esclusi)
+    candidati = [r for r in db.execute(
+        "select * from atti where autore = ? and tipo like 'ricorso%' order by data desc",
+        (stile,)) if r["id"] not in esclusi]
+    buoni = learning.preferiti(curatela)
+    candidati.sort(key=lambda r: r["id"] not in buoni)
+    for riga in candidati:
+        if len(trovati) >= quanti:
+            break
+        if riga["id"] not in {r.atto_id for r in trovati}:
+            trovati.append(search.Risultato(riga["id"], riga["file"], 0.0, riga["autore"],
+                                            riga["tipo"], riga["data"], "esempio di stile"))
+    # Gli atti approvati sono nati da bozze di Minuta. Se fossero tutti gli
+    # esempi, bozza dopo bozza lo stile scivolerebbe verso quello del modello:
+    # almeno un esempio resta un atto scritto dall'avvocato senza Minuta.
+    approvati = archive.approvati(db)
+    if trovati and all(r.atto_id in approvati for r in trovati):
+        originali = search.cerca(db, domanda, tipo="ricorso", autore=stile, quanti=1,
+                                 escludi=esclusi | approvati) or [
+            search.Risultato(r["id"], r["file"], 0.0, r["autore"], r["tipo"], r["data"],
+                             "esempio di stile")
+            for r in candidati if r["id"] not in approvati][:1]
+        if originali:
+            trovati[-1] = originali[0]
+    return trovati
+
+
 def prepara(db: sqlite3.Connection, fascicolo: dict, config: dict, profilo: dict,
             massimario: citations.Massimario, modello: Modello, registro: Path,
-            prezzi: dict | None = None) -> Bozza:
+            prezzi: dict | None = None, curatela: dict | None = None,
+            apprese: list[dict] | None = None) -> Bozza:
     stile = fascicolo["stile"]
     avvocato = next(a["nome"] for a in config["avvocati"] if a["id"] == stile)
 
     # 1. I precedenti più vicini, nello stile dell'avvocato che firmerà.
-    domanda = fascicolo["rapporto"]
-    trovati = search.cerca(db, domanda, tipo="ricorso", autore=stile, quanti=2)
-    # Per imitare uno stile non servono atti sullo stesso argomento: servono atti
-    # dello stesso avvocato e dello stesso tipo. Se la ricerca non ne trova
-    # abbastanza, si aggiungono i più recenti.
-    if len(trovati) < 2:
-        presi = {r.atto_id for r in trovati}
-        for riga in db.execute(
-                "select * from atti where autore = ? and tipo like 'ricorso%' order by data desc",
-                (stile,)):
-            if len(trovati) >= 2:
-                break
-            if riga["id"] not in presi:
-                trovati.append(search.Risultato(riga["id"], riga["file"], 0.0, riga["autore"],
-                                                riga["tipo"], riga["data"], "esempio di stile"))
+    trovati = scegli_esempi(db, stile, fascicolo["rapporto"], curatela or {})
 
     # 2. Pseudonimizzazione: il fascicolo senza prefisso, ogni esempio con il suo.
     noti = {config["studio"]: "STUDIO", avvocato: "PERSONA", **sensibili_del_fascicolo(fascicolo)}
@@ -221,9 +245,13 @@ def prepara(db: sqlite3.Connection, fascicolo: dict, config: dict, profilo: dict
     blocchi_esempi = []
     for n, risultato in enumerate(trovati, start=1):
         testo = db.execute("select testo from atti where id = ?", (risultato.atto_id,)).fetchone()[0]
-        esempio_ps = Pseudonimizzatore(prefisso=f"E{n}_", noti={config["studio"]: "STUDIO"})
+        # Un atto firmato porta con sé i dati del suo cliente: si nascondono e si
+        # cercano nel testo in uscita, anche dove nessuna regola li riconoscerebbe.
+        riservati = archive.riservati(db, risultato.atto_id)
+        esempio_ps = Pseudonimizzatore(prefisso=f"E{n}_",
+                                       noti={config["studio"]: "STUDIO", **riservati})
         nascosto = esempio_ps.nascondi(testo)
-        sensibili |= set(esempio_ps.tabella.values())
+        sensibili |= set(esempio_ps.tabella.values()) | set(riservati)
         blocchi_esempi.append(f"ESEMPIO E{n} (atto {risultato.atto_id}, {risultato.data})\n{nascosto}")
 
     regole = profilo["autori"][stile]
@@ -234,6 +262,8 @@ def prepara(db: sqlite3.Connection, fascicolo: dict, config: dict, profilo: dict
     richiesta = "\n".join([
         dati, f"STILE: {stile_json}",
         "REGOLE DELLO STUDIO: " + " ".join(regole_dello_studio(fascicolo)),
+        "REGOLE APPRESE DALLE CORREZIONI DELL'AVVOCATO: "
+        + (" ".join(learning.come_regola(v) for v in apprese or []) or "nessuna"),
         "CITAZIONI AMMESSE: " + "; ".join(massimario.ammesse()),
         *blocchi_esempi, "FINE ESEMPI",
         "Scrivi la bozza completa dell'atto."])
@@ -279,6 +309,7 @@ def prepara(db: sqlite3.Connection, fascicolo: dict, config: dict, profilo: dict
         if c["stato"] != "verificata":
             avvisi.append(f"Citazione {c['stato']}: «{c['citazione']}».")
     avvisi += completezza(testo, fascicolo)
+    avvisi += learning.non_rispettate(testo, apprese or [], noti)
     if "[DA COMPLETARE" in testo:
         avvisi.append("Dati da completare: " + "; ".join(re.findall(r"\[DA COMPLETARE: ([^\]]+)\]", testo)))
 
