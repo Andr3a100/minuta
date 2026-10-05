@@ -69,3 +69,21 @@ def test_l_invio_si_blocca_se_qualcosa_sfugge(db, fascicolo, config, profilo, ma
     with pytest.raises(RuntimeError, match="invio bloccato"):
         prepara(db, fascicolo, config, profilo, massimario, tmp_path)
     assert not (tmp_path / "uso-ai.jsonl").exists()
+
+
+def test_errore_deliberato_i_40_euro_dimenticati(db, fascicolo, config, profilo, massimario,
+                                                tmp_path):
+    completa = prepara(db, fascicolo, config, profilo, massimario, tmp_path)
+    assert "euro 80,00 per i costi di recupero" in completa.testo
+    assert not [a for a in completa.avvisi if a.startswith("COMPLETEZZA")]
+    incompleta = prepara(db, fascicolo, config, profilo, massimario, tmp_path, errore="incompleto")
+    assert any("40 euro per ciascuna fattura (2 fatture, euro 80,00)" in a and "C-585/20" in a
+               for a in incompleta.avvisi)
+
+
+def test_le_regole_dello_studio_arrivano_al_modello(db, fascicolo, config, profilo, massimario,
+                                                    tmp_path):
+    bozza = prepara(db, fascicolo, config, profilo, massimario, tmp_path)
+    assert "REGOLE DELLO STUDIO:" in bozza.inviato
+    assert "qui 2 fatture, euro 80,00" in bozza.inviato
+    assert "cgue C-585/20" in bozza.inviato  # fra le citazioni ammesse

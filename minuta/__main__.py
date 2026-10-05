@@ -63,8 +63,10 @@ def main(argomenti: list[str] | None = None) -> int:
         fascicolo = json.loads(a.fascicolo.read_text("utf-8"))
         profilo = json.loads((RADICE / "config/profilo.json").read_text("utf-8"))
         massimario = citations.Massimario(RADICE / "config/massimario.json")
+        prezzi_file = RADICE / "config/prezzi.json"
+        prezzi = json.loads(prezzi_file.read_text("utf-8")) if prezzi_file.exists() else {}
         risultato = draft.prepara(db, fascicolo, config, profilo, massimario,
-                                  model.scegli(a.modello), RADICE / "registro")
+                                  model.scegli(a.modello), RADICE / "registro", prezzi)
         a.uscita.mkdir(parents=True, exist_ok=True)
         nome = f"{fascicolo['id']}-{datetime.now():%Y%m%d-%H%M%S}.md"
         (a.uscita / nome).write_text(draft.in_markdown(risultato, fascicolo), "utf-8")

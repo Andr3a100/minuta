@@ -16,8 +16,9 @@ def test_rinvii_brevi_al_decreto_appena_citato():
 
 def test_il_massimario_dello_studio_e_verificato(massimario):
     # Le undici norme citate nell'archivio, aperte sul testo vigente di
-    # Normattiva il 5 ottobre 2026 (verbali/massimario-2026-10-05.txt).
-    assert len(massimario.ammesse()) == 11
+    # Normattiva il 5 ottobre 2026 (verbali/massimario-2026-10-05.txt), e la
+    # sentenza C-585/20 della Corte di giustizia, letta sul testo ufficiale.
+    assert len(massimario.ammesse()) == 12
 
 
 def test_una_sentenza_inventata_resta_da_verificare(massimario):
@@ -37,5 +38,4 @@ def test_indirizzi_normattiva_degli_allegati():
 
 def test_le_cause_europee_si_riconoscono(massimario):
     stati = citations.controlla("come chiarito dalla Corte di giustizia nella causa C-585/20", massimario)
-    assert stati == [{"citazione": "C-585/20", "chiave": "cgue C-585/20",
-                      "stato": "da verificare: nel massimario, non ancora controllata sulla fonte"}]
+    assert stati == [{"citazione": "C-585/20", "chiave": "cgue C-585/20", "stato": "verificata"}]

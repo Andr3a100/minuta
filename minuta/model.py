@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -89,10 +90,12 @@ class ModelloCompatibileOpenAI:
     Chiave in OPENAI_API_KEY; indirizzo diverso da OpenAI in MINUTA_BASE_URL.
     """
 
-    def __init__(self, nome: str, indirizzo: str | None = None, massimo: int = 4000):
+    def __init__(self, nome: str, indirizzo: str | None = None, massimo: int = 16000):
         self.nome = nome
         self.indirizzo = (indirizzo or os.environ.get("MINUTA_BASE_URL")
                           or "https://api.openai.com/v1").rstrip("/")
+        # I modelli che ragionano spendono parte dei token prima di scrivere:
+        # il margine deve bastare per entrambe le cose.
         self.massimo = massimo
 
     def scrivi(self, sistema: str, richiesta: str) -> Risposta:
@@ -105,10 +108,17 @@ class ModelloCompatibileOpenAI:
             f"{self.indirizzo}/chat/completions", data=corpo, method="POST",
             headers={"authorization": f"Bearer {chiave_openai()}",
                      "content-type": "application/json"})
-        with urllib.request.urlopen(domanda, timeout=300) as r:
-            dati = json.load(r)
+        try:
+            with urllib.request.urlopen(domanda, timeout=600) as r:
+                dati = json.load(r)
+        except urllib.error.HTTPError as errore:
+            dettaglio = errore.read().decode("utf-8", "replace")[:500]
+            raise RuntimeError(f"il fornitore ha risposto {errore.code}: {dettaglio}") from None
+        scelta = dati["choices"][0]
+        if scelta.get("finish_reason") == "length":
+            raise RuntimeError("risposta interrotta: il modello ha esaurito i token disponibili")
         uso = dati.get("usage", {})
-        return Risposta(dati["choices"][0]["message"]["content"], dati.get("model", self.nome),
+        return Risposta(scelta["message"]["content"] or "", dati.get("model", self.nome),
                         uso.get("prompt_tokens"), uso.get("completion_tokens"))
 
 
@@ -116,7 +126,8 @@ class ModelloFinto:
     """Sostituto deterministico per le prove: nessuna rete, nessun costo.
 
     errore: "sentenza" aggiunge una sentenza inventata; "contaminazione" usa
-    un segnaposto di un esempio. Servono agli errori deliberati.
+    un segnaposto di un esempio; "incompleto" dimentica i 40 euro per fattura.
+    Servono agli errori deliberati.
     """
 
     nome = "finto-deterministico"
@@ -154,10 +165,15 @@ class ModelloFinto:
                      "{fonte: modello}")
         p.append(f"{stile['conclusioni']} {{fonte: profilo}}")
         destinatario = "[E1_SOGGETTO_2]" if self.errore == "contaminazione" else dati["INTIMATA"]
+        forfait = ""
+        if dati.get("INTERESSI") == "commerciali" and self.errore != "incompleto":
+            fatture = dati["FATTURE"].count("n. ")
+            forfait = (f", oltre euro {40 * fatture},00 per i costi di recupero ai sensi dell'art. 6 "
+                       f"del D.Lgs. 231/2002")
         p.append(f"che l'Ill.mo {dati['GIUDICE']} voglia ingiungere a {destinatario} di pagare "
                  f"alla ricorrente, entro quaranta giorni dalla notifica, la somma di euro "
-                 f"{dati['TOTALE']}, oltre interessi moratori ai sensi dell'art. 5 del D.Lgs. "
-                 f"231/2002 e spese del procedimento. {{fonte: fascicolo}}")
+                 f"{dati['TOTALE']}{forfait}, oltre interessi moratori ai sensi dell'art. 5 del "
+                 f"D.Lgs. 231/2002 e spese del procedimento. {{fonte: fascicolo}}")
         p.append(f"Ai sensi dell'art. 14 del D.P.R. 115/2002 si dichiara che il valore della "
                  f"presente procedura è pari a euro {dati['TOTALE']}. {{fonte: profilo}}")
         p.append(f"Si producono: {dati['DOCUMENTI']}. {{fonte: fascicolo}}")

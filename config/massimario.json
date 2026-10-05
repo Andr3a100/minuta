@@ -123,13 +123,14 @@
   "cgue C-585/20": {
     "chiave": "cgue C-585/20",
     "tipo": "sentenza",
-    "stato": "da verificare",
+    "stato": "verificata",
+    "estremi": "Corte di giustizia UE, Terza Sezione, sentenza 20 ottobre 2022, causa C-585/20, BFF Finance Iberia, ECLI:EU:C:2022:806",
     "indirizzo": "https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:62020CJ0585",
-    "motivo": "testo ufficiale non consultabile da programma (EUR-Lex e InfoCuria bloccano gli accessi automatici)",
-    "nota": "Secondo fonti secondarie (Il Sole 24 Ore, NT+ Diritto), la Corte di giustizia UE ha interpretato l'art. 6 della direttiva 2011/7/UE, attuato dall'art. 6 del D.Lgs. 231/2002: i 40 euro forfettari sono dovuti per ciascuna fattura pagata in ritardo. Da confermare sul testo ufficiale.",
+    "fonte": "testo ufficiale EUR-Lex (PDF in fonti/CELEX_62020CJ0585_IT_TXT.pdf), fornito da Andrea il 5 ottobre 2026",
+    "massima": "L'importo forfettario minimo di 40 euro (art. 6 della direttiva 2011/7/UE, attuato dall'art. 6 del D.Lgs. 231/2002) è dovuto per ogni operazione commerciale non pagata alla scadenza, attestata in una fattura, anche se più fatture sono incluse in un'unica domanda (dispositivo, punto 1). La domanda deve consentire di documentare la corrispondenza tra ciascuna fattura e la transazione non pagata (punto 41).",
     "pertinente_a": [
       "d.lgs. 231/2002 art. 6"
     ],
-    "aggiunta_il": "2026-10-05"
+    "verificata_il": "2026-10-05"
   }
 }

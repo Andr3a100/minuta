@@ -1,0 +1,6 @@
+{
+  "_fonte": "https://developers.openai.com/api/docs/pricing, letta il 2026-10-05: prezzi standard per milione di token, contesto breve. Con la residenza dei dati in Europa si aggiunge il 10% sui modelli usciti dal 5 marzo 2026.",
+  "gpt-6-astra": {"ingresso": 10.00, "ingresso_in_cache": 1.00, "uscita": 50.00},
+  "gpt-6.1-sol": {"ingresso": 2.00, "ingresso_in_cache": 0.10, "uscita": 10.00},
+  "gpt-6-luna": {"ingresso": 0.10, "ingresso_in_cache": 0.01, "uscita": 0.50}
+}

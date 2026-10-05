@@ -75,6 +75,57 @@ def pertinenza(paragrafi: list[dict], fascicolo: dict) -> list[str]:
     return avvisi
 
 
+def regole_dello_studio(fascicolo: dict) -> list[str]:
+    """Le regole per questo tipo di atto, con i numeri del fascicolo.
+
+    Sono le stesse che completezza() controlla dopo: dirle prima al modello
+    evita l'errore, controllarle dopo lo intercetta se succede comunque.
+    """
+    regole = []
+    if fascicolo["tipo"].startswith("ricorso decreto ingiuntivo"):
+        regole += [
+            "Indica il termine di quaranta giorni per pagare o proporre opposizione (art. 641 c.p.c.).",
+            "Dichiara il valore della procedura ai sensi dell'art. 14 del D.P.R. 115/2002.",
+            "Elenca i documenti prodotti.",
+        ]
+        if fascicolo.get("interessi") == "commerciali":
+            fatture = len(fascicolo.get("fatture", []))
+            regole.append(
+                "Transazione commerciale: chiedi gli interessi moratori dell'art. 5 del D.Lgs. 231/2002 "
+                f"e, per ciascuna fattura, 40 euro per i costi di recupero: qui {fatture} fatture, "
+                f"euro {euro(40 * fatture)} (art. 6 del D.Lgs. 231/2002, come interpretato dalla "
+                "Corte di giustizia UE, C-585/20).")
+        if fascicolo.get("provvisoria_esecuzione"):
+            regole.append("Chiedi la provvisoria esecuzione ai sensi dell'art. 642 c.p.c., "
+                          "indicandone il presupposto.")
+    return regole
+
+
+def completezza(testo: str, fascicolo: dict) -> list[str]:
+    """Ciò che un ricorso di questo tipo deve contenere e la bozza non ha."""
+    avvisi = []
+    if not fascicolo["tipo"].startswith("ricorso decreto ingiuntivo"):
+        return avvisi
+    richiesti = [
+        ("la dichiarazione di valore (art. 14 D.P.R. 115/2002)", r"valore della (?:presente procedura|causa)"),
+        ("il termine di quaranta giorni per pagare o fare opposizione", r"quaranta giorni"),
+        ("l'elenco dei documenti prodotti", r"si producono|documenti"),
+    ]
+    for cosa, regola in richiesti:
+        if not re.search(regola, testo, re.I):
+            avvisi.append(f"COMPLETEZZA: manca {cosa}.")
+    if fascicolo.get("interessi") == "commerciali":
+        fatture = len(fascicolo.get("fatture", []))
+        if not re.search(r"art\. 6\b[^.;]{0,40}231|costi di recupero", testo, re.I):
+            avvisi.append(
+                f"COMPLETEZZA: transazione commerciale, manca la richiesta dei 40 euro per ciascuna "
+                f"fattura ({fatture} fatture, euro {euro(40 * fatture)}): art. 6 del D.Lgs. 231/2002, "
+                "come interpretato dalla Corte di giustizia UE, C-585/20.")
+    if fascicolo.get("provvisoria_esecuzione") and not re.search(r"\b642\b", testo):
+        avvisi.append("COMPLETEZZA: il fascicolo chiede la provvisoria esecuzione, la bozza no.")
+    return avvisi
+
+
 @dataclass
 class Bozza:
     testo: str
@@ -125,6 +176,14 @@ def dati_del_fascicolo(fascicolo: dict, avvocato: str) -> str:
     return "\n".join(f"{k}: {v}" for k, v in righe.items())
 
 
+def costo(modello: str, token_in: int | None, token_out: int | None, prezzi: dict) -> float | None:
+    """Il costo in dollari, dai prezzi ufficiali registrati in config/prezzi.json."""
+    voce = next((v for k, v in prezzi.items() if not k.startswith("_") and modello.startswith(k)), None)
+    if voce is None or token_in is None or token_out is None:
+        return None
+    return round((token_in * voce["ingresso"] + token_out * voce["uscita"]) / 1_000_000, 4)
+
+
 def registra(cartella: Path, voce: dict) -> None:
     cartella.mkdir(parents=True, exist_ok=True)
     with open(cartella / "uso-ai.jsonl", "a", encoding="utf-8") as f:
@@ -132,7 +191,8 @@ def registra(cartella: Path, voce: dict) -> None:
 
 
 def prepara(db: sqlite3.Connection, fascicolo: dict, config: dict, profilo: dict,
-            massimario: citations.Massimario, modello: Modello, registro: Path) -> Bozza:
+            massimario: citations.Massimario, modello: Modello, registro: Path,
+            prezzi: dict | None = None) -> Bozza:
     stile = fascicolo["stile"]
     avvocato = next(a["nome"] for a in config["avvocati"] if a["id"] == stile)
 
@@ -160,6 +220,7 @@ def prepara(db: sqlite3.Connection, fascicolo: dict, config: dict, profilo: dict
                             ensure_ascii=False)
     richiesta = "\n".join([
         dati, f"STILE: {stile_json}",
+        "REGOLE DELLO STUDIO: " + " ".join(regole_dello_studio(fascicolo)),
         "CITAZIONI AMMESSE: " + "; ".join(massimario.ammesse()),
         *blocchi_esempi, "FINE ESEMPI",
         "Scrivi la bozza completa dell'atto."])
@@ -176,7 +237,9 @@ def prepara(db: sqlite3.Connection, fascicolo: dict, config: dict, profilo: dict
         "fascicolo": fascicolo["id"], "modello": risposta.modello,
         "inviato_sha256": hashlib.sha256((SISTEMA + richiesta).encode()).hexdigest(),
         "caratteri_inviati": len(SISTEMA + richiesta), "token_in": risposta.token_in,
-        "token_out": risposta.token_out, "esempi": [r.atto_id for r in trovati],
+        "token_out": risposta.token_out,
+        "costo_usd": costo(risposta.modello, risposta.token_in, risposta.token_out, prezzi or {}),
+        "esempi": [r.atto_id for r in trovati],
         "controllo_fughe": "superato", "approvata_da": None})
 
     # 5. Segnaposto di altri fascicoli: non si ricompongono mai.
@@ -202,6 +265,7 @@ def prepara(db: sqlite3.Connection, fascicolo: dict, config: dict, profilo: dict
     for c in stati:
         if c["stato"] != "verificata":
             avvisi.append(f"Citazione {c['stato']}: «{c['citazione']}».")
+    avvisi += completezza(testo, fascicolo)
     if "[DA COMPLETARE" in testo:
         avvisi.append("Dati da completare: " + "; ".join(re.findall(r"\[DA COMPLETARE: ([^\]]+)\]", testo)))
 
