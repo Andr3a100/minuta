@@ -30,6 +30,26 @@ def test_le_modifiche_hanno_il_loro_tipo(db, fascicolo, config, profilo, massima
     assert ("dati", "9.960,50", "9.960,00") in tipi
 
 
+def test_un_completamento_non_nasconde_una_frase_tolta():
+    tolta = ("[DA COMPLETARE: scadenza] e poi la ricorrente ha emesso le fatture n. 455/2025 "
+             "e n. 489/2025 per complessivi euro 9.960,50")
+    modifiche = learning.confronta(f"Le scadenze sono: {tolta}.", "Le scadenze sono: 30 giorni.")
+    assert [m["tipo"] for m in modifiche] == ["riscrittura"]
+
+
+def test_una_correzione_non_si_spezza_su_una_parola_in_comune():
+    modifiche = learning.confronta("3. Per le predette prestazioni la ricorrente ha emesso",
+                                   "3. A fronte delle prestazioni indicate la ricorrente ha emesso")
+    assert [(m["tipo"], m["prima"], m["dopo"]) for m in modifiche] == [
+        ("stile", "Per le predette prestazioni", "A fronte delle prestazioni indicate")]
+
+
+def test_si_contano_i_dati_completati():
+    modifiche = learning.confronta("Scadenze: [DA COMPLETARE: prima] e [DA COMPLETARE: seconda].",
+                                   "Scadenze: 30 giorni.")
+    assert learning.conta(modifiche)["completamento"] == 2
+
+
 def test_una_correzione_in_due_atti_diventa_regola(db, fascicolo, config, profilo, massimario,
                                                     tmp_path):
     registro = tmp_path / "correzioni.json"
@@ -230,7 +250,8 @@ def test_il_comando_approva(db, fascicolo, config, profilo, massimario, tmp_path
         markdown = tmp_path / f"{numero}-20261005-120000.md"
         markdown.write_text(draft.in_markdown(bozza, dati), "utf-8")
         firmato = tmp_path / f"{numero}-firmato.txt"
-        firmato.write_text(bozza.testo.replace("la somma di euro", "la sorte capitale di euro"),
+        firmato.write_text(bozza.testo.replace("la somma di euro", "la sorte capitale di euro")
+                           .replace("[DA COMPLETARE: luogo e data]", "Modena, 20 ottobre 2026,"),
                            "utf-8")
         scheda = tmp_path / f"{numero}.json"
         scheda.write_text(json.dumps(dati), "utf-8")
@@ -238,7 +259,7 @@ def test_il_comando_approva(db, fascicolo, config, profilo, massimario, tmp_path
                              "--avvocato", "sarti", "--fascicolo", str(scheda)]) == 0
     comandi.main(["correzioni", "--avvocato", "sarti"])
     uscita = capsys.readouterr().out
-    assert ("approvata da sarti: 0 completamenti, 0 modifiche di dati, 1 correzione di stile, "
+    assert ("approvata da sarti: 1 completamento, 0 modifiche di dati, 1 correzione di stile, "
             "0 riscritture") in uscita
     assert "1. [regola] «somma» → «sorte capitale»  (in 2 atti, 2 volte)" in uscita
     assert (tmp_path / "archivio/approvati/2026-052.json").exists()

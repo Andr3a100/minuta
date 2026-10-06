@@ -20,6 +20,7 @@ ottobre 2026, su un solo tipo di atto: il ricorso per decreto ingiuntivo.
 | Costruisce il massimario e verifica le norme su Normattiva | `citations.py` | provato |
 | Prepara la bozza: provenienza, citazioni, pertinenza, completezza, segnaposto di altri clienti, regole apprese | `draft.py` | provato con il modello finto e con OpenAI |
 | Impara dall'avvocato senza addestrare un modello: atti modello, atti firmati che diventano esempi, correzioni che diventano regole | `learning.py` | provato con il modello finto e con OpenAI, su correzioni simulate |
+| Consegna la bozza in Word (.docx) e rilegge l'atto firmato, revisioni comprese | `word.py` | provato su bozze vere di OpenAI e su correzioni simulate; aperto con l'anteprima di macOS, non ancora in Word |
 | Parla con i modelli in cloud: OpenAI (provato il 5 ottobre 2026 con gpt-6.1-sol e gpt-6-astra) e Anthropic (non ancora provato) | `model.py` | OpenAI provato; Anthropic PROCEDURA |
 | Esporta gli esempi per l'addestramento (livello 2), pseudonimizzati | `__main__.py` | provato |
 
@@ -32,9 +33,10 @@ python3.13 -m venv .venv
 .venv/bin/python -m minuta importa
 .venv/bin/python -m minuta profilo
 .venv/bin/python -m minuta cerca "riconoscimento di debito" --autore sarti
-.venv/bin/python -m minuta bozza tests/fascicolo-prova.json --modello finto
+.venv/bin/python -m minuta bozza tests/fascicolo-prova.json --modello finto   # .md e .docx
+.venv/bin/python -m minuta word bozze/2026-041-....md     # una bozza già fatta, in Word
 .venv/bin/python -m minuta esempio 06 --no --motivo "interessi generici"
-.venv/bin/python -m minuta approva bozze/2026-041-....md --finale firmato.pdf \
+.venv/bin/python -m minuta approva bozze/2026-041-....docx --finale firmato.docx \
     --avvocato sarti --fascicolo tests/fascicolo-prova.json
 .venv/bin/python -m minuta correzioni --avvocato sarti
 .venv/bin/python -m pytest -q
@@ -46,6 +48,36 @@ Con un modello vero:
 
 Il file `.env` resta sul computer dello studio: git lo ignora e Minuta non
 stampa mai la chiave. Le chiavi non vanno mai nei file del repository.
+
+## In Word
+
+Ogni bozza esce in due file con lo stesso nome: il `.md`, che resta com'è e
+serve per il confronto, e il `.docx`, che l'avvocato apre e corregge. Nel
+`.docx` trova:
+- in cima, un riquadro grigio con le note di Minuta: modello, esempi usati, dati da completare, stato delle citazioni;
+- a margine, un commento per paragrafo con la provenienza (fascicolo, profilo, esempio, modello);
+- evidenziati in giallo, i `[DA COMPLETARE]`.
+
+Riquadro e commenti sono appunti di lavoro: prima del deposito si tolgono.
+Per la provenienza Minuta usa i commenti e non le note a piè di pagina, perché
+l'art. 6, comma 2, del DM 110/2023 non consente note, salvo che per la
+giurisprudenza e la dottrina.
+
+L'impaginazione di partenza segue lo stesso art. 6, comma 1 (testo vigente
+letto su Normattiva il 6 ottobre 2026): caratteri di tipo corrente,
+«preferibilmente» di 12 punti, interlinea 1,5, margini di 2,5 centimetri.
+Minuta usa il Times New Roman. Lo studio può cambiare queste impostazioni con
+la voce `impaginazione` di `config/studio.json` (`carattere`, `corpo`,
+`interlinea`, `margini_cm`). Oppure può mettere la propria carta intestata in
+`config/carta-intestata.docx`, o quella di un avvocato in
+`config/carta-sarti.docx`: intestazione, piè di pagina e stili restano i suoi.
+
+Per approvare, `approva` accetta il `.docx` corretto, anche se l'avvocato l'ha
+salvato sopra la bozza: il confronto si fa sempre con il `.md`. Le revisioni
+di Word si leggono come se fossero accettate. Se nell'atto restano il
+riquadro, i commenti di Minuta, revisioni non accettate o dati da completare,
+Minuta non lo registra come firmato e dice che cosa resta. Con `--comunque`
+lo registra lo stesso, e il registro conserva l'elenco di ciò che restava.
 
 ## Come impara dall'avvocato
 

@@ -36,7 +36,9 @@ segnaposto degli esempi (quelli che cominciano con E1_ o E2_): appartengono ad a
 4. Segui lo STILE dello studio: intestazione, titolo, ordine delle sezioni, formule.
 5. Alla fine di ogni paragrafo scrivi la sua provenienza fra parentesi graffe: \
 {fonte: fascicolo}, {fonte: profilo}, {fonte: E1}, {fonte: E2}, oppure {fonte: modello} se è \
-un testo tuo."""
+un testo tuo.
+6. Scrivi solo il testo dell'atto, dall'intestazione alla firma: niente avvisi come «BOZZA» \
+e niente note per l'avvocato. L'avviso di bozza lo aggiunge Minuta, fuori dall'atto."""
 
 TITOLI_STILE = {
     "sarti": {"fatti": "PREMESSO CHE", "diritto": "CONSIDERATO CHE",

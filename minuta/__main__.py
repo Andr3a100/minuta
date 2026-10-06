@@ -4,8 +4,9 @@
     python -m minuta cerca "riconoscimento di debito" --autore sarti
     python -m minuta profilo
     python -m minuta bozza tests/fascicolo-prova.json --modello finto
+    python -m minuta word bozze/2026-041-....md
     python -m minuta esempio 06 --no --motivo "interessi generici"
-    python -m minuta approva bozze/2026-041-....md --finale firmato.pdf --avvocato sarti \
+    python -m minuta approva bozze/2026-041-....docx --finale firmato.docx --avvocato sarti \
         --fascicolo tests/fascicolo-prova.json
     python -m minuta correzioni --avvocato sarti
     python -m minuta dataset
@@ -20,10 +21,18 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from . import archive, citations, draft, learning, model, profile, search
+from . import archive, citations, draft, learning, model, profile, search, word
 from .pseudonym import Pseudonimizzatore
 
 RADICE = Path.cwd()
+
+
+def carta_intestata(avvocato: str) -> Path | None:
+    """La carta intestata dell'avvocato, o quella dello studio, se c'è."""
+    for nome in (f"carta-{avvocato}.docx", "carta-intestata.docx"):
+        if (RADICE / "config" / nome).exists():
+            return RADICE / "config" / nome
+    return None
 
 
 def main(argomenti: list[str] | None = None) -> int:
@@ -39,6 +48,8 @@ def main(argomenti: list[str] | None = None) -> int:
     bozza.add_argument("fascicolo", type=Path)
     bozza.add_argument("--modello", default=None, help="finto, anthropic, openai")
     bozza.add_argument("--uscita", type=Path, default=Path("bozze"))
+    in_word = comandi.add_parser("word", help="una bozza già preparata, come file Word (.docx)")
+    in_word.add_argument("bozza", type=Path)
     comandi.add_parser("dataset", help="esempi pseudonimizzati per l'addestramento (livello 2)")
     comandi.add_parser("modelli", help="i modelli disponibili sull'account OpenAI")
     esempio = comandi.add_parser("esempio", help="indica se un atto è un buon esempio")
@@ -48,8 +59,11 @@ def main(argomenti: list[str] | None = None) -> int:
     scelta.add_argument("--no", action="store_true")
     esempio.add_argument("--motivo", default="")
     approva = comandi.add_parser("approva", help="registra l'atto firmato e impara dalle correzioni")
-    approva.add_argument("bozza", type=Path)
-    approva.add_argument("--finale", type=Path, required=True, help="l'atto firmato: .txt, .md o .pdf")
+    approva.add_argument("bozza", type=Path, help="la bozza di Minuta: il file .md o il suo .docx")
+    approva.add_argument("--finale", type=Path, required=True,
+                         help="l'atto firmato: .docx, .pdf, .txt o .md")
+    approva.add_argument("--comunque", action="store_true",
+                         help="registra anche un atto in cui restano parti della bozza")
     approva.add_argument("--avvocato", required=True)
     approva.add_argument("--fascicolo", type=Path, required=True,
                          help="il fascicolo: i dati del cliente restano nascosti quando l'atto fa da esempio")
@@ -94,23 +108,38 @@ def main(argomenti: list[str] | None = None) -> int:
                       f"{learning.quanti(v['volte'], 'volta', 'volte')})")
         return 0
     if a.comando == "approva":
-        markdown = a.bozza.read_text("utf-8")
+        # Il confronto si fa sempre con la bozza originale, salvata in Markdown:
+        # il .docx l'avvocato può averlo corretto e salvato sopra.
+        originale = a.bozza.with_suffix(".md")
+        if not originale.exists():
+            lettore.error(f"manca {originale}: serve la bozza originale per il confronto")
+        markdown = originale.read_text("utf-8")
         fascicolo = json.loads(a.fascicolo.read_text("utf-8"))
         numero = fascicolo["id"]
         della_bozza = re.search(r"fascicolo (\S+) ·", markdown.split("\n", 1)[0])
         if della_bozza and della_bozza.group(1) != numero:
             lettore.error(f"la bozza è del fascicolo {della_bozza.group(1)}, non del {numero}")
         bozza = learning.testo_della_bozza(markdown)
-        if a.finale.suffix == ".pdf":
-            finale = learning.testo_firmato(archive.leggi_pdf(a.finale))
+        if a.finale.suffix == ".docx":
+            finale = "\n\n".join(word.leggi(a.finale))
+            residui = word.residui(a.finale)
         else:
-            finale = learning.testo_della_bozza(a.finale.read_text("utf-8"))
+            if a.finale.suffix == ".pdf":
+                finale = learning.testo_firmato(archive.leggi_pdf(a.finale))
+            else:
+                finale = learning.testo_della_bozza(a.finale.read_text("utf-8"))
+            residui = word.residui_nel_testo(finale)
+        # Un atto in cui restano il riquadro, i commenti di Minuta o dati da
+        # completare non è ancora l'atto firmato: non entra fra gli esempi.
+        if residui and not a.comunque:
+            lettore.error("l'atto sembra ancora una bozza (" + "; ".join(residui)
+                          + "). Correggi il file e riprova, oppure aggiungi --comunque.")
         riservati = draft.sensibili_del_fascicolo(fascicolo)
         noti = {**profile.noti_dello_studio(config), **riservati}
         modifiche = learning.confronta(bozza, finale, noti)
         learning.aggiorna_correzioni(correzioni_file, a.avvocato, numero, modifiche)
-        learning.registra_approvazione(RADICE / "registro", numero, a.bozza.name, a.avvocato,
-                                       modifiche, finale)
+        learning.registra_approvazione(RADICE / "registro", numero, originale.name, a.avvocato,
+                                       modifiche, finale, residui)
         scheda = archive.salva_approvato(RADICE / "archivio/approvati", finale, {
             "atto_id": numero, "autore": a.avvocato,
             "tipo": fascicolo.get("tipo", "ricorso decreto ingiuntivo"),
@@ -118,7 +147,7 @@ def main(argomenti: list[str] | None = None) -> int:
             "valore": sum(f["importo"] for f in fascicolo.get("fatture", [])) or None,
             "data": datetime.now().date().isoformat(), "riservati": riservati})
         archive.importa_approvato(scheda, db)
-        conteggio = {t: sum(1 for m in modifiche if m["tipo"] == t) for t in learning.TIPI}
+        conteggio = learning.conta(modifiche)
         q = learning.quanti
         print(f"approvata da {a.avvocato}: "
               f"{q(conteggio['completamento'], 'completamento', 'completamenti')}, "
@@ -128,7 +157,16 @@ def main(argomenti: list[str] | None = None) -> int:
         for m in modifiche:
             if m["tipo"] == "stile":
                 print(f"  stile: «{m['prima']}» → «{m['dopo']}»")
+        for residuo in residui:
+            print(f"  ATTENZIONE, nell'atto resta: {residuo}")
         print(f"l'atto firmato è nell'archivio come {numero}")
+        return 0
+    if a.comando == "word":
+        markdown = a.bozza.read_text("utf-8")
+        autore = next((av["id"] for av in config["avvocati"] if f"Avv. {av['nome']}" in markdown), "")
+        uscita = word.scrivi(markdown, a.bozza.with_suffix(".docx"), config.get("impaginazione"),
+                             carta_intestata(autore))
+        print(f"bozza in Word: {uscita}")
         return 0
     if a.comando == "importa":
         atti = archive.importa(RADICE / "archivio/pdf", db, config)
@@ -159,8 +197,11 @@ def main(argomenti: list[str] | None = None) -> int:
             apprese=learning.voci_regola(correzioni_file, fascicolo["stile"]))
         a.uscita.mkdir(parents=True, exist_ok=True)
         nome = f"{fascicolo['id']}-{datetime.now():%Y%m%d-%H%M%S}.md"
-        (a.uscita / nome).write_text(draft.in_markdown(risultato, fascicolo), "utf-8")
-        print(f"bozza in {a.uscita / nome}")
+        markdown = draft.in_markdown(risultato, fascicolo)
+        (a.uscita / nome).write_text(markdown, "utf-8")
+        in_word = word.scrivi(markdown, (a.uscita / nome).with_suffix(".docx"),
+                              config.get("impaginazione"), carta_intestata(fascicolo["stile"]))
+        print(f"bozza in {a.uscita / nome} e, per Word, in {in_word}")
         for avviso in risultato.avvisi:
             print(f"  · {avviso}")
     elif a.comando == "dataset":
