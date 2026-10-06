@@ -13,6 +13,7 @@ ottobre 2026, su un solo tipo di atto: il ricorso per decreto ingiuntivo.
 | Passo | Modulo | Stato |
 |---|---|---|
 | Legge i PDF dell'archivio: legature, a capo, sezioni, metadati | `archive.py` | provato |
+| Prepara il fascicolo dalle fatture elettroniche (FatturaPA, anche firmate .p7m): parti, importi, scadenze, note di credito, documenti di trasporto, ordini | `fatture.py` | provato su fatture inventate, valide secondo lo schema ufficiale 1.2.3 |
 | Pseudonimizza in modo reversibile: nomi, società, codici fiscali, partite IVA, indirizzi, PEC, IBAN | `pseudonym.py` | provato |
 | Blocca l'invio se qualcosa di riconoscibile sta per partire | `leaks.py` | provato |
 | Ritrova i precedenti, filtrando per tipo, autore e periodo | `search.py` | provato |
@@ -33,6 +34,8 @@ python3.13 -m venv .venv
 .venv/bin/python -m minuta importa
 .venv/bin/python -m minuta profilo
 .venv/bin/python -m minuta cerca "riconoscimento di debito" --autore sarti
+.venv/bin/python strumenti/genera_fatture.py      # fatture elettroniche di prova
+.venv/bin/python -m minuta fascicolo archivio/fatture/*.xml --numero 2026-041 --avvocato sarti
 .venv/bin/python -m minuta bozza tests/fascicolo-prova.json --modello finto   # .md e .docx
 .venv/bin/python -m minuta word bozze/2026-041-....md     # una bozza già fatta, in Word
 .venv/bin/python -m minuta esempio 06 --no --motivo "interessi generici"
@@ -48,6 +51,32 @@ Con un modello vero:
 
 Il file `.env` resta sul computer dello studio: git lo ignora e Minuta non
 stampa mai la chiave. Le chiavi non vanno mai nei file del repository.
+
+## Il fascicolo dalle fatture
+
+Un ricorso per decreto ingiuntivo nasce quasi sempre da fatture non pagate, e
+fra imprese le fatture sono file XML nel formato FatturaPA. `minuta fascicolo`
+le legge, anche firmate (`.xml.p7m`), e scrive `fascicoli/<numero>.json`
+(escluso da git):
+- le parti, con partita IVA o codice fiscale e sede;
+- le fatture, con importi e scadenze, e le note di credito, che si tolgono dal credito;
+- i documenti di trasporto e gli ordini citati nelle fatture;
+- una proposta di «rapporto» fra le parti, presa dalle causali.
+
+Ciò che le fatture non dicono resta «da completare»: giudice, diffida, legale
+rappresentante, altri documenti. L'avvocato rilegge il fascicolo prima della
+bozza. Le avvertenze dicono che cosa guardare:
+- fatture non ancora scadute o senza scadenza;
+- importi da pagare diversi dal totale;
+- note di credito e documenti che non entrano nel credito;
+- un debitore senza partita IVA, che potrebbe essere un consumatore.
+
+Formato: specifiche tecniche FatturaPA versione 1.4, in vigore dal 1° aprile
+2025, schema 1.2.3. Lo schema ufficiale è in `fonti/fatturapa/`; le fatture di
+prova in `archivio/fatture/` sono inventate e si convalidano su quello schema.
+Dei file firmati Minuta estrae il contenuto con openssl: controlla che il
+contenuto corrisponda alla firma, ma non verifica i certificati di chi ha
+firmato.
 
 ## In Word
 

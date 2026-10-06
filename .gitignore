@@ -8,3 +8,4 @@ bozze/
 *.egg-info/
 archivio/approvati/
 .DS_Store
+fascicoli/

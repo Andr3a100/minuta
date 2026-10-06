@@ -138,8 +138,9 @@ class ModelloFinto:
     def scrivi(self, sistema: str, richiesta: str) -> Risposta:
         dati = dict(re.findall(r"^([A-Z_ ]+): (.+)$", richiesta.split("ESEMPIO E1", 1)[0], re.M))
         stile = json.loads(re.search(r"^STILE: (\{.*\})$", richiesta, re.M).group(1))
-        esempio = re.search(r"ESEMPIO E1 [^\n]*\n(.*?)(?:\nESEMPIO E2|\nFINE ESEMPI)",
-                            richiesta, re.S).group(1)
+        trovato = re.search(r"ESEMPIO E1 [^\n]*\n(.*?)(?:\nESEMPIO E2|\nFINE ESEMPI)",
+                            richiesta, re.S)
+        esempio = trovato.group(1) if trovato else ""  # un archivio vuoto: il primo giorno
         # Dall'esempio si riprendono solo i paragrafi di diritto senza segnaposto:
         # sono il ragionamento dello studio, non i fatti di un altro cliente.
         ripresi = [p for p in esempio.split("\n")

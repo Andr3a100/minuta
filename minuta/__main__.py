@@ -3,6 +3,7 @@
     python -m minuta importa
     python -m minuta cerca "riconoscimento di debito" --autore sarti
     python -m minuta profilo
+    python -m minuta fascicolo archivio/fatture/*.xml --numero 2026-041 --avvocato sarti
     python -m minuta bozza tests/fascicolo-prova.json --modello finto
     python -m minuta word bozze/2026-041-....md
     python -m minuta esempio 06 --no --motivo "interessi generici"
@@ -18,10 +19,10 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
-from . import archive, citations, draft, learning, model, profile, search, word
+from . import archive, citations, draft, fatture, learning, model, profile, search, word
 from .pseudonym import Pseudonimizzatore
 
 RADICE = Path.cwd()
@@ -44,6 +45,12 @@ def main(argomenti: list[str] | None = None) -> int:
     cerca.add_argument("--tipo")
     cerca.add_argument("--autore")
     comandi.add_parser("profilo", help="ricava il profilo dello studio")
+    dalle_fatture = comandi.add_parser("fascicolo",
+                                       help="prepara il fascicolo dalle fatture elettroniche (FatturaPA)")
+    dalle_fatture.add_argument("fatture", type=Path, nargs="+", help="file .xml o .xml.p7m")
+    dalle_fatture.add_argument("--numero", required=True, help="il numero del fascicolo, per esempio 2026-041")
+    dalle_fatture.add_argument("--avvocato", required=True)
+    dalle_fatture.add_argument("--uscita", type=Path, help="predefinito: fascicoli/<numero>.json")
     bozza = comandi.add_parser("bozza", help="prepara una bozza da un fascicolo")
     bozza.add_argument("fascicolo", type=Path)
     bozza.add_argument("--modello", default=None, help="finto, anthropic, openai")
@@ -144,7 +151,7 @@ def main(argomenti: list[str] | None = None) -> int:
             "atto_id": numero, "autore": a.avvocato,
             "tipo": fascicolo.get("tipo", "ricorso decreto ingiuntivo"),
             "giudice": fascicolo.get("giudice"),
-            "valore": sum(f["importo"] for f in fascicolo.get("fatture", [])) or None,
+            "valore": draft.totale(fascicolo) if fascicolo.get("fatture") else None,
             "data": datetime.now().date().isoformat(), "riservati": riservati})
         archive.importa_approvato(scheda, db)
         conteggio = learning.conta(modifiche)
@@ -160,6 +167,22 @@ def main(argomenti: list[str] | None = None) -> int:
         for residuo in residui:
             print(f"  ATTENZIONE, nell'atto resta: {residuo}")
         print(f"l'atto firmato è nell'archivio come {numero}")
+        return 0
+    if a.comando == "fascicolo":
+        try:
+            dati = fatture.fascicolo([fatture.leggi(f) for f in a.fatture], a.numero, a.avvocato,
+                                     date.today())
+        except ValueError as errore:
+            lettore.error(str(errore))
+        uscita = a.uscita or RADICE / "fascicoli" / f"{a.numero}.json"
+        uscita.parent.mkdir(parents=True, exist_ok=True)
+        uscita.write_text(json.dumps(dati, ensure_ascii=False, indent=2) + "\n", "utf-8")
+        q = learning.quanti
+        print(f"fascicolo in {uscita}: {q(len(dati['fatture']), 'fattura', 'fatture')}, "
+              f"credito di euro {draft.euro(draft.totale(dati))}")
+        for avvertenza in dati["avvertenze"]:
+            print(f"  · {avvertenza}")
+        print("  Rileggilo e completa i dati «[DA COMPLETARE]» prima di preparare la bozza.")
         return 0
     if a.comando == "word":
         markdown = a.bozza.read_text("utf-8")
@@ -196,7 +219,12 @@ def main(argomenti: list[str] | None = None) -> int:
             RADICE / "registro", prezzi, curatela=learning.carica_curatela(curatela_file),
             apprese=learning.voci_regola(correzioni_file, fascicolo["stile"]))
         a.uscita.mkdir(parents=True, exist_ok=True)
-        nome = f"{fascicolo['id']}-{datetime.now():%Y%m%d-%H%M%S}.md"
+        # Due bozze nello stesso secondo non si sovrascrivono: la prima resta il
+        # riferimento per il confronto, se l'avvocato la approva.
+        base = f"{fascicolo['id']}-{datetime.now():%Y%m%d-%H%M%S}"
+        nome, n = f"{base}.md", 2
+        while (a.uscita / nome).exists():
+            nome, n = f"{base}-{n}.md", n + 1
         markdown = draft.in_markdown(risultato, fascicolo)
         (a.uscita / nome).write_text(markdown, "utf-8")
         in_word = word.scrivi(markdown, (a.uscita / nome).with_suffix(".docx"),

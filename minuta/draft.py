@@ -149,33 +149,56 @@ def data_it(iso: str) -> str:
 
 
 def sensibili_del_fascicolo(fascicolo: dict) -> dict[str, str]:
-    """I dati del fascicolo da non far uscire, con il loro tipo."""
+    """I dati del fascicolo da non far uscire, con il loro tipo.
+
+    Mai un valore vuoto: un debitore senza partita IVA lascerebbe "" fra i dati
+    da nascondere, e un testo vuoto si trova fra ogni lettera e la successiva.
+    """
     noti = {}
     for parte in ("ricorrente", "intimata"):
         dati = fascicolo[parte]
-        noti[dati["nome"]] = "SOGGETTO"
-        noti[dati["piva"]] = "PIVA"
-        noti[dati["sede"]] = "INDIRIZZO"
-        if dati.get("rappresentante"):
-            noti[dati["rappresentante"]] = "PERSONA"
+        tipi = {"nome": "PERSONA" if dati.get("persona_fisica") else "SOGGETTO", "piva": "PIVA",
+                "cf": "CF", "sede": "INDIRIZZO", "rappresentante": "PERSONA"}
+        for campo, tipo in tipi.items():
+            valore = (dati.get(campo) or "").strip()
+            if valore and not valore.startswith("[DA COMPLETARE"):
+                noti[valore] = tipo
     return noti
 
 
+def totale(fascicolo: dict) -> float:
+    """Il credito: le fatture, meno le note di credito."""
+    return round(sum(f["importo"] for f in fascicolo["fatture"])
+                 - sum(n["importo"] for n in fascicolo.get("note_di_credito", [])), 2)
+
+
+def documento_it(documento: dict) -> str:
+    testo = f"n. {documento['numero']} del {data_it(documento['data'])} (euro {euro(documento['importo'])}"
+    scadenze = documento.get("scadenze") or []
+    if scadenze:
+        testo += (", scadenza " if len(scadenze) == 1 else ", scadenze ") + ", ".join(
+            data_it(s) for s in scadenze)
+    return testo + ")"
+
+
 def dati_del_fascicolo(fascicolo: dict, avvocato: str) -> str:
-    totale = sum(f["importo"] for f in fascicolo["fatture"])
-    fatture = ", ".join(f"n. {f['numero']} del {data_it(f['data'])} (euro {euro(f['importo'])})"
-                        for f in fascicolo["fatture"])
     r, i = fascicolo["ricorrente"], fascicolo["intimata"]
     righe = {
         "TIPO DI ATTO": fascicolo["tipo"], "GIUDICE": fascicolo["giudice"],
-        "RICORRENTE": r["nome"], "PIVA RICORRENTE": r["piva"], "SEDE RICORRENTE": r["sede"],
-        "RAPPRESENTANTE": r.get("rappresentante", "[DA COMPLETARE]"),
-        "INTIMATA": i["nome"], "PIVA INTIMATA": i["piva"], "SEDE INTIMATA": i["sede"],
-        "AVVOCATO": avvocato, "RAPPORTO": fascicolo["rapporto"], "FATTURE": fatture,
-        "TOTALE": euro(totale), "DIFFIDA": data_it(fascicolo["diffida"]),
+        "RICORRENTE": r["nome"], "PIVA RICORRENTE": r.get("piva") or "nessuna",
+        "SEDE RICORRENTE": r["sede"],
+        "RAPPRESENTANTE": r.get("rappresentante") or "[DA COMPLETARE: legale rappresentante]",
+        "INTIMATA": i["nome"], "PIVA INTIMATA": i.get("piva") or "nessuna",
+        "CF INTIMATA": i.get("cf"), "SEDE INTIMATA": i["sede"],
+        "AVVOCATO": avvocato, "RAPPORTO": fascicolo["rapporto"],
+        "FATTURE": ", ".join(documento_it(f) for f in fascicolo["fatture"]),
+        "NOTE DI CREDITO": ", ".join(documento_it(n) for n in fascicolo.get("note_di_credito", [])),
+        "TOTALE": euro(totale(fascicolo)),
+        "DIFFIDA": (data_it(fascicolo["diffida"]) if fascicolo.get("diffida")
+                    else "[DA COMPLETARE: data della diffida, se c'è stata]"),
         "INTERESSI": fascicolo.get("interessi", ""), "DOCUMENTI": "; ".join(fascicolo["documenti"]),
     }
-    return "\n".join(f"{k}: {v}" for k, v in righe.items())
+    return "\n".join(f"{k}: {v}" for k, v in righe.items() if v)
 
 
 def costo(modello: str, token_in: int | None, token_out: int | None, prezzi: dict) -> float | None:
