@@ -20,7 +20,7 @@ ottobre 2026, su un solo tipo di atto: il ricorso per decreto ingiuntivo.
 | Costruisce il massimario e verifica le norme su Normattiva | `citations.py` | provato |
 | Prepara la bozza: provenienza, citazioni, pertinenza, completezza, segnaposto di altri clienti, regole apprese | `draft.py` | provato con il modello finto e con OpenAI |
 | Impara dall'avvocato senza addestrare un modello: atti modello, atti firmati che diventano esempi, correzioni che diventano regole | `learning.py` | provato con il modello finto e con OpenAI, su correzioni simulate |
-| Consegna la bozza in Word (.docx) e rilegge l'atto firmato, revisioni comprese | `word.py` | provato su bozze vere di OpenAI e su correzioni simulate; aperto con l'anteprima di macOS, non ancora in Word |
+| Consegna la bozza in Word (.docx) e rilegge l'atto firmato, revisioni comprese | `word.py` | provato su bozze vere di OpenAI e su correzioni simulate; aperto in Word da Andrea il 6 ottobre 2026 |
 | Parla con i modelli in cloud: OpenAI (provato il 5 ottobre 2026 con gpt-6.1-sol e gpt-6-astra) e Anthropic (non ancora provato) | `model.py` | OpenAI provato; Anthropic PROCEDURA |
 | Esporta gli esempi per l'addestramento (livello 2), pseudonimizzati | `__main__.py` | provato |
 
