@@ -35,10 +35,10 @@ scheda. [fonte: 06-fornitore.md, Che cosa succede ai dati]
 
 Che cosa può sbagliare lo strumento e come lo controllate.
 
-## Le sue scelte
+## Chiarimenti
 
-A chi chiedere chiarimenti; se il cliente può chiedere che il suo
-fascicolo non passi da Minuta, e chi annota la scelta.
+A chi rivolgersi per chiarimenti sugli strumenti usati, e come.
+[fonte: 05-chi-decide.md]
 
 ## Consegna
 
