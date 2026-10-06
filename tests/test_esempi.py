@@ -3,6 +3,8 @@ comportamento, la prova fallisce e la pagina va aggiornata."""
 
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 from minuta import draft
@@ -56,3 +58,12 @@ def test_lezione_12_la_nota_nascosta():
     # la manderebbe al modello come un paragrafo qualsiasi.
     assert uscita.startswith("Testo nascosto trovato da Minuta: 1\n")
     assert uscita.rstrip().endswith("estrae: sì")
+
+
+def test_lezione_13_i_test_dell_agente_e_quelli_dalle_norme_passano():
+    # Il codice e i test del modello, copiati dal verbale, più due casi
+    # ricavati dalle norme: passano tutti. La lezione spiega perché non basta.
+    esito = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
+                            str(ESEMPI / "13-agente")], capture_output=True, text=True)
+    assert esito.returncode == 0, esito.stdout
+    assert "21 passed" in esito.stdout
