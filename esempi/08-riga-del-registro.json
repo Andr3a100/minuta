@@ -1,0 +1,14 @@
+{
+  "quando": "2026-10-06T12:10:20+00:00",
+  "fascicolo": "2026-041",
+  "modello": "gpt-6.1-sol",
+  "inviato_sha256":
+    "6265c36cbe70c177c3feff4d59672e1633a370efd2316465e90e9c3c0147b4e8",
+  "caratteri_inviati": 10861,
+  "token_in": 3673,
+  "token_out": 1820,
+  "costo_usd": 0.0255,
+  "esempi": ["07", "10"],
+  "controllo_fughe": "superato",
+  "approvata_da": null
+}
