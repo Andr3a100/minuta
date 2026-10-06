@@ -11,6 +11,7 @@
         --fascicolo tests/fascicolo-prova.json
     python -m minuta correzioni --avvocato sarti
     python -m minuta dataset
+    python -m minuta nascosti atto.pdf
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
-from . import archive, citations, draft, fatture, learning, model, profile, search, word
+from . import archive, citations, draft, fatture, learning, model, nascosti, profile, search, word
 from .pseudonym import Pseudonimizzatore
 
 RADICE = Path.cwd()
@@ -78,7 +79,17 @@ def main(argomenti: list[str] | None = None) -> int:
     correzioni.add_argument("--avvocato", help="solo le correzioni di questo avvocato")
     correzioni.add_argument("--respingi", type=int, metavar="N",
                             help="la correzione numero N non deve diventare regola")
+    nascosto = comandi.add_parser("nascosti", help="cerca nei PDF il testo che chi legge non vede")
+    nascosto.add_argument("pdf", type=Path, nargs="+")
     a = lettore.parse_args(argomenti)
+    if a.comando == "nascosti":
+        # Basta il file: niente chiave, niente archivio dello studio.
+        for pdf in a.pdf:
+            trovati = nascosti.testo_nascosto(pdf)
+            print(f"{pdf.name}: testo nascosto trovato: {len(trovati)}")
+            for n in trovati:
+                print(f"  pagina {n.pagina}, {n.motivo}: «{n.testo}»")
+        return 0
     model.carica_env(RADICE / ".env")
 
     config = archive.carica_config(RADICE / "config/studio.json")

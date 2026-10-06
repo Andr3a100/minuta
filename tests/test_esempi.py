@@ -47,3 +47,12 @@ def test_lezione_8_il_registro_dice_superato():
     assert json.loads(uscita)["controllo_fughe"] == "superato"
     assert "Bellini" not in uscita
     assert "Marco Bellini" in carica("genera_04").uscita()
+
+
+def test_lezione_12_la_nota_nascosta():
+    uscita = carica("genera_12").uscita()
+    assert uscita == (ESEMPI / "12-testo-nascosto.txt").read_text("utf-8")
+    # Minuta la trova; il lettore del pilota, che estrae tutto il testo, no:
+    # la manderebbe al modello come un paragrafo qualsiasi.
+    assert uscita.startswith("Testo nascosto trovato da Minuta: 1\n")
+    assert uscita.rstrip().endswith("estrae: sì")
