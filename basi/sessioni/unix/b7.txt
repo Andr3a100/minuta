@@ -1,0 +1,33 @@
+: '### [esito:b7-versione]'
+sqlite3 --version
+: '### [/esito:b7-versione]'
+cp ~/.materiale/sql/*.sql ~/minuta/
+: '### [esito:b7-crea]'
+cd ~/minuta
+sqlite3 fascicoli.db ".read fascicoli.sql"
+ls -l fascicoli.db
+: '### [/esito:b7-crea]'
+: '### [esito:b7-leggere]'
+sqlite3 -interactive -box -echo fascicoli.db < leggere.sql
+: '### [/esito:b7-leggere]'
+: '### [esito:b7-contare]'
+sqlite3 -interactive -box -echo fascicoli.db < contare.sql
+: '### [/esito:b7-contare]'
+: '### [esito:b7-collegare]'
+sqlite3 -interactive -box -echo fascicoli.db < collegare.sql
+: '### [/esito:b7-collegare]'
+: '### [esito:b7-modificare]'
+sqlite3 -interactive -box -echo fascicoli.db < modificare.sql
+: '### [/esito:b7-modificare]'
+: '### [esito:b7-vincoli]'
+sqlite3 -interactive -box -echo fascicoli.db < vincoli.sql
+: '### [/esito:b7-vincoli]'
+: '### [esito:b7-copia]'
+cp fascicoli.db prova.db
+: '### [/esito:b7-copia]'
+: '### [esito:b7-errore]'
+sqlite3 -interactive -box -echo prova.db < errore.sql
+: '### [/esito:b7-errore]'
+: '### [esito:b7-transazione]'
+sqlite3 -interactive -box -echo fascicoli.db < transazione.sql
+: '### [/esito:b7-transazione]'

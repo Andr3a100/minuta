@@ -1,0 +1,26 @@
+: '### [esito:b4-versione]'
+python3 --version
+: '### [/esito:b4-versione]'
+: '### [esito:b4-venv]'
+cd ~/minuta
+mkdir conti
+cd conti
+python3 -m venv .venv
+ls -a
+source .venv/bin/activate
+python --version
+python -c "import sys; print(sys.executable)"
+: '### [/esito:b4-venv]'
+cp ~/.materiale/conti/requirements.txt .
+: '### [esito:b4-pip]'
+cat requirements.txt
+python -m pip install -r requirements.txt
+python -m pip list
+: '### [/esito:b4-pip]'
+: '### [esito:b4-errore]'
+deactivate
+python3 -c "import pytest"
+python3 -c "import sys; print(sys.executable)"
+source .venv/bin/activate
+python -c "import pytest; print(pytest.__version__)"
+: '### [/esito:b4-errore]'

@@ -1,0 +1,24 @@
+cp ~/.materiale/conti/primo_conto.py ~/.materiale/conti/conti.py ~/.materiale/conti/test_conti.py ~/minuta/conti/
+: '### [esito:b5-primo]'
+cd ~/minuta/conti
+source .venv/bin/activate
+python primo_conto.py
+: '### [/esito:b5-primo]'
+: '### [esito:b5-test]'
+cd ~/minuta/conti
+source .venv/bin/activate
+ls
+python -m pytest -q
+: '### [/esito:b5-test]'
+python -c "import pathlib; p = pathlib.Path('conti.py'); p.write_text(p.read_text().replace('\"mediana\": statistics.median(minuti)', '\"mediana\": statistics.mean(minuti)'))"; rm -rf __pycache__
+: '### [esito:b5-rotto]'
+python -m pytest -q
+: '### [/esito:b5-rotto]'
+python -c "import pathlib; p = pathlib.Path('conti.py'); p.write_text(p.read_text().replace('\"mediana\": statistics.mean(minuti)', '\"mediana\": statistics.median(minuti)'))"; rm -rf __pycache__
+: '### [esito:b5-riparato]'
+python -m pytest -q
+: '### [/esito:b5-riparato]'
+: '### [esito:b5-uso]'
+python -c "from conti import riassunto; print(riassunto([95, 140, 210, 60, 125]))"
+python -c "from conti import ore; print(ore(-1, 126))"
+: '### [/esito:b5-uso]'

@@ -1,0 +1,19 @@
+Copy-Item -Recurse ~\.materiale\documenti ~\minuta\
+### [esito:b8-file]
+cd ~\minuta\documenti
+Get-ChildItem
+### [/esito:b8-file]
+### [esito:b8-pip]
+cd ~\minuta\documenti
+..\conti\.venv\Scripts\python.exe -m pip install -q pymupdf python-docx
+..\conti\.venv\Scripts\python.exe -m pip list
+### [/esito:b8-pip]
+### [esito:b8-testo]
+..\conti\.venv\Scripts\python.exe testo.py decreto.pdf
+..\conti\.venv\Scripts\python.exe testo.py decreto-scansione.pdf
+..\conti\.venv\Scripts\python.exe testo.py promemoria.docx
+### [/esito:b8-testo]
+### [esito:b8-firma]
+& "C:\Program Files\Git\usr\bin\openssl.exe" smime -verify -noverify -inform DER -in fattura.xml.p7m -out fattura.xml
+..\conti\.venv\Scripts\python.exe fattura.py fattura.xml
+### [/esito:b8-firma]

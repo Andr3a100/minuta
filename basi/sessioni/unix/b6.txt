@@ -1,0 +1,15 @@
+: '### [esito:b6-get]'
+curl -i http://127.0.0.1:8000/LEGGIMI.md
+: '### [/esito:b6-get]'
+: '### [esito:b6-404]'
+curl -i http://127.0.0.1:8000/non-esiste.md
+: '### [/esito:b6-404]'
+: '### [esito:b6-post]'
+curl -i -X POST http://127.0.0.1:8000/LEGGIMI.md
+: '### [/esito:b6-post]'
+: '### [esito:b6-porta]'
+curl -i http://127.0.0.1:8001/LEGGIMI.md
+: '### [/esito:b6-porta]'
+: '### [esito:b6-api]'
+curl -i https://api.openai.com/v1/models
+: '### [/esito:b6-api]'

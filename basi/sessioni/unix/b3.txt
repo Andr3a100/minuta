@@ -1,0 +1,67 @@
+: '### [esito:b3-versione]'
+git --version
+: '### [/esito:b3-versione]'
+: '### [esito:b3-config]'
+git config --global user.name "Elena Sarti"
+git config --global user.email "elena.sarti@example.com"
+git config --global init.defaultBranch main
+git config --global --list
+: '### [/esito:b3-config]'
+: '### [esito:b3-init]'
+cd ~/minuta/quaderno
+git init
+git status
+: '### [/esito:b3-init]'
+: '### [esito:b3-commit]'
+git add LEGGIMI.md
+git status
+git commit -m "Apro il quaderno di progetto"
+git log --oneline
+: '### [/esito:b3-commit]'
+printf '%s\n' '' 'Lo tiene aggiornato Elena: chi entra nel progetto comincia da qui.' >> LEGGIMI.md
+: '### [esito:b3-diff]'
+git status
+git diff
+: '### [/esito:b3-diff]'
+: '### [esito:b3-secondo]'
+git add LEGGIMI.md
+git commit -m "LEGGIMI: chi tiene il quaderno"
+git log --oneline
+: '### [/esito:b3-secondo]'
+printf '%s\n' 'OPENAI_API_KEY=prova-da-non-pubblicare' > .env
+: '### [esito:b3-segreto]'
+git add .
+git status
+git restore --staged .env
+git status
+: '### [/esito:b3-segreto]'
+printf '%s\n' '.env' > .gitignore
+: '### [esito:b3-ignora]'
+git status
+git add .gitignore verbali
+git commit -m "Tengo fuori dal repository i file con segreti"
+: '### [/esito:b3-ignora]'
+: '### [esito:b3-ramo]'
+git switch -c titolo-breve
+: '### [/esito:b3-ramo]'
+python3 -c "import pathlib; p = pathlib.Path('LEGGIMI.md'); p.write_text(p.read_text().replace('# Quaderno di progetto', '# Quaderno'))"
+: '### [esito:b3-ramo-commit]'
+git commit -am "Titolo più breve"
+git switch main
+git diff main titolo-breve
+: '### [/esito:b3-ramo-commit]'
+printf '%s\n' 'Le riunioni sul progetto sono il lunedì alle 9.' >> LEGGIMI.md
+: '### [esito:b3-sbaglio]'
+git commit -am "Aggiungo l'orario delle riunioni"
+git log --oneline
+: '### [/esito:b3-sbaglio]'
+: '### [esito:b3-revert]'
+git revert --no-edit HEAD
+git log --oneline
+cat LEGGIMI.md
+: '### [/esito:b3-revert]'
+: '### [esito:b3-merge]'
+git merge --no-edit titolo-breve
+git log --oneline --graph
+cat LEGGIMI.md
+: '### [/esito:b3-merge]'

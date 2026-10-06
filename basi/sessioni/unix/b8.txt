@@ -1,0 +1,21 @@
+cp -R ~/.materiale/documenti ~/minuta/
+: '### [esito:b8-file]'
+cd ~/minuta/documenti
+ls -l
+file decreto.pdf decreto-scansione.pdf promemoria.docx fattura.xml.p7m
+: '### [/esito:b8-file]'
+: '### [esito:b8-pip]'
+cd ~/minuta/documenti
+source ~/minuta/conti/.venv/bin/activate
+python -m pip install -q pymupdf python-docx
+python -m pip list
+: '### [/esito:b8-pip]'
+: '### [esito:b8-testo]'
+python testo.py decreto.pdf
+python testo.py decreto-scansione.pdf
+python testo.py promemoria.docx
+: '### [/esito:b8-testo]'
+: '### [esito:b8-firma]'
+openssl smime -verify -noverify -inform DER -in fattura.xml.p7m -out fattura.xml
+python fattura.py fattura.xml
+: '### [/esito:b8-firma]'

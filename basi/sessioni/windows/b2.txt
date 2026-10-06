@@ -1,0 +1,36 @@
+### [esito:b2-dove]
+cd ~\minuta\quaderno
+Get-Location
+Get-ChildItem
+Get-Content LEGGIMI.md
+### [/esito:b2-dove]
+### [esito:b2-alias]
+pwd
+ls
+ls -l
+### [/esito:b2-alias]
+### [esito:b2-crea]
+mkdir verbali
+Copy-Item LEGGIMI.md copia-di-prova.md
+Get-ChildItem
+Move-Item copia-di-prova.md verbali\
+Get-ChildItem verbali
+### [/esito:b2-crea]
+### [esito:b2-spazi]
+mkdir "verbali vecchi"
+cd verbali vecchi
+cd "verbali vecchi"
+Get-Location
+cd ..
+Get-Location
+### [/esito:b2-spazi]
+### [esito:b2-errore]
+cd ~
+Get-Content LEGGIMI.md
+Get-Location
+cd minuta\quaderno
+Get-Content LEGGIMI.md
+### [/esito:b2-errore]
+### [esito:b2-sconosciuto]
+lss
+### [/esito:b2-sconosciuto]

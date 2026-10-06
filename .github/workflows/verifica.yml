@@ -1,0 +1,84 @@
+# Verifica di Minuta a ogni modifica: le prove del laboratorio, e i comandi
+# della Parte 0 su tre sistemi, con i verbali da cui il libro prende gli
+# output che stampa.
+name: Verifica
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Prove · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Dipendenze
+        run: python -m pip install -e ".[test]"
+      - name: Prove
+        run: python -m pytest -q
+
+  basi:
+    name: Comandi della Parte 0 · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            shell_lettore: bash
+          - os: macos-latest
+            shell_lettore: zsh
+          - os: windows-latest
+            shell_lettore: powershell
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: SQLite (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y sqlite3
+      - name: SQLite (Windows), con il comando del libro
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          winget install --id SQLite.SQLite -e --disable-interactivity `
+            --accept-source-agreements --accept-package-agreements
+          $collegamenti = "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
+          if (Test-Path "$collegamenti\sqlite3.exe") {
+            Add-Content $env:GITHUB_PATH $collegamenti
+            Write-Output "SQLite installato con winget"
+          } else {
+            Write-Output "winget non ha installato sqlite3: uso choco"
+            choco install sqlite -y --no-progress
+          }
+      - name: Prova dei comandi (macOS e Linux)
+        if: runner.os != 'Windows'
+        run: |
+          bash basi/prova-basi.sh "$RUNNER_TEMP/verbale-basi.txt" \
+            ${{ matrix.shell_lettore }}
+          cp "$RUNNER_TEMP/verbale-basi.txt" verbale-basi.txt
+      - name: Prova dei comandi (Windows PowerShell 5.1)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass `
+            -File basi\prova-basi.ps1 "$env:RUNNER_TEMP\verbale-basi.txt"
+          Copy-Item "$env:RUNNER_TEMP\verbale-basi.txt" verbale-basi.txt
+      - name: Verbale
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verbale-basi-${{ matrix.os }}
+          path: verbale-basi.txt

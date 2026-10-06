@@ -1,0 +1,35 @@
+: '### [esito:b2-dove]'
+cd ~/minuta/quaderno
+pwd
+ls
+cat LEGGIMI.md
+: '### [/esito:b2-dove]'
+: '### [esito:b2-opzioni]'
+ls -l
+ls -a
+: '### [/esito:b2-opzioni]'
+: '### [esito:b2-crea]'
+mkdir verbali
+cp LEGGIMI.md copia-di-prova.md
+ls
+mv copia-di-prova.md verbali/
+ls verbali
+: '### [/esito:b2-crea]'
+: '### [esito:b2-spazi]'
+mkdir "verbali vecchi"
+cd verbali vecchi
+cd "verbali vecchi"
+pwd
+cd ..
+pwd
+: '### [/esito:b2-spazi]'
+: '### [esito:b2-errore]'
+cd ~
+cat LEGGIMI.md
+pwd
+cd minuta/quaderno
+cat LEGGIMI.md
+: '### [/esito:b2-errore]'
+: '### [esito:b2-sconosciuto]'
+lss
+: '### [/esito:b2-sconosciuto]'

@@ -1,0 +1,23 @@
+### [esito:b4-versione]
+py --list
+py -3.13 --version
+### [/esito:b4-versione]
+### [esito:b4-venv]
+cd ~\minuta
+mkdir conti
+cd conti
+py -3.13 -m venv .venv
+Get-ChildItem .venv
+.\.venv\Scripts\python.exe --version
+.\.venv\Scripts\python.exe -c "import sys; print(sys.executable)"
+### [/esito:b4-venv]
+Copy-Item ~\.materiale\conti\requirements.txt .
+### [esito:b4-pip]
+Get-Content requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip list
+### [/esito:b4-pip]
+### [esito:b4-errore]
+py -3.13 -c "import pytest"
+.\.venv\Scripts\python.exe -c "import pytest; print(pytest.__version__)"
+### [/esito:b4-errore]

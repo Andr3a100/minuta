@@ -1,0 +1,22 @@
+Copy-Item ~\.materiale\conti\primo_conto.py, ~\.materiale\conti\conti.py, ~\.materiale\conti\test_conti.py ~\minuta\conti\
+### [esito:b5-primo]
+cd ~\minuta\conti
+.\.venv\Scripts\python.exe primo_conto.py
+### [/esito:b5-primo]
+### [esito:b5-test]
+cd ~\minuta\conti
+Get-ChildItem -Name
+.\.venv\Scripts\python.exe -m pytest -q
+### [/esito:b5-test]
+Sostituisci conti.py '"mediana": statistics.median(minuti)' '"mediana": statistics.mean(minuti)'
+### [esito:b5-rotto]
+.\.venv\Scripts\python.exe -m pytest -q
+### [/esito:b5-rotto]
+Sostituisci conti.py '"mediana": statistics.mean(minuti)' '"mediana": statistics.median(minuti)'
+### [esito:b5-riparato]
+.\.venv\Scripts\python.exe -m pytest -q
+### [/esito:b5-riparato]
+### [esito:b5-uso]
+.\.venv\Scripts\python.exe -c "from conti import riassunto; print(riassunto([95, 140, 210, 60, 125]))"
+.\.venv\Scripts\python.exe -c "from conti import ore; print(ore(-1, 126))"
+### [/esito:b5-uso]
