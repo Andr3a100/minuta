@@ -82,3 +82,41 @@ jobs:
         with:
           name: verbale-basi-${{ matrix.os }}
           path: verbale-basi.txt
+
+  percorso:
+    name: Comandi della Parte III · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            shell_lettore: bash
+          - os: macos-latest
+            shell_lettore: zsh
+          - os: windows-latest
+            shell_lettore: powershell
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Prova dei comandi (macOS e Linux)
+        if: runner.os != 'Windows'
+        run: |
+          bash percorso/prova-minuta.sh "$RUNNER_TEMP/verbale-minuta.txt" \
+            ${{ matrix.shell_lettore }}
+          cp "$RUNNER_TEMP/verbale-minuta.txt" verbale-minuta.txt
+      - name: Prova dei comandi (Windows PowerShell 5.1)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass `
+            -File percorso\prova-minuta.ps1 "$env:RUNNER_TEMP\verbale-minuta.txt"
+          Copy-Item "$env:RUNNER_TEMP\verbale-minuta.txt" verbale-minuta.txt
+      - name: Verbale
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verbale-minuta-${{ matrix.os }}
+          path: verbale-minuta.txt
