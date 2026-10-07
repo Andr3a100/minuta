@@ -134,8 +134,9 @@ tributaria di primo grado.
 RELATA DI NOTIFICA
 Notificata il 18 settembre 2026 mediante consegna a mani del destinatario."""
 
-# I due avvertimenti dell'avviso riprendono i commi 2 e 3 dell'art. 415-bis
-# del codice di procedura penale, testo vigente al 7 ottobre 2026.
+# I fatti sono quelli del caso della lezione 4. I due avvertimenti
+# dell'avviso riprendono i commi 2 e 3 dell'art. 415-bis del codice di
+# procedura penale, testo vigente al 7 ottobre 2026.
 AVVISO = """PROCURA DELLA REPUBBLICA PRESSO IL TRIBUNALE DI MODENA
 Procedimento penale n. 3127/2026 R.G.N.R.
 
@@ -146,13 +147,14 @@ Il pubblico ministero, visti gli atti del procedimento,
 
 AVVISA
 
-Alessandro Riva, legale rappresentante di Riva Logistica S.r.l., indagato,
+Alessandro Riva, legale rappresentante di Logistica Riva S.r.l., indagato,
 e il suo difensore, avv. Stefano Valli del foro di Modena, che le indagini
 preliminari sono concluse per il seguente fatto: lesioni personali colpose
 gravi, commesse con violazione delle norme per la prevenzione degli
 infortuni sul lavoro (art. 590, secondo e terzo comma, del codice penale),
-in danno del dipendente Davide Ferretti, nel magazzino della società a
-Modena, il 12 marzo 2026.
+in danno del dipendente Marco Bellini, caduto da un soppalco nel magazzino
+della società a Carpi il 3 marzo 2026, con una frattura del bacino e una
+prognosi di novanta giorni.
 
 AVVERTE
 
