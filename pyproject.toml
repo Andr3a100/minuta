@@ -18,3 +18,8 @@ packages = ["minuta"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+
+[tool.ruff]
+# Il codice stampato nel libro sta in 79 colonne.
+line-length = 79
+target-version = "py313"

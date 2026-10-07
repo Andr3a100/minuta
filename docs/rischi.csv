@@ -1,0 +1,13 @@
+rischio;probabilità;impatto;risposta;lezione
+Dati del cliente al fornitore;media;alto;segnaposto, blocco dell'invio;17
+Scadenza sbagliata;media;alto;regole con le norme, conferma;19
+Citazione inventata o fuori tema;alta;alto;massimario, pertinenza;25
+Istruzioni nascoste negli atti;media;alto;controllo dei PDF;16 e 18
+Un cliente nell'atto di un altro;media;alto;segnaposto, permessi;24 e 32
+Accesso di chi non deve;media;alto;ruoli, permessi per fascicolo;15 e 32
+Firma creduta verificata;media;alto;integrità e certificato distinti;16
+Stile che scivola verso il modello;media;medio;esempi senza Minuta;26
+Costi del fornitore;bassa;medio;costo nel registro, limiti;31
+Dipendenza dal fornitore;media;alto;modello da configurazione;6 e 31
+Perdita dei dati;bassa;alto;backup provato;33
+Agente oltre il compito;alta;medio;casi dalla norma, diff letto;13 e 29
