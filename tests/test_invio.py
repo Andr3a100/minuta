@@ -25,6 +25,26 @@ NOTI = {"Alessandro Riva": "PERSONA", "Logistica Riva S.r.l.": "SOGGETTO"}
 CONFIG = archive.carica_config(RADICE / "config" / "studio.json")
 ATTI = sorted((RADICE / "archivio" / "pdf").glob("*.pdf"))
 DECRETO = RADICE / "documenti-di-prova" / "2026-071" / "decreto.pdf"
+# Gli elenchi completi dei tre fascicoli di prova: con questi, nessun
+# documento deve lasciar partire un nome (lezione 18).
+ELENCHI = {
+    "2026-071": {
+        "Ristorazione Collinare S.r.l.": "SOGGETTO",
+        "Termocucine Secchia S.r.l.": "SOGGETTO",
+        "Elena Sarti": "PERSONA",
+    },
+    "2026-072": {"Ivo Marchetti": "PERSONA", "Paola Righi": "PERSONA"},
+    "2026-073": {
+        "Alessandro Riva": "PERSONA",
+        "Marco Bellini": "PERSONA",
+        "Stefano Valli": "PERSONA",
+    },
+}
+DOCUMENTI = sorted(
+    p
+    for p in (RADICE / "documenti-di-prova").rglob("*")
+    if p.is_file() and p.parent.name in ELENCHI
+)
 
 
 # [libro:prova-lezione-4]
@@ -100,6 +120,15 @@ def test_il_nome_spezzato_a_capo_e_sempre_lui():
     assert not completo.bloccato
     assert "Termocucine" not in completo.testo
     assert "Termocucine Secchia S.r.l." in completo.tabella.values()
+
+
+@pytest.mark.parametrize(
+    "percorso", DOCUMENTI, ids=[p.name for p in DOCUMENTI]
+)
+def test_ogni_documento_di_prova_parte_pulito_con_l_elenco_completo(percorso):
+    lettura = documenti.leggi(percorso.name, percorso.read_bytes())
+    preparato = prepara(lettura.testo, ELENCHI[percorso.parent.name])
+    assert (preparato.fughe, preparato.nomi) == ([], [])
 
 
 def test_la_prova_delle_fughe_vede_anche_il_nome_a_capo():
