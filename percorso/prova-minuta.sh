@@ -34,6 +34,9 @@ shell_lettore="${2:-bash}"
 rm -rf ~/minuta/laboratorio ~/.materiale
 mkdir -p ~/minuta ~/.materiale
 git clone -q "$lab" ~/minuta/laboratorio
+# Il lettore parte dal ramo principale, anche quando la CI ha estratto il
+# repository fermo su un'etichetta.
+git -C ~/minuta/laboratorio switch -q -C main
 for versione in $(cat "$percorso"/sessioni/unix/*.txt |
     sed -n 's/^git switch --detach \(v[0-9.]*\)$/\1/p' | sort -u); do
     git -C ~/minuta/laboratorio rev-parse -q --verify \

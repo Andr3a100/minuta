@@ -48,6 +48,9 @@ New-Item -ItemType Directory -Force "$casa\minuta" | Out-Null
 New-Item -ItemType Directory "$casa\.materiale" | Out-Null
 $clone = "$casa\minuta\laboratorio"
 git clone -q $lab $clone
+# Il lettore parte dal ramo principale, anche quando la CI ha estratto il
+# repository fermo su un'etichetta.
+git -C $clone switch -q -C main
 $versioni = Get-Content "$percorso\sessioni\windows\*.txt" |
     Select-String '^git switch --detach (v[0-9.]+)$' |
     ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique

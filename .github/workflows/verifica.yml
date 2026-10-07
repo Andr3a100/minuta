@@ -3,8 +3,11 @@
 # output che stampa.
 name: Verifica
 
+# Ogni push su un ramo. Le etichette delle versioni arrivano con il commit
+# che segnano, già provato: non serve una seconda esecuzione.
 on:
   push:
+    branches: ["**"]
   workflow_dispatch:
 
 permissions:
