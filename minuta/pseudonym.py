@@ -66,6 +66,9 @@ class Pseudonimizzatore:
     prefisso: str = ""
     noti: dict[str, str] = field(default_factory=dict)  # valore -> tipo
     generico: bool = False  # segnaposto senza numero, per il profilo dello studio
+    # Delle persone si nasconde anche il solo cognome, non il nome di
+    # battesimo: «Marco» di Marco Dini non deve toccare Marco Bellini (L17).
+    solo_cognomi: bool = False
     tabella: dict[str, str] = field(default_factory=dict)  # segnaposto -> valore
     _valori: dict[str, str] = field(default_factory=dict)  # valore -> segnaposto
     _contatori: dict[str, int] = field(default_factory=dict)
@@ -115,6 +118,8 @@ class Pseudonimizzatore:
             trovati.setdefault(persona, "PERSONA")
             parti = persona.split()
             trovati.setdefault(" ".join(reversed(parti)), "PERSONA")
+            if self.solo_cognomi:
+                parti = parti[-1:]
             for parte in parti:
                 if parte.lower() not in GENERICHE:
                     trovati.setdefault(parte, "PERSONA")

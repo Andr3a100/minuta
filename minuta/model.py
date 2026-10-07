@@ -136,6 +136,8 @@ class ModelloFinto:
         self.errore = errore
 
     def scrivi(self, sistema: str, richiesta: str) -> Risposta:
+        if "STILE:" not in richiesta:  # una domanda, non una bozza (L17)
+            return self._generico(sistema, richiesta)
         dati = dict(re.findall(r"^([A-Z_ ]+): (.+)$", richiesta.split("ESEMPIO E1", 1)[0], re.M))
         stile = json.loads(re.search(r"^STILE: (\{.*\})$", richiesta, re.M).group(1))
         trovato = re.search(r"ESEMPIO E1 [^\n]*\n(.*?)(?:\nESEMPIO E2|\nFINE ESEMPI)",
@@ -181,6 +183,20 @@ class ModelloFinto:
         p.append("[DA COMPLETARE: luogo e data] Avv. " + dati["AVVOCATO"] + " {fonte: fascicolo}")
         testo = "\n\n".join(p)
         return Risposta(testo, self.nome, len(sistema + richiesta) // 4, len(testo) // 4)
+
+
+    def _generico(self, sistema: str, richiesta: str) -> Risposta:
+        """Non legge il testo: elenca i segnaposto che ha ricevuto, così la
+        prova vede che cosa è partito e che cosa torna ricomposto."""
+        trovati = re.findall(r"\[[A-Z0-9_]+_\d+\]", richiesta)
+        segni = list(dict.fromkeys(trovati))
+        testo = (
+            "Risposta del modello finto, per le prove: non legge il testo. "
+            f"Nel testo ricevuto ci sono {len(segni)} segnaposto: "
+            + ", ".join(segni) + "."
+        )
+        token_in = len(sistema + richiesta) // 4
+        return Risposta(testo, self.nome, token_in, len(testo) // 4)
 
 
 def scegli(nome: str | None = None) -> Modello:

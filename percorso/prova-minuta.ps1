@@ -1,7 +1,7 @@
 # Prova della Parte III su Windows, con Windows PowerShell 5.1: i comandi del
 # lettore.
 #
-# Esegue i comandi delle lezioni 15 e 16 cosi come li scrive il lettore,
+# Esegue i comandi delle lezioni 15-17 cosi come li scrive il lettore,
 # e ne scrive il verbale. Il libro stampa gli output presi da questo verbale.
 #
 #   powershell -ExecutionPolicy Bypass -File percorso\prova-minuta.ps1 VERBALE
@@ -148,6 +148,8 @@ Scrivi ''
 
 # Lezione 16: Minuta 0.2, i documenti del fascicolo.
 Sessione 'l16'
+# Lezione 17: Minuta 0.3, pseudonimizzare prima di tutto.
+Sessione 'l17'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)

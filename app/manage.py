@@ -11,6 +11,11 @@ Si usano dal terminale, dalla cartella del laboratorio:
     python -m app.manage carica 2026-071 documenti-di-prova/2026-071 --da irene
     python -m app.manage leggi documento.pdf
     python -m app.manage testo 2026-072 cartella-scansione.pdf
+    python -m app.manage persona 2026-073 "Marco Bellini" \
+        --ruolo "persona offesa" --da valli
+    python -m app.manage anteprima 2026-073 avviso-415-bis.pdf.p7m
+    python -m app.manage chiedi 2026-073 avviso-415-bis.pdf.p7m "..." \
+        --da valli
 
 Le passphrase non si scrivono mai sulla riga di comando, dove resterebbero
 nella cronologia: il programma le chiede, oppure le legge da stdin.
@@ -20,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import json
 import os
 import re
 import sys
@@ -31,6 +37,7 @@ from sqlalchemy.orm import Session
 
 from minuta import certificatori
 from minuta import documenti as motore
+from minuta.invio import SISTEMA
 
 from .config import ConfigError, leggi_file_env, load_settings
 from .db import (
@@ -39,6 +46,7 @@ from .db import (
     Documento,
     Evento,
     Fascicolo,
+    PersonaFascicolo,
     SessioneAccesso,
     UsoAI,
     Utente,
@@ -53,7 +61,18 @@ from .documenti import (
     lettura_di,
     stato_elenco,
 )
+from .invio import (
+    InvioBloccato,
+    PersonaRifiutata,
+    aggiungi_persona,
+    cliente_in_elenco,
+    domanda_sul_documento,
+    modello_da,
+    noti_del_fascicolo,
+    prepara_domanda,
+)
 from .migrations import MigrationError, migra, ultima, versione_attuale
+from .registro import RichiestaNonAmmessa
 from .security import MIN_PASSPHRASE, hash_passphrase
 from .web import registra_evento
 
@@ -184,6 +203,7 @@ def crea_prova(db: Session, production: bool) -> int:
             assegnati.add(persone[praticante].id)
         for persona in sorted(assegnati):
             db.add(Assegnazione(fascicolo_id=fascicolo.id, utente_id=persona))
+        cliente_in_elenco(db, fascicolo)
         registra_evento(
             db,
             chi_apre,
@@ -264,7 +284,74 @@ def costruisci_parser() -> argparse.ArgumentParser:
     testo = sub.add_parser("testo", help="il testo letto da un documento")
     testo.add_argument("codice")
     testo.add_argument("nome")
+    sub.add_parser("persone", help="l'elenco delle persone di un fascicolo")
+    sub.choices["persone"].add_argument("codice")
+    persona = sub.add_parser("persona", help="aggiunge una persona all'elenco")
+    persona.add_argument("codice")
+    persona.add_argument("nome")
+    persona.add_argument("--ruolo", required=True)
+    persona.add_argument(
+        "--soggetto", action="store_true", help="una società o un ente"
+    )
+    persona.add_argument("--da", required=True, help="chi la aggiunge")
+    anteprima = sub.add_parser(
+        "anteprima", help="che cosa partirebbe verso il modello, e i controlli"
+    )
+    anteprima.add_argument("codice")
+    anteprima.add_argument("nome", help="il nome del documento")
+    anteprima.add_argument("--domanda", default="")
+    domanda = sub.add_parser("chiedi", help="una domanda su un documento")
+    domanda.add_argument("codice")
+    domanda.add_argument("nome", help="il nome del documento")
+    domanda.add_argument("domanda")
+    domanda.add_argument("--da", required=True, help="chi fa la domanda")
+    domanda.add_argument(
+        "--verbale", help="salva lo scambio in un file JSON, per il libro"
+    )
     return parser
+
+
+def documento_del_fascicolo(db: Session, codice: str, nome: str):
+    fascicolo = db.scalar(select(Fascicolo).where(Fascicolo.codice == codice))
+    if fascicolo is None:
+        raise CommandError(f"Il fascicolo {codice} non esiste.")
+    documento = db.scalar(
+        select(Documento).where(
+            Documento.fascicolo_id == fascicolo.id, Documento.nome == nome
+        )
+    )
+    if documento is None:
+        raise CommandError(f"Nel fascicolo {codice} non c'è {nome}.")
+    return fascicolo, documento
+
+
+def stampa_persone(db: Session, codice: str) -> None:
+    fascicolo = db.scalar(select(Fascicolo).where(Fascicolo.codice == codice))
+    if fascicolo is None:
+        raise CommandError(f"Il fascicolo {codice} non esiste.")
+    elenco = list(
+        db.scalars(
+            select(PersonaFascicolo)
+            .where(PersonaFascicolo.fascicolo_id == fascicolo.id)
+            .order_by(PersonaFascicolo.id)
+        )
+    )
+    print(f"Persone del fascicolo {codice}:")
+    for persona in elenco:
+        tipo = " (società o ente)" if persona.tipo == "SOGGETTO" else ""
+        print(f"  {persona.nome}{tipo}: {persona.ruolo}")
+    nomi = {p.nome for p in elenco}
+    studio = [n for n in noti_del_fascicolo(db, fascicolo) if n not in nomi]
+    if studio:
+        print("E dello studio, perché ci lavorano: " + ", ".join(studio))
+
+
+def stampa_controlli(preparato, noti: dict[str, str]) -> None:
+    print(f"Nomi noti a Minuta: {len(noti)} ({', '.join(noti)})")
+    print("Fughe: " + (", ".join(preparato.fughe) or "nessuna"))
+    print("Nomi fuori elenco: " + (", ".join(preparato.nomi) or "nessuno"))
+    if preparato.salute:
+        print("Dati sulla salute: " + ", ".join(preparato.salute))
 
 
 def file_da(percorsi: list[str]) -> list[Path]:
@@ -432,16 +519,120 @@ def main(argv: list[str] | None = None) -> int:
                 return carica_file(db, settings, args)
             elif args.comando == "testo":
                 stampa_testo(db, args.codice, args.nome)
+            elif args.comando == "persone":
+                stampa_persone(db, args.codice)
+            elif args.comando == "persona":
+                fascicolo, utente = fascicolo_e_utente(
+                    db, args.codice, args.da
+                )
+                persona = aggiungi_persona(
+                    db, utente, fascicolo, args.nome, args.ruolo, args.soggetto
+                )
+                print(
+                    f"Aggiunta all'elenco di {fascicolo.codice}: "
+                    f"{persona.nome} ({persona.ruolo})."
+                )
+            elif args.comando == "anteprima":
+                return anteprima(db, args)
+            elif args.comando == "chiedi":
+                return chiedi_al_modello(db, settings, args)
         return 0
     except (
         CommandError,
         MigrationError,
         motore.DocumentoNonLeggibile,
+        PersonaRifiutata,
+        RichiestaNonAmmessa,
     ) as exc:
         print(str(exc), file=sys.stderr)
         return 1
     finally:
         engine.dispose()
+
+
+def anteprima(db: Session, args) -> int:
+    fascicolo, documento = documento_del_fascicolo(db, args.codice, args.nome)
+    preparato, _persone = prepara_domanda(
+        db, fascicolo, documento, args.domanda
+    )
+    print(f"Fascicolo {fascicolo.codice} · {documento.nome}")
+    stampa_controlli(preparato, noti_del_fascicolo(db, fascicolo))
+    if preparato.bloccato:
+        print(
+            "Invio BLOCCATO: niente parte finché resta qualcosa da nascondere."
+        )
+    print("--- il testo che partirebbe ---")
+    print(preparato.testo)
+    return 1 if preparato.bloccato else 0
+
+
+def chiedi_al_modello(db: Session, settings, args) -> int:
+    fascicolo, documento = documento_del_fascicolo(db, args.codice, args.nome)
+    _fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    if utente.ruolo == "segreteria":
+        raise CommandError("La segreteria non fa richieste al modello.")
+    print(f"Fascicolo {fascicolo.codice} · {documento.nome} · {utente.nome}")
+    try:
+        esito = domanda_sul_documento(
+            db,
+            utente,
+            fascicolo,
+            documento,
+            args.domanda,
+            modello_da(settings),
+        )
+    except InvioBloccato as blocco:
+        stampa_controlli(blocco.preparato, noti_del_fascicolo(db, fascicolo))
+        print(
+            "Invio BLOCCATO: niente parte finché resta qualcosa da nascondere."
+        )
+        return 1
+    voce = esito.voce
+    print(f"Controllo: {voce.controllo}")
+    if esito.preparato.salute:
+        print(
+            "Dati sulla salute inviati: " + ", ".join(esito.preparato.salute)
+        )
+    print("--- la risposta, con i nomi rimessi nello studio ---")
+    print(esito.risposta)
+    if esito.sconosciuti:
+        print(
+            "Segnaposto inventati dal modello: " + ", ".join(esito.sconosciuti)
+        )
+    costo = (
+        f"{voce.costo_usd:.4f} dollari"
+        if voce.costo_usd is not None
+        else "non stimato"
+    )
+    print(
+        f"Registro dell'uso dell'AI: voce n. {voce.id}, {voce.modello}, "
+        f"{voce.caratteri} caratteri, token {voce.token_in} + "
+        f"{voce.token_out}, costo {costo}"
+    )
+    if args.verbale:
+        Path(args.verbale).write_text(
+            json.dumps(
+                {
+                    "quando": voce.quando.isoformat(),
+                    "modello": voce.modello,
+                    "domanda": args.domanda,
+                    "sistema": SISTEMA,
+                    "inviato": esito.preparato.testo,
+                    "arrivata": esito.arrivata,
+                    "ricomposta": esito.risposta,
+                    "token_in": voce.token_in,
+                    "token_out": voce.token_out,
+                    "costo_usd": voce.costo_usd,
+                    "controllo": voce.controllo,
+                    "categorie": voce.categorie,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            "utf-8",
+        )
+    return 0
 
 
 # [libro:diagnosi]
@@ -457,6 +648,8 @@ def diagnosi(settings, engine) -> int:
     chiave = chiave_presente()
     stato = f"in {chiave} (non mostrata)" if chiave else "assente"
     print(f"Chiave modello   {stato}")
+    nome = f" ({settings.modello_nome})" if settings.modello_nome else ""
+    print(f"Modello          {settings.modello}{nome}")
     try:
         with engine.connect() as conn:
             versione = versione_attuale(conn)
@@ -476,6 +669,7 @@ def diagnosi(settings, engine) -> int:
             for nome, tabella in (
                 ("Fascicoli", Fascicolo),
                 ("Documenti", Documento),
+                ("Persone", PersonaFascicolo),
                 ("Eventi", Evento),
                 ("Voci uso AI", UsoAI),
             ):

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Domanda su {{ documento.nome }}{% endblock %}
+{% block content %}
+<article class="scheda">
+  <h1>Una domanda su {{ documento.nome }}</h1>
+  <p><a href="/fascicoli/{{ fascicolo.id }}">{{ fascicolo.codice }} · {{ fascicolo.cliente }}</a></p>
+  <form method="post" action="/fascicoli/{{ fascicolo.id }}/documenti/{{ documento.id }}/domanda">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="domanda">La domanda</label>
+    <textarea id="domanda" name="domanda" rows="3" required maxlength="2000">{{ domanda }}</textarea>
+    <div class="azioni">
+      <button type="submit" name="azione" value="anteprima">Guarda che cosa partirebbe</button>
+      {% if domanda and not preparato.bloccato %}
+      <button type="submit" name="azione" value="invia">Manda al modello</button>
+      {% endif %}
+    </div>
+  </form>
+</article>
+
+<section class="scheda">
+  <h2>I controlli</h2>
+  <ul>
+    <li>Nomi noti a Minuta: {{ persone }} ({{ noti|join(", ") }}).</li>
+    {% if preparato.fughe %}
+    <li class="errore">Fughe: {{ preparato.fughe|join(", ") }}.</li>
+    {% else %}<li>Fughe: nessuna.</li>{% endif %}
+    {% if preparato.nomi %}
+    <li class="errore">Nomi che non sono nell'elenco: {{ preparato.nomi|join(", ") }}.
+      Aggiungili all'elenco delle persone del fascicolo: finché restano, la domanda non parte.</li>
+    {% else %}<li>Nomi fuori elenco: nessuno.</li>{% endif %}
+    {% if preparato.salute %}
+    <li>Dati sulla salute: {{ preparato.salute|join(", ") }}. Partono solo se servono alla domanda.</li>
+    {% endif %}
+  </ul>
+</section>
+
+<section class="scheda">
+  <h2>Il testo che riceverebbe il fornitore</h2>
+  <pre class="testo">{{ preparato.testo }}</pre>
+</section>
+{% endblock %}

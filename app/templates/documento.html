@@ -27,7 +27,10 @@
     {% for avviso in lettura.avvisi %}<li>{{ avviso }}</li>{% endfor %}
   </ul>
   {% endif %}
-  <p><a class="pulsante secondario" href="/fascicoli/{{ fascicolo.id }}/documenti/{{ documento.id }}/originale">Scarica l'originale</a></p>
+  <p class="azioni">
+    <a class="pulsante secondario" href="/fascicoli/{{ fascicolo.id }}/documenti/{{ documento.id }}/originale">Scarica l'originale</a>
+    {% if utente.ruolo != "segreteria" %}<a class="pulsante" href="/fascicoli/{{ fascicolo.id }}/documenti/{{ documento.id }}/domanda">Fai una domanda al modello</a>{% endif %}
+  </p>
 </article>
 
 {% for p in lettura.pagine %}

@@ -16,6 +16,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .config import Settings, load_settings
 from .db import make_engine, make_session_factory
 from .documenti import MASSIMO_DOCUMENTO
+from .invio import modello_da
 from .routes import router
 from .web import LoginRequired, pagina_errore
 
@@ -54,6 +55,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.session_factory = make_session_factory(engine)
     app.state.templates = Jinja2Templates(directory=str(QUI / "templates"))
+    # Il modello indicato in MINUTA_MODELLO; senza, quello finto (lezione 17).
+    app.state.modello = modello_da(settings)
     app.mount("/static", StaticFiles(directory=str(QUI / "static")), "static")
     app.include_router(router)
 

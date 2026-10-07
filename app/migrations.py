@@ -7,6 +7,7 @@ Le migrazioni vanno solo avanti. Per tornare indietro si ripristina un backup.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 
 from sqlalchemy import (
@@ -190,10 +191,75 @@ def _passo_2(conn: Connection) -> None:
 # [/libro:passo-2]
 
 
+# [libro:passo-3]
+def _passo_3(conn: Connection) -> None:
+    """Le persone del fascicolo e i segnaposto (lezione 17). Ogni fascicolo
+    comincia con il suo cliente; le altre persone le aggiunge lo studio."""
+    meta = MetaData()
+    fascicoli = Table(
+        "fascicoli",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column("cliente", String(120)),
+    )
+    Table("utenti", meta, Column("id", Integer, primary_key=True))
+    persone = Table(
+        "persone",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column(
+            "fascicolo_id",
+            ForeignKey("fascicoli.id"),
+            nullable=False,
+            index=True,
+        ),
+        Column("nome", String(120), nullable=False),
+        Column("tipo", String(10), nullable=False),
+        Column("ruolo", String(60), nullable=False),
+        Column("aggiunta_da_id", ForeignKey("utenti.id"), nullable=True),
+        Column("aggiunta_il", DateTime(timezone=True), nullable=False),
+        UniqueConstraint("fascicolo_id", "nome", name="uq_persone"),
+        CheckConstraint(
+            "tipo IN ('PERSONA', 'SOGGETTO')", name="ck_persone_tipo"
+        ),
+    )
+    Table(
+        "segnaposto",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column(
+            "fascicolo_id",
+            ForeignKey("fascicoli.id"),
+            nullable=False,
+            index=True,
+        ),
+        Column("segno", String(40), nullable=False),
+        Column("valore", String(200), nullable=False),
+        UniqueConstraint("fascicolo_id", "segno", name="uq_segnaposto"),
+    )
+    meta.tables["persone"].create(conn)
+    meta.tables["segnaposto"].create(conn)
+    for fascicolo in conn.execute(select(fascicoli.c.id, fascicoli.c.cliente)):
+        societa = re.search(r"S\.(?:r\.l|p\.A|n\.c|a\.s)\.", fascicolo.cliente)
+        conn.execute(
+            insert(persone).values(
+                fascicolo_id=fascicolo.id,
+                nome=fascicolo.cliente,
+                tipo="SOGGETTO" if societa else "PERSONA",
+                ruolo="cliente",
+                aggiunta_il=adesso(),
+            )
+        )
+
+
+# [/libro:passo-3]
+
+
 # Ogni nuova migrazione si aggiunge qui con il numero successivo.
 PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     1: ("Schema iniziale", _passo_1),
     2: ("I documenti del fascicolo", _passo_2),
+    3: ("Le persone del fascicolo e i segnaposto", _passo_3),
 }
 
 

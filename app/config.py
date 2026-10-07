@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 AMBIENTI = ("development", "test", "production")
+MODELLI = ("finto", "openai", "anthropic")
 
 
 class ConfigError(Exception):
@@ -54,6 +55,10 @@ class Settings:
     session_hours: int = 8
     # Gli originali dei documenti e l'elenco dei certificatori (lezione 16).
     data_dir: str = "dati"
+    # Il modello delle domande (lezione 17): senza indicazioni, quello finto,
+    # che non manda niente a nessuno.
+    modello: str = "finto"
+    modello_nome: str = ""
 
     @property
     def production(self) -> bool:
@@ -74,6 +79,11 @@ class Settings:
             raise ConfigError("ALLOWED_HOSTS mancante")
         if not self.data_dir:
             raise ConfigError("DATA_DIR mancante")
+        if self.modello not in MODELLI:
+            elenco = ", ".join(MODELLI)
+            raise ConfigError(f"MINUTA_MODELLO deve essere: {elenco}")
+        if self.modello != "finto" and not self.modello_nome:
+            raise ConfigError("MINUTA_MODELLO_NOME mancante")
         if not 1 <= self.session_hours <= 24:
             raise ConfigError("SESSION_HOURS deve essere tra 1 e 24")
         if self.production and not self.app_origin.startswith("https://"):
@@ -106,4 +116,6 @@ def load_settings(file_env: str | os.PathLike[str] = ".env") -> Settings:
         allowed_hosts=host,
         session_hours=ore,
         data_dir=valori.get("DATA_DIR", "dati"),
+        modello=valori.get("MINUTA_MODELLO", "finto"),
+        modello_nome=valori.get("MINUTA_MODELLO_NOME", ""),
     ).validate()

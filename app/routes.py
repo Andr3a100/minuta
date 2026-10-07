@@ -29,6 +29,7 @@ from .db import (
     Documento,
     Evento,
     Fascicolo,
+    PersonaFascicolo,
     SessioneAccesso,
     TentativoFallito,
     Utente,
@@ -41,7 +42,17 @@ from .documenti import (
     lettura_di,
     originale,
 )
+from .invio import (
+    InvioBloccato,
+    PersonaRifiutata,
+    aggiungi_persona,
+    cliente_in_elenco,
+    domanda_sul_documento,
+    noti_del_fascicolo,
+    prepara_domanda,
+)
 from .migrations import ultima, versione_attuale
+from .registro import RichiestaNonAmmessa
 from .rules import (
     APRONO,
     ValidationErrors,
@@ -286,6 +297,7 @@ def apri_fascicolo(
         )
         for persona in sorted(persone):
             db.add(Assegnazione(fascicolo_id=fascicolo.id, utente_id=persona))
+        cliente_in_elenco(db, fascicolo)  # la prima persona dell'elenco
         registra_evento(
             db, utente, fascicolo, "apertura", persone=sorted(persone)
         )
@@ -323,11 +335,19 @@ def scheda_fascicolo(request: Request, fascicolo_id: int):
                 .order_by(Documento.id)
             )
         )
+        elenco = list(
+            db.scalars(
+                select(PersonaFascicolo)
+                .where(PersonaFascicolo.fascicolo_id == fascicolo.id)
+                .order_by(PersonaFascicolo.id)
+            )
+        )
     contesto = {
         "utente": utente,
         "fascicolo": fascicolo,
         "nomi": persone,
         "documenti": documenti,
+        "elenco": elenco,
         "assegnati": [persone[i] for i in assegnati],
         "azioni": azioni_disponibili(fascicolo.stato, utente.ruolo),
         "storia": [(e, json.loads(e.dettaglio or "{}")) for e in eventi],
@@ -464,6 +484,115 @@ def scarica_originale(request: Request, fascicolo_id: int, documento_id: int):
         media_type="application/octet-stream",
         headers={"Content-Disposition": disposizione},
     )
+
+
+# ----------------------------------------------------------------------
+# Persone del fascicolo e domande al modello (lezione 17)
+# ----------------------------------------------------------------------
+
+
+@router.post("/fascicoli/{fascicolo_id}/persone")
+def nuova_persona(
+    request: Request,
+    fascicolo_id: int,
+    nome: str = Form(""),
+    ruolo: str = Form(""),
+    soggetto: str = Form(""),
+    csrf_token: str = Form(""),
+):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        controlla_modulo(request, csrf_token)
+        fascicolo = fascicolo_visibile(db, fascicolo_id, utente)
+        try:
+            aggiungi_persona(
+                db, utente, fascicolo, nome, ruolo, soggetto == "si"
+            )
+        except PersonaRifiutata as exc:
+            raise HTTPException(422, str(exc)) from None
+    return vai_a(f"/fascicoli/{fascicolo_id}")
+
+
+def pagina_domanda(request, db, utente, fascicolo, documento, domanda):
+    """La domanda, il testo che partirebbe e l'esito dei controlli."""
+    preparato, persone = prepara_domanda(db, fascicolo, documento, domanda)
+    contesto = {
+        "utente": utente,
+        "fascicolo": fascicolo,
+        "documento": documento,
+        "domanda": domanda,
+        "preparato": preparato,
+        "persone": persone,
+        "noti": noti_del_fascicolo(db, fascicolo),
+    }
+    stato = 422 if preparato.bloccato and domanda else 200
+    return pagina(request, "domanda.html", contesto, stato)
+
+
+@router.get(
+    "/fascicoli/{fascicolo_id}/documenti/{documento_id}/domanda",
+    response_class=HTMLResponse,
+)
+def scrivi_domanda(request: Request, fascicolo_id: int, documento_id: int):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        richiedi_ruolo(utente, "avvocato", "praticante")
+        fascicolo, documento = documento_visibile(
+            db, fascicolo_id, documento_id, utente
+        )
+        return pagina_domanda(request, db, utente, fascicolo, documento, "")
+
+
+# [libro:rotta-domanda]
+@router.post("/fascicoli/{fascicolo_id}/documenti/{documento_id}/domanda")
+def invia_domanda(
+    request: Request,
+    fascicolo_id: int,
+    documento_id: int,
+    domanda: str = Form(""),
+    azione: str = Form("anteprima"),
+    csrf_token: str = Form(""),
+):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)  # chi sei
+        richiedi_ruolo(utente, "avvocato", "praticante")  # che cosa puoi
+        controlla_modulo(request, csrf_token)  # il modulo è nostro
+        fascicolo, documento = documento_visibile(  # su che cosa
+            db, fascicolo_id, documento_id, utente
+        )
+        domanda = domanda.strip()[:2000]
+        if not domanda:
+            raise HTTPException(422, "Scrivi la domanda.")
+        if azione != "invia":  # prima si guarda che cosa partirebbe
+            return pagina_domanda(
+                request, db, utente, fascicolo, documento, domanda
+            )
+        try:
+            esito = domanda_sul_documento(
+                db,
+                utente,
+                fascicolo,
+                documento,
+                domanda,
+                request.app.state.modello,
+            )
+        except InvioBloccato:
+            return pagina_domanda(
+                request, db, utente, fascicolo, documento, domanda
+            )
+        except RichiestaNonAmmessa as exc:
+            raise HTTPException(403, str(exc)) from None
+        contesto = {
+            "utente": utente,
+            "fascicolo": fascicolo,
+            "documento": documento,
+            "domanda": domanda,
+            "esito": esito,
+        }
+    return pagina(request, "risposta.html", contesto)
+
+
+# [/libro:rotta-domanda]
 
 
 # ----------------------------------------------------------------------

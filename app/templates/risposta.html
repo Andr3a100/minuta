@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Risposta su {{ documento.nome }}{% endblock %}
+{% block content %}
+<article class="scheda">
+  <h1>La risposta</h1>
+  <p><a href="/fascicoli/{{ fascicolo.id }}/documenti/{{ documento.id }}">{{ documento.nome }}</a> · {{ fascicolo.codice }}</p>
+  <p class="nota">Domanda: {{ domanda }}</p>
+  <pre class="testo">{{ esito.risposta }}</pre>
+  <p class="nota">I nomi sono stati rimessi nello studio: al fornitore sono arrivati solo i segnaposto.</p>
+  {% if esito.sconosciuti %}
+  <p class="errore">La risposta usa segnaposto che il fascicolo non conosce: {{ esito.sconosciuti|join(", ") }}.
+    Il modello li ha inventati: non si riferiscono a nessuno.</p>
+  {% endif %}
+</article>
+
+<section class="scheda">
+  <h2>La voce nel registro dell'uso dell'AI</h2>
+  <dl class="dati">
+    <dt>Modello</dt><dd>{{ esito.voce.modello }}</dd>
+    <dt>Caratteri inviati</dt><dd>{{ esito.voce.caratteri }}</dd>
+    <dt>Impronta</dt><dd><code>{{ esito.voce.impronta }}</code></dd>
+    <dt>Categorie</dt><dd>{{ esito.voce.categorie }}</dd>
+    <dt>Controllo</dt><dd>{{ esito.voce.controllo }}</dd>
+    {% if esito.voce.costo_usd is not none %}<dt>Costo stimato</dt><dd>{{ "%.4f"|format(esito.voce.costo_usd) }} dollari</dd>{% endif %}
+  </dl>
+</section>
+{% endblock %}

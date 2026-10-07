@@ -198,6 +198,50 @@ class Documento(Base):
 # [/libro:documento]
 
 
+# [libro:persone]
+class PersonaFascicolo(Base):
+    """Una persona o un soggetto dei documenti del fascicolo (lezione 17):
+    l'elenco da cui parte la pseudonimizzazione, come chiede la lezione 4."""
+
+    __tablename__ = "persone"
+    __table_args__ = (
+        UniqueConstraint("fascicolo_id", "nome", name="uq_persone"),
+        CheckConstraint(
+            "tipo IN ('PERSONA', 'SOGGETTO')", name="ck_persone_tipo"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fascicolo_id: Mapped[int] = mapped_column(
+        ForeignKey("fascicoli.id"), index=True
+    )
+    nome: Mapped[str] = mapped_column(String(120))
+    tipo: Mapped[str] = mapped_column(String(10))  # PERSONA o SOGGETTO
+    ruolo: Mapped[str] = mapped_column(String(60))
+    # Nessuno: il cliente, che la migrazione prende dal fascicolo.
+    aggiunta_da_id: Mapped[int | None] = mapped_column(ForeignKey("utenti.id"))
+    aggiunta_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
+
+
+class Segnaposto(Base):
+    """La tabella dei segnaposto di un fascicolo: non lascia mai lo studio."""
+
+    __tablename__ = "segnaposto"
+    __table_args__ = (
+        UniqueConstraint("fascicolo_id", "segno", name="uq_segnaposto"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fascicolo_id: Mapped[int] = mapped_column(
+        ForeignKey("fascicoli.id"), index=True
+    )
+    segno: Mapped[str] = mapped_column(String(40))
+    valore: Mapped[str] = mapped_column(String(200))
+
+
+# [/libro:persone]
+
+
 class SessioneAccesso(Base):
     __tablename__ = "sessioni"
 

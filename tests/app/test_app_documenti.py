@@ -153,14 +153,17 @@ def test_l_originale_resta_com_e_arrivato(app, impostazioni):
 def test_la_migrazione_porta_un_database_della_0_1_alla_0_2(
     impostazioni, monkeypatch
 ):
+    tutti = dict(PASSI)
     engine = make_engine(impostazioni.database_url)
     try:
-        monkeypatch.setitem(PASSI, 2, PASSI[2])
-        passo_2 = PASSI.pop(2)  # il codice della versione 0.1
+        PASSI.clear()
+        PASSI[1] = tutti[1]  # il codice della versione 0.1
         assert migra(engine) == [1]
         assert not inspect(engine).has_table("documenti")
-        PASSI[2] = passo_2  # arriva la versione 0.2
+        PASSI[2] = tutti[2]  # arriva la versione 0.2
         assert migra(engine) == [2]
         assert inspect(engine).has_table("documenti")
     finally:
+        PASSI.clear()
+        PASSI.update(tutti)
         engine.dispose()
