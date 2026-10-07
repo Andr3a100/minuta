@@ -5,12 +5,13 @@ tengono fermi, a ogni modifica del laboratorio, i risultati che il testo
 del libro descrive.
 """
 
-import shutil
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 BASI = Path(__file__).resolve().parent.parent / "basi"
+CONTRASSEGNO = re.compile(r"\[/?libro:")
 
 
 def esegui(cartella, *argomenti):
@@ -23,9 +24,22 @@ def esegui(cartella, *argomenti):
     )
 
 
+def come_li_scrive_il_lettore(testo):
+    """Il file senza le righe dei contrassegni, come lo copia il lettore.
+
+    La prova automatica fa lo stesso: i numeri di riga dei messaggi sono
+    quelli del file del lettore.
+    """
+    righe = [r for r in testo.splitlines() if not CONTRASSEGNO.search(r)]
+    return "\n".join(righe).rstrip("\n") + "\n"
+
+
 def conti(tmp_path):
     for nome in ("primo_conto.py", "conti.py", "test_conti.py"):
-        shutil.copy(BASI / "conti" / nome, tmp_path / nome)
+        testo = (BASI / "conti" / nome).read_text(encoding="utf-8")
+        (tmp_path / nome).write_text(
+            come_li_scrive_il_lettore(testo), encoding="utf-8"
+        )
     return tmp_path
 
 
@@ -55,6 +69,9 @@ def test_b5_la_mediana_che_e_una_media(tmp_path):
     assert "{'mediana': 126} != {'mediana': 125}" in esito.stdout
     assert "{'mediana': 265} != {'mediana': 132.5}" in esito.stdout
     assert "2 failed, 4 passed" in esito.stdout
+    # Le righe degli assert nel file che il lettore ha copiato dal libro.
+    assert "test_conti.py:10: AssertionError" in esito.stdout
+    assert "test_conti.py:19: AssertionError" in esito.stdout
 
 
 def test_b5_le_funzioni_al_volo(tmp_path):
@@ -73,6 +90,8 @@ def test_b5_le_funzioni_al_volo(tmp_path):
     assert negativi.stderr.splitlines()[-1] == (
         "ValueError: i fascicoli non possono essere negativi"
     )
+    # La riga del raise, nel conti.py scritto nell'ordine del libro.
+    assert 'conti.py", line 7, in ore' in negativi.stderr
 
 
 # Lezione B7: i file SQL, eseguiti istruzione per istruzione nell'ordine del

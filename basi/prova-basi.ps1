@@ -49,6 +49,16 @@ $leggimi = $leggimi.Replace("`r`n", "`n").Replace("`n", "`r`n")
 [IO.File]::WriteAllText("$casa\minuta\quaderno\LEGGIMI.md", `
     $leggimi, $utf8)
 Copy-Item -Recurse "$basi\conti", "$basi\sql", "$basi\documenti" "$casa\.materiale\"
+# I file come li scrive il lettore, che copia il codice stampato: senza le
+# righe dei contrassegni per il libro. I numeri di riga dei messaggi sono
+# cosi' quelli del suo file.
+Get-ChildItem -Recurse "$casa\.materiale" -Include '*.py', '*.sql' |
+    ForEach-Object {
+        $righe = [IO.File]::ReadAllLines($_.FullName, $utf8) |
+            Where-Object { $_ -notmatch '\[/?libro:' }
+        $testo = ($righe -join "`n").TrimEnd("`n") + "`n"
+        [IO.File]::WriteAllText($_.FullName, $testo, $utf8)
+    }
 
 # curl mostra la barra di avanzamento solo quando l'output non va sullo
 # schermo: qui la si toglie, per avere lo stesso output del lettore.
