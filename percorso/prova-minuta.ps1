@@ -24,6 +24,7 @@ function Crea-Utenti {
     $py = '.\.venv\Scripts\python.exe'
     $persone = @(
         @('sarti', 'avvocato', 'Elena Sarti'),
+        @('dini', 'avvocato', 'Marco Dini'),
         @('righi', 'avvocato', 'Paola Righi'),
         @('valli', 'avvocato', 'Stefano Valli'),
         @('irene', 'praticante', 'Irene'),
@@ -45,7 +46,7 @@ New-Item -ItemType Directory "$casa\.materiale" | Out-Null
 $archivio = Join-Path $env:TEMP 'laboratorio.zip'
 git -C $lab archive --format=zip --prefix=laboratorio/ -o $archivio HEAD
 Expand-Archive -Force $archivio -DestinationPath "$casa\minuta"
-foreach ($nome in 'sarti', 'righi', 'valli', 'irene', 'rosa') {
+foreach ($nome in 'sarti', 'dini', 'righi', 'valli', 'irene', 'rosa') {
     [IO.File]::WriteAllText("$casa\.materiale\$nome.txt", `
         "passphrase di prova per $nome`n", $utf8)
 }

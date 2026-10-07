@@ -16,12 +16,13 @@ python -m app.manage crea-utente righi --ruolo avvocato --nome "Paola Righi" --p
 python -m app.manage crea-utente valli --ruolo avvocato --nome "Stefano Valli" --passphrase-stdin < ~/.materiale/valli.txt
 python -m app.manage crea-utente irene --ruolo praticante --nome "Irene" --passphrase-stdin < ~/.materiale/irene.txt
 python -m app.manage crea-utente rosa --ruolo segreteria --nome "Rosa" --passphrase-stdin < ~/.materiale/rosa.txt
+: '### [esito:l15-corta]'
+python -m app.manage crea-utente dini --ruolo avvocato --nome "Marco Dini" --passphrase-stdin < ~/.materiale/corta.txt
+: '### [/esito:l15-corta]'
+python -m app.manage crea-utente dini --ruolo avvocato --nome "Marco Dini" --passphrase-stdin < ~/.materiale/dini.txt
 : '### [esito:l15-utenti]'
 python -m app.manage utenti
 : '### [/esito:l15-utenti]'
-: '### [esito:l15-corta]'
-python -m app.manage crea-utente marco --ruolo avvocato --nome "Marco Dini" --passphrase-stdin < ~/.materiale/corta.txt
-: '### [/esito:l15-corta]'
 : '### [esito:l15-prova]'
 python -m app.manage prova
 python -m app.manage diagnosi

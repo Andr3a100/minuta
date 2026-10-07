@@ -32,7 +32,7 @@ rm -rf ~/minuta/laboratorio ~/.materiale
 mkdir -p ~/minuta ~/.materiale
 (cd "$lab" && git archive --format=tar --prefix=laboratorio/ HEAD) |
     tar -x -C ~/minuta
-for nome in sarti righi valli irene rosa; do
+for nome in sarti dini righi valli irene rosa; do
     echo "passphrase di prova per $nome" >~/.materiale/"$nome".txt
 done
 echo "corta" >~/.materiale/corta.txt

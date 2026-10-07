@@ -29,7 +29,7 @@ def test_la_passphrase_sbagliata_non_dice_che_cosa_era_sbagliato(browser):
 def test_una_passphrase_corta_non_si_puo_creare(app):
     with app.state.session_factory() as db:
         with pytest.raises(CommandError, match="almeno 15 caratteri"):
-            crea_utente(db, "marco", "avvocato", "Marco Dini", "troppo corta")
+            crea_utente(db, "dini", "avvocato", "Marco Dini", "troppo corta")
 
 
 def test_non_esiste_una_pagina_di_registrazione(browser):
