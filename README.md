@@ -8,6 +8,17 @@ firma.
 È il laboratorio del libro *Minuta*. Questo è il **pilota tecnico** del 5
 ottobre 2026, su un solo tipo di atto: il ricorso per decreto ingiuntivo.
 
+## Le versioni
+
+Ogni lezione della Parte III del libro lavora su una versione di Minuta,
+segnata nel repository con un'etichetta: `git switch --detach v0.1` porta la
+cartella alla versione della lezione 15. I file che il programma crea sul
+tuo computer (`.env`, il database, l'ambiente virtuale) restano dove sono.
+
+| Versione | Lezione | Che cosa aggiunge |
+|---|---|---|
+| 0.1 | 15 | l'applicazione: accessi, ruoli, fascicoli, i due registri |
+
 ## Che cosa fa
 
 | Passo | Modulo | Stato |
