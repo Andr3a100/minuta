@@ -136,6 +136,8 @@ class ModelloFinto:
         self.errore = errore
 
     def scrivi(self, sistema: str, richiesta: str) -> Risposta:
+        if "SCHEDA:" in richiesta:  # la scheda dell'atto in arrivo (L18)
+            return self._scheda(sistema, richiesta)
         if "STILE:" not in richiesta:  # una domanda, non una bozza (L17)
             return self._generico(sistema, richiesta)
         dati = dict(re.findall(r"^([A-Z_ ]+): (.+)$", richiesta.split("ESEMPIO E1", 1)[0], re.M))
@@ -184,6 +186,42 @@ class ModelloFinto:
         testo = "\n\n".join(p)
         return Risposta(testo, self.nome, len(sistema + richiesta) // 4, len(testo) // 4)
 
+
+    def _scheda(self, sistema: str, richiesta: str) -> Risposta:
+        """Non legge l'atto: sbaglia apposta, sempre allo stesso modo, come
+        può sbagliare un modello vero. L'ultima data diventa la data
+        dell'atto, e di solito è giusta; la prima, la data della
+        notificazione; nel primo importo le ultime due cifre si scambiano;
+        il primo soggetto è la controparte, a una pagina che non c'è."""
+        atto = richiesta.split("PAGINA 1", 1)[-1]
+        mesi = (
+            "gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto"
+            "|settembre|ottobre|novembre|dicembre"
+        )
+        date = re.findall(rf"\b\d{{1,2}}°? (?:{mesi}) \d{{4}}", atto)
+        importi = re.findall(r"\d{1,3}(?:\.\d{3})*,\d{2}", atto)
+        soggetti = re.findall(r"\[SOGGETTO_\d+\]", atto)
+        righe = []
+        if soggetti:
+            righe.append({"voce": "parti", "pagina": 2,
+                          "testo": f"Controparte: {soggetti[0]}"})
+        if importi:
+            intero, centesimi = importi[0].replace(".", "").split(",")
+            if len(intero) > 1 and intero[-1] != intero[-2]:
+                intero = intero[:-2] + intero[-1] + intero[-2]
+            else:
+                intero = str(int(intero) + 1)
+            cifra = f"{int(intero):,}".replace(",", ".") + "," + centesimi
+            righe.append({"voce": "importi", "pagina": 1,
+                          "testo": f"Importo: euro {cifra}"})
+        if date:
+            righe.append({"voce": "date", "pagina": 1,
+                          "testo": f"Data dell'atto: {date[-1]}"})
+            righe.append({"voce": "date", "pagina": 1,
+                          "testo": f"Data della notificazione: {date[0]}"})
+        testo = json.dumps({"righe": righe}, ensure_ascii=False)
+        return Risposta(testo, self.nome, len(sistema + richiesta) // 4,
+                        len(testo) // 4)
 
     def _generico(self, sistema: str, richiesta: str) -> Risposta:
         """Non legge il testo: elenca i segnaposto che ha ricevuto, così la

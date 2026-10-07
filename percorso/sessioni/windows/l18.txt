@@ -1,0 +1,27 @@
+### [esito:l18-versione]
+cd ~\minuta\laboratorio
+git switch --detach v0.4
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l18-versione]
+### [esito:l18-bloccato]
+.\.venv\Scripts\python.exe -m app.manage scheda 2026-071 decreto.pdf --da irene
+### [/esito:l18-bloccato]
+### [esito:l18-controparte]
+.\.venv\Scripts\python.exe -m app.manage persona 2026-071 "Termocucine Secchia S.r.l." --ruolo controparte --da irene
+### [/esito:l18-controparte]
+### [esito:l18-scheda]
+.\.venv\Scripts\python.exe -m app.manage scheda 2026-071 decreto.pdf --da irene
+### [/esito:l18-scheda]
+### [esito:l18-conferme]
+.\.venv\Scripts\python.exe -m app.manage conferma-scheda 2026-071 decreto.pdf --da irene
+.\.venv\Scripts\python.exe -m app.manage conferma-scheda 2026-071 decreto.pdf --da sarti
+### [/esito:l18-conferme]
+### [esito:l18-togli]
+.\.venv\Scripts\python.exe -m app.manage togli-riga 2026-071 decreto.pdf 1 --da irene
+.\.venv\Scripts\python.exe -m app.manage togli-riga 2026-071 decreto.pdf 2 --da irene
+.\.venv\Scripts\python.exe -m app.manage togli-riga 2026-071 decreto.pdf 4 --da sarti
+.\.venv\Scripts\python.exe -m app.manage conferma-scheda 2026-071 decreto.pdf --da sarti
+### [/esito:l18-togli]
+### [esito:l18-diagnosi]
+.\.venv\Scripts\python.exe -m app.manage diagnosi
+### [/esito:l18-diagnosi]

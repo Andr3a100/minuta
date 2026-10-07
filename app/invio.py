@@ -75,6 +75,8 @@ def aggiungi_persona(
     """Aggiunge una persona all'elenco, con la sua riga nel registro delle
     attività. Chi chiama ha già controllato chi aggiunge."""
     nome, ruolo = " ".join(nome.split()), " ".join(ruolo.split())
+    # Una forma societaria nel nome basta a dire che è un soggetto (L18).
+    soggetto = soggetto or bool(SOCIETA.search(nome))
     if not 2 <= len(nome) <= 120:
         raise PersonaRifiutata("Il nome va da 2 a 120 caratteri.")
     if not 1 <= len(ruolo) <= 60:
@@ -175,6 +177,19 @@ def chi_chiede(utente: Utente, fascicolo: Fascicolo) -> str:
     return f"{nome}{utente.ruolo} dello studio che assiste {fascicolo.cliente}"
 
 
+def salva_segnaposto(db: Session, fascicolo: Fascicolo, tabella: dict) -> None:
+    """I segnaposto nuovi entrano nella tabella del fascicolo: la prossima
+    richiesta userà gli stessi."""
+    usati = tabella_del_fascicolo(db, fascicolo)
+    for segno, valore in tabella.items():
+        if segno not in usati:
+            db.add(
+                Segnaposto(
+                    fascicolo_id=fascicolo.id, segno=segno, valore=valore
+                )
+            )
+
+
 def testo_da_mandare(documento: Documento, domanda: str, chi: str) -> str:
     pagine = lettura_di(documento)["pagine"]
     testo = "\n\n".join(p["testo"] for p in pagine if p["testo"])
@@ -247,14 +262,7 @@ def domanda_sul_documento(
         categorie=categorie(fascicolo, preparato),
         controllo=preparato.controllo(persone),
     )
-    usati = tabella_del_fascicolo(db, fascicolo)
-    for segno, valore in preparato.tabella.items():
-        if segno not in usati:
-            db.add(
-                Segnaposto(
-                    fascicolo_id=fascicolo.id, segno=segno, valore=valore
-                )
-            )
+    salva_segnaposto(db, fascicolo, preparato.tabella)
     db.commit()  # la voce del registro e i segnaposto, insieme
     return Esito(
         risposta=ricomponi(risposta.testo, preparato.tabella),

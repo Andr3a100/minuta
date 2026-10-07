@@ -29,6 +29,8 @@ import json
 import os
 import re
 import sys
+import textwrap
+from dataclasses import asdict
 from pathlib import Path
 
 from sqlalchemy import delete, func, select
@@ -38,6 +40,7 @@ from sqlalchemy.orm import Session
 from minuta import certificatori
 from minuta import documenti as motore
 from minuta.invio import SISTEMA
+from minuta.scheda import Riga, SchedaIlleggibile
 
 from .config import ConfigError, leggi_file_env, load_settings
 from .db import (
@@ -47,6 +50,7 @@ from .db import (
     Evento,
     Fascicolo,
     PersonaFascicolo,
+    Scheda,
     SessioneAccesso,
     UsoAI,
     Utente,
@@ -73,6 +77,15 @@ from .invio import (
 )
 from .migrations import MigrationError, migra, ultima, versione_attuale
 from .registro import RichiestaNonAmmessa
+from .schede import (
+    SchedaRifiutata,
+    conferma_scheda,
+    prepara_scheda,
+    righe_di,
+    segnalate,
+    togli_riga,
+    ultima_scheda,
+)
 from .security import MIN_PASSPHRASE, hash_passphrase
 from .web import registra_evento
 
@@ -309,6 +322,22 @@ def costruisci_parser() -> argparse.ArgumentParser:
     domanda.add_argument(
         "--verbale", help="salva lo scambio in un file JSON, per il libro"
     )
+    scheda = sub.add_parser("scheda", help="la scheda di un atto in arrivo")
+    scheda.add_argument("codice")
+    scheda.add_argument("nome", help="il nome del documento")
+    scheda.add_argument("--da", required=True, help="chi la prepara")
+    scheda.add_argument(
+        "--verbale", help="salva lo scambio in un file JSON, per il libro"
+    )
+    togli = sub.add_parser("togli-riga", help="toglie una riga dalla scheda")
+    togli.add_argument("codice")
+    togli.add_argument("nome", help="il nome del documento")
+    togli.add_argument("numero", type=int, help="il numero della riga")
+    togli.add_argument("--da", required=True, help="chi la toglie")
+    conferma = sub.add_parser("conferma-scheda", help="conferma la scheda")
+    conferma.add_argument("codice")
+    conferma.add_argument("nome", help="il nome del documento")
+    conferma.add_argument("--da", required=True, help="l'avvocato")
     return parser
 
 
@@ -538,6 +567,12 @@ def main(argv: list[str] | None = None) -> int:
                 return anteprima(db, args)
             elif args.comando == "chiedi":
                 return chiedi_al_modello(db, settings, args)
+            elif args.comando == "scheda":
+                return scheda_dell_atto(db, settings, args)
+            elif args.comando == "togli-riga":
+                togli_dalla_scheda(db, args)
+            elif args.comando == "conferma-scheda":
+                conferma_dalla_riga_di_comando(db, args)
         return 0
     except (
         CommandError,
@@ -545,6 +580,7 @@ def main(argv: list[str] | None = None) -> int:
         motore.DocumentoNonLeggibile,
         PersonaRifiutata,
         RichiestaNonAmmessa,
+        SchedaRifiutata,
     ) as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -609,16 +645,7 @@ def chiedi_al_modello(db: Session, settings, args) -> int:
         print(
             "Segnaposto inventati dal modello: " + ", ".join(esito.sconosciuti)
         )
-    costo = (
-        f"{voce.costo_usd:.4f} dollari"
-        if voce.costo_usd is not None
-        else "non stimato"
-    )
-    print(
-        f"Registro dell'uso dell'AI: voce n. {voce.id}, {voce.modello}, "
-        f"{voce.caratteri} caratteri, token {voce.token_in} + "
-        f"{voce.token_out}, costo {costo}"
-    )
+    print(riga_del_registro(voce))
     if args.verbale:
         Path(args.verbale).write_text(
             json.dumps(
@@ -643,6 +670,114 @@ def chiedi_al_modello(db: Session, settings, args) -> int:
             "utf-8",
         )
     return 0
+
+
+def riga_del_registro(voce) -> str:
+    costo = (
+        f"{voce.costo_usd:.4f} dollari"
+        if voce.costo_usd is not None
+        else "non stimato"
+    )
+    return (
+        f"Registro dell'uso dell'AI: voce n. {voce.id}, {voce.modello}, "
+        f"{voce.caratteri} caratteri, token {voce.token_in} + "
+        f"{voce.token_out}, costo {costo}"
+    )
+
+
+def righe_stampate(righe: list[Riga]) -> list[str]:
+    """La scheda come la mostra il terminale: ogni riga con la sua voce e
+    la sua pagina, e sotto i problemi che Minuta vi ha trovato."""
+    stampa = []
+    for n, riga in enumerate(righe, start=1):
+        if riga.tolta_da:
+            testa = f"{n:2}. tolta da {riga.tolta_da}: {riga.testo}"
+        else:
+            dove = "" if riga.pagina is None else f" · pagina {riga.pagina}"
+            testa = f"{n:2}. {riga.voce}{dove} · {riga.testo}"
+        stampa += textwrap.wrap(testa, 79, subsequent_indent="    ")
+        for problema in [] if riga.tolta_da else riga.problemi:
+            stampa += textwrap.wrap(
+                problema,
+                79,
+                initial_indent="    ! ",
+                subsequent_indent="      ",
+            )
+    return stampa
+
+
+def scheda_dell_atto(db: Session, settings, args) -> int:
+    utente, fascicolo, documento = chi_puo_chiedere(db, args)
+    print(f"Fascicolo {fascicolo.codice} · {documento.nome} · {utente.nome}")
+    try:
+        esito = prepara_scheda(
+            db, utente, fascicolo, documento, modello_da(settings)
+        )
+    except InvioBloccato as blocco:
+        stampa_controlli(blocco.preparato, noti_del_fascicolo(db, fascicolo))
+        print(
+            "Invio BLOCCATO: niente parte finché resta qualcosa da nascondere."
+        )
+        return 1
+    except SchedaIlleggibile as exc:
+        print(f"La risposta non è una scheda: {exc}.")
+        print("La richiesta è partita, e la sua voce resta nel registro.")
+        return 1
+    print(f"Controllo: {esito.voce.controllo}")
+    print("--- la scheda, da verificare ---")
+    stampa = righe_stampate(esito.righe)
+    print("\n".join(stampa))
+    restano = segnalate(esito.righe)
+    print("Righe segnalate: " + (", ".join(map(str, restano)) or "nessuna"))
+    print(riga_del_registro(esito.voce))
+    if args.verbale:
+        voce = esito.voce
+        Path(args.verbale).write_text(
+            json.dumps(
+                {
+                    "quando": voce.quando.isoformat(),
+                    "modello": voce.modello,
+                    "documento": documento.nome,
+                    "sistema": SISTEMA,
+                    "inviato": esito.preparato.testo,
+                    "arrivata": esito.arrivata,
+                    "righe": [asdict(r) for r in esito.righe],
+                    "stampa": "\n".join(stampa),
+                    "token_in": voce.token_in,
+                    "token_out": voce.token_out,
+                    "costo_usd": voce.costo_usd,
+                    "controllo": voce.controllo,
+                    "categorie": voce.categorie,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            "utf-8",
+        )
+    return 0
+
+
+def scheda_esistente(db: Session, args):
+    fascicolo, documento = documento_del_fascicolo(db, args.codice, args.nome)
+    _fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    scheda = ultima_scheda(db, documento)
+    if scheda is None:
+        raise CommandError(f"{documento.nome} non ha ancora una scheda.")
+    return utente, fascicolo, documento, scheda
+
+
+def togli_dalla_scheda(db: Session, args) -> None:
+    utente, fascicolo, _documento, scheda = scheda_esistente(db, args)
+    riga = togli_riga(db, utente, fascicolo, scheda, args.numero)
+    print(f"Riga {args.numero} tolta da {utente.nome}: {riga.testo}")
+
+
+def conferma_dalla_riga_di_comando(db: Session, args) -> None:
+    utente, fascicolo, documento, scheda = scheda_esistente(db, args)
+    conferma_scheda(db, utente, fascicolo, scheda)
+    print(f"Scheda di {documento.nome} confermata da {utente.nome}:")
+    print("\n".join(righe_stampate(righe_di(scheda))))
 
 
 # [libro:diagnosi]
@@ -680,6 +815,7 @@ def diagnosi(settings, engine) -> int:
                 ("Fascicoli", Fascicolo),
                 ("Documenti", Documento),
                 ("Persone", PersonaFascicolo),
+                ("Schede", Scheda),
                 ("Eventi", Evento),
                 ("Voci uso AI", UsoAI),
             ):

@@ -29,6 +29,7 @@
   {% endif %}
   <p class="azioni">
     <a class="pulsante secondario" href="/fascicoli/{{ fascicolo.id }}/documenti/{{ documento.id }}/originale">Scarica l'originale</a>
+    <a class="pulsante" href="/fascicoli/{{ fascicolo.id }}/documenti/{{ documento.id }}/scheda">La scheda dell'atto</a>
     {% if utente.ruolo != "segreteria" %}<a class="pulsante" href="/fascicoli/{{ fascicolo.id }}/documenti/{{ documento.id }}/domanda">Fai una domanda al modello</a>{% endif %}
   </p>
 </article>

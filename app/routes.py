@@ -23,6 +23,8 @@ from fastapi.responses import (
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
+from minuta.scheda import SchedaIlleggibile
+
 from . import __version__
 from .db import (
     Assegnazione,
@@ -61,6 +63,15 @@ from .rules import (
     leggi_versione,
     passaggio_ammesso,
     passaggio_previsto,
+)
+from .schede import (
+    SchedaRifiutata,
+    conferma_scheda,
+    prepara_scheda,
+    righe_di,
+    segnalate,
+    togli_riga,
+    ultima_scheda,
 )
 from .security import (
     COOKIE_SESSIONE,
@@ -595,6 +606,134 @@ def invia_domanda(
 
 
 # [/libro:rotta-domanda]
+
+
+# ----------------------------------------------------------------------
+# La scheda dell'atto in arrivo (lezione 18)
+# ----------------------------------------------------------------------
+
+
+def pagina_scheda(
+    request,
+    db,
+    utente,
+    fascicolo,
+    documento,
+    errore=None,
+    blocco=None,
+    stato=200,
+):
+    """L'ultima scheda del documento, con le righe e i loro problemi."""
+    scheda = ultima_scheda(db, documento)
+    righe = righe_di(scheda) if scheda else []
+    contesto = {
+        "utente": utente,
+        "fascicolo": fascicolo,
+        "documento": documento,
+        "scheda": scheda,
+        "righe": righe,
+        "segnalate": segnalate(righe),
+        "nomi": nomi(db),
+        "errore": errore,
+        "blocco": blocco,
+        "noti": noti_del_fascicolo(db, fascicolo) if blocco else {},
+    }
+    return pagina(request, "scheda.html", contesto, stato)
+
+
+def indirizzo_scheda(fascicolo, documento) -> str:
+    return f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/scheda"
+
+
+@router.get(
+    "/fascicoli/{fascicolo_id}/documenti/{documento_id}/scheda",
+    response_class=HTMLResponse,
+)
+def mostra_scheda(request: Request, fascicolo_id: int, documento_id: int):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        fascicolo, documento = documento_visibile(
+            db, fascicolo_id, documento_id, utente
+        )
+        return pagina_scheda(request, db, utente, fascicolo, documento)
+
+
+@router.post("/fascicoli/{fascicolo_id}/documenti/{documento_id}/scheda")
+def nuova_scheda(
+    request: Request,
+    fascicolo_id: int,
+    documento_id: int,
+    csrf_token: str = Form(""),
+):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        richiedi_ruolo(utente, "avvocato", "praticante")
+        controlla_modulo(request, csrf_token)
+        fascicolo, documento = documento_visibile(
+            db, fascicolo_id, documento_id, utente
+        )
+        try:
+            prepara_scheda(
+                db, utente, fascicolo, documento, request.app.state.modello
+            )
+        except InvioBloccato as blocco:
+            return pagina_scheda(
+                request,
+                db,
+                utente,
+                fascicolo,
+                documento,
+                blocco=blocco.preparato,
+                stato=422,
+            )
+        except SchedaIlleggibile as exc:
+            errore = f"La risposta del modello non è una scheda: {exc}."
+            return pagina_scheda(
+                request, db, utente, fascicolo, documento, errore, stato=502
+            )
+        except RichiestaNonAmmessa as exc:
+            raise HTTPException(403, str(exc)) from None
+    return RedirectResponse(indirizzo_scheda(fascicolo, documento), 303)
+
+
+@router.post(
+    "/fascicoli/{fascicolo_id}/documenti/{documento_id}/scheda/{azione}"
+)
+def cambia_scheda(
+    request: Request,
+    fascicolo_id: int,
+    documento_id: int,
+    azione: str,
+    riga: int = Form(0),
+    csrf_token: str = Form(""),
+):
+    """Togliere una riga o confermare la scheda: le regole sono quelle di
+    app/schede.py, qui si controlla soltanto chi chiede e su che cosa."""
+    if azione not in ("togli", "conferma"):
+        raise HTTPException(404, "Pagina non trovata.")
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        if azione == "conferma":
+            richiedi_ruolo(utente, "avvocato")
+        else:
+            richiedi_ruolo(utente, "avvocato", "praticante")
+        controlla_modulo(request, csrf_token)
+        fascicolo, documento = documento_visibile(
+            db, fascicolo_id, documento_id, utente
+        )
+        scheda = ultima_scheda(db, documento)
+        if scheda is None:
+            raise HTTPException(404, "Il documento non ha ancora una scheda.")
+        try:
+            if azione == "togli":
+                togli_riga(db, utente, fascicolo, scheda, riga)
+            else:
+                conferma_scheda(db, utente, fascicolo, scheda)
+        except SchedaRifiutata as exc:
+            return pagina_scheda(
+                request, db, utente, fascicolo, documento, str(exc), stato=409
+            )
+    return RedirectResponse(indirizzo_scheda(fascicolo, documento), 303)
 
 
 # ----------------------------------------------------------------------

@@ -242,6 +242,34 @@ class Segnaposto(Base):
 # [/libro:persone]
 
 
+# [libro:scheda]
+class Scheda(Base):
+    """La scheda di un atto in arrivo (lezione 18): le righe proposte dal
+    modello, con la pagina e i problemi trovati da Minuta, in JSON. Resta
+    da verificare finché un avvocato non la conferma."""
+
+    __tablename__ = "schede"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fascicolo_id: Mapped[int] = mapped_column(
+        ForeignKey("fascicoli.id"), index=True
+    )
+    documento_id: Mapped[int] = mapped_column(
+        ForeignKey("documenti.id"), index=True
+    )
+    righe: Mapped[str] = mapped_column(Text)
+    uso_ai_id: Mapped[int] = mapped_column(ForeignKey("uso_ai.id"))
+    preparata_da_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
+    preparata_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
+    confermata_da_id: Mapped[int | None] = mapped_column(
+        ForeignKey("utenti.id")
+    )
+    confermata_il: Mapped[datetime | None] = mapped_column(OrarioUTC)
+
+
+# [/libro:scheda]
+
+
 class SessioneAccesso(Base):
     __tablename__ = "sessioni"
 

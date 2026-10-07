@@ -98,6 +98,9 @@
       {% elif evento.azione == "stato" %}stato: {{ etichette_stati.get(dettaglio.prima, dettaglio.prima) }} → {{ etichette_stati.get(dettaglio.dopo, dettaglio.dopo) }}
       {% elif evento.azione == "documento" %}documento caricato: {{ dettaglio.nome }}
       {% elif evento.azione == "persona" %}persona aggiunta all'elenco: {{ dettaglio.nome }}
+      {% elif evento.azione == "scheda" %}scheda preparata: {{ dettaglio.nome }}, {{ dettaglio.righe }} righe
+      {% elif evento.azione == "riga tolta" %}riga {{ dettaglio.riga }} tolta dalla scheda: {{ dettaglio.testo }}
+      {% elif evento.azione == "scheda confermata" %}scheda confermata
       {% else %}{{ evento.azione }}{% endif %}
     </li>
     {% endfor %}

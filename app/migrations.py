@@ -255,11 +255,43 @@ def _passo_3(conn: Connection) -> None:
 # [/libro:passo-3]
 
 
+def _passo_4(conn: Connection) -> None:
+    """Le schede degli atti in arrivo (lezione 18)."""
+    meta = MetaData()
+    for nome in ("fascicoli", "documenti", "uso_ai", "utenti"):
+        Table(nome, meta, Column("id", Integer, primary_key=True))
+    Table(
+        "schede",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column(
+            "fascicolo_id",
+            ForeignKey("fascicoli.id"),
+            nullable=False,
+            index=True,
+        ),
+        Column(
+            "documento_id",
+            ForeignKey("documenti.id"),
+            nullable=False,
+            index=True,
+        ),
+        Column("righe", Text, nullable=False),
+        Column("uso_ai_id", ForeignKey("uso_ai.id"), nullable=False),
+        Column("preparata_da_id", ForeignKey("utenti.id"), nullable=False),
+        Column("preparata_il", DateTime(timezone=True), nullable=False),
+        Column("confermata_da_id", ForeignKey("utenti.id"), nullable=True),
+        Column("confermata_il", DateTime(timezone=True), nullable=True),
+    )
+    meta.tables["schede"].create(conn)
+
+
 # Ogni nuova migrazione si aggiunge qui con il numero successivo.
 PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     1: ("Schema iniziale", _passo_1),
     2: ("I documenti del fascicolo", _passo_2),
     3: ("Le persone del fascicolo e i segnaposto", _passo_3),
+    4: ("Le schede degli atti in arrivo", _passo_4),
 }
 
 

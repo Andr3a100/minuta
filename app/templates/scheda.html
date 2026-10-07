@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Scheda di {{ documento.nome }}{% endblock %}
+{% block content %}
+{% set qui = "/fascicoli/" ~ fascicolo.id ~ "/documenti/" ~ documento.id %}
+<article class="scheda">
+  <h1>La scheda di {{ documento.nome }}</h1>
+  <p><a href="{{ qui }}">{{ documento.nome }}</a> · <a href="/fascicoli/{{ fascicolo.id }}">{{ fascicolo.codice }} · {{ fascicolo.cliente }}</a></p>
+  {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
+  {% if blocco %}
+  <p class="errore">La richiesta non è partita: nel testo dell'atto resta qualcosa da nascondere.</p>
+  <ul>
+    <li>Nomi noti a Minuta: {{ noti|length }} ({{ noti|join(", ") }}).</li>
+    {% if blocco.fughe %}<li class="errore">Fughe: {{ blocco.fughe|join(", ") }}.</li>{% endif %}
+    {% if blocco.nomi %}<li class="errore">Nomi che non sono nell'elenco: {{ blocco.nomi|join(", ") }}.
+      Aggiungili all'elenco delle persone del fascicolo.</li>{% endif %}
+  </ul>
+  {% endif %}
+
+  {% if scheda %}
+  <p class="nota">Preparata da {{ nomi.get(scheda.preparata_da_id, "") }}, {{ scheda.preparata_il.strftime("%Y-%m-%d %H:%M") }} UTC.
+    {% if scheda.confermata_da_id %}Confermata da {{ nomi.get(scheda.confermata_da_id, "") }}, {{ scheda.confermata_il.strftime("%Y-%m-%d %H:%M") }} UTC.
+    {% else %}<strong>Da verificare</strong>: leggi ogni riga con la sua pagina.{% endif %}</p>
+  <table>
+    <thead><tr><th>N.</th><th>Voce</th><th>Pagina</th><th>Riga</th><th></th></tr></thead>
+    <tbody>
+      {% for riga in righe %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ riga.voce }}</td>
+        <td>{{ riga.pagina if riga.pagina is not none else "—" }}</td>
+        <td>{% if riga.tolta_da %}<del>{{ riga.testo }}</del> <span class="nota">tolta da {{ riga.tolta_da }}</span>
+          {% else %}{{ riga.testo }}{% for problema in riga.problemi %}<br><span class="errore">{{ problema }}</span>{% endfor %}{% endif %}</td>
+        <td>{% if not scheda.confermata_da_id and not riga.tolta_da and utente.ruolo != "segreteria" %}
+          <form method="post" action="{{ qui }}/scheda/togli">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="riga" value="{{ loop.index }}">
+            <button type="submit">Togli</button>
+          </form>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if not scheda.confermata_da_id and utente.ruolo == "avvocato" %}
+  <form method="post" action="{{ qui }}/scheda/conferma">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit"{% if segnalate %} disabled{% endif %}>Conferma la scheda</button>
+    {% if segnalate %}<span class="nota">Restano righe segnalate: {{ segnalate|join(", ") }}.</span>{% endif %}
+  </form>
+  {% endif %}
+  {% else %}
+  <p>Il documento non ha ancora una scheda.</p>
+  {% endif %}
+
+  {% if utente.ruolo != "segreteria" %}
+  <form method="post" action="{{ qui }}/scheda">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">{% if scheda %}Rifai la scheda{% else %}Prepara la scheda{% endif %}</button>
+    <span class="nota">Il testo dell'atto parte pseudonimizzato, e la richiesta resta nel registro dell'uso dell'AI.</span>
+  </form>
+  {% endif %}
+</article>
+{% endblock %}
