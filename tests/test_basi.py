@@ -222,3 +222,41 @@ def test_b8_la_busta_e_la_verifica_che_non_verifica(tmp_path):
         r.split("=", 1)[1] for r in certificato.splitlines() if "=" in r
     )
     assert titolare == garante and "certificato di prova" in titolare
+
+
+# Il test d'uscita della Parte 0: i risultati che i suoi criteri promettono.
+
+
+def test_uscita_i_risultati_dei_criteri():
+    import importlib.util
+    import sqlite3
+
+    spec = importlib.util.spec_from_file_location(
+        "conti_b5", BASI / "conti" / "conti.py"
+    )
+    conti = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(conti)
+
+    def rientro(elenco):
+        for anno, saldo in enumerate(elenco, start=1):
+            if saldo >= 0:
+                return anno
+        return None
+
+    prudente = conti.saldi(8000, 1200, 3600, 4)
+    assert prudente == [-5600, -3200, -800, 1600]
+    assert rientro(prudente) == 4
+    assert rientro(conti.saldi(8000, 2400, 1200, 10)) is None
+
+    db = sqlite3.connect(":memory:")
+    db.executescript((BASI / "sql" / "fascicoli.sql").read_text("utf-8"))
+    assert db.execute(
+        "SELECT f.codice, p.nome FROM fascicoli AS f "
+        "LEFT JOIN persone AS p ON p.id = f.studiato_da "
+        "WHERE f.documentata = 0 ORDER BY f.codice"
+    ).fetchall() == [
+        ("F-01", "Irene"), ("F-03", "Stefano Valli"), ("F-05", "Paola Righi")
+    ]
+
+    decreto = esegui(DOCUMENTI, "testo.py", "decreto.pdf").stdout
+    assert "la somma di euro 14.280,00" in decreto
