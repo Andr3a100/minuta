@@ -99,7 +99,10 @@ function Sessione([string] $Nome) {
         $nascosta = $riga -match '^Crea-Utenti$'
         if (-not $nascosta) { Scrivi "PS $((Get-Location).Path)> $riga" }
         if ($riga -match $nativi) {
-            $testo = cmd /c "$riga 2>&1" | Out-String -Width 200
+            # Le variabili della sessione, come la domanda della lezione 17,
+            # le espande PowerShell, come per il lettore; poi passa cmd.
+            $eseguita = $ExecutionContext.InvokeCommand.ExpandString($riga)
+            $testo = cmd /c "$eseguita 2>&1" | Out-String -Width 200
         }
         else {
             try {
