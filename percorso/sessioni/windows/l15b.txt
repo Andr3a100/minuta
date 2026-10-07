@@ -1,0 +1,4 @@
+### [esito:l15b-salute]
+curl.exe -i http://127.0.0.1:8000/salute
+curl.exe -s http://127.0.0.1:8000/pronto
+### [/esito:l15b-salute]
