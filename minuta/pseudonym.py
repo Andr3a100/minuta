@@ -52,6 +52,19 @@ GENERICHE = {
     "hotel", "di", "del", "della", "e", "&",
 }
 FORME = re.compile(rf"\s*{FORMA}$")
+# Le particelle che aprono un cognome composto: «De Luca», «Dalla Costa».
+PARTICELLE = frozenset(
+    "de di da del della dello dei degli dal dalla dalle la lo li le".split()
+)
+
+
+def cognome(parti: list[str]) -> list[str]:
+    """Le parole del cognome: dalla prima particella, se c'è, altrimenti
+    l'ultima. «Mario De Luca» -> «De Luca», «Marco Bellini» -> «Bellini»."""
+    for i, parte in enumerate(parti[:-1]):
+        if parte.casefold() in PARTICELLE:
+            return parti[i:]
+    return parti[-1:]
 
 
 @dataclass
@@ -66,8 +79,9 @@ class Pseudonimizzatore:
     prefisso: str = ""
     noti: dict[str, str] = field(default_factory=dict)  # valore -> tipo
     generico: bool = False  # segnaposto senza numero, per il profilo dello studio
-    # Delle persone si nasconde anche il solo cognome, non il nome di
-    # battesimo: «Marco» di Marco Dini non deve toccare Marco Bellini (L17).
+    # Delle persone si nasconde anche il solo cognome, con le sue particelle,
+    # non il nome di battesimo: «Marco» di Marco Dini non deve toccare Marco
+    # Bellini, né «Luca» di Mario De Luca un altro Luca (L17).
     solo_cognomi: bool = False
     tabella: dict[str, str] = field(default_factory=dict)  # segnaposto -> valore
     _valori: dict[str, str] = field(default_factory=dict)  # valore -> segnaposto
@@ -117,9 +131,14 @@ class Pseudonimizzatore:
         for persona in persone:
             trovati.setdefault(persona, "PERSONA")
             parti = persona.split()
-            trovati.setdefault(" ".join(reversed(parti)), "PERSONA")
             if self.solo_cognomi:
-                parti = parti[-1:]
+                # Al contrario, come nelle cartelle: «DE LUCA MARIO».
+                fine = cognome(parti)
+                inizio = parti[: len(parti) - len(fine)]
+                trovati.setdefault(" ".join(fine + inizio), "PERSONA")
+                parti = [" ".join(fine)]
+            else:
+                trovati.setdefault(" ".join(reversed(parti)), "PERSONA")
             for parte in parti:
                 if parte.lower() not in GENERICHE:
                     trovati.setdefault(parte, "PERSONA")
@@ -127,7 +146,9 @@ class Pseudonimizzatore:
 
     def nascondi(self, testo: str) -> str:
         for valore, tipo in self.trova(testo):
-            schema = re.escape(valore)
+            # Fra una parola e l'altra anche un a capo: «Termocucine
+            # Secchia S.r.l.» spezzato su due righe è sempre lui.
+            schema = r"\s+".join(re.escape(p) for p in valore.split())
             if re.match(r"\w", valore):
                 schema = r"(?<![\w\[])" + schema
             if re.search(r"\w$", valore):

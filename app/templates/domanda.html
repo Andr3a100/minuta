@@ -28,6 +28,10 @@
     <li class="errore">Nomi che non sono nell'elenco: {{ preparato.nomi|join(", ") }}.
       Aggiungili all'elenco delle persone del fascicolo: finché restano, la domanda non parte.</li>
     {% else %}<li>Nomi fuori elenco: nessuno.</li>{% endif %}
+    {% if preparato.nascosto %}
+    <li class="errore">Testo nascosto: {{ preparato.nascosto|join("; ") }}.
+      Chi legge la pagina non lo vede, il modello lo leggerebbe come il resto: guardalo prima di mandare.</li>
+    {% else %}<li>Testo nascosto: nessuno.</li>{% endif %}
     {% if preparato.salute %}
     <li>Dati sulla salute: {{ preparato.salute|join(", ") }}. Partono solo se servono alla domanda.</li>
     {% endif %}

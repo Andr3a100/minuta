@@ -515,7 +515,9 @@ def nuova_persona(
 
 def pagina_domanda(request, db, utente, fascicolo, documento, domanda):
     """La domanda, il testo che partirebbe e l'esito dei controlli."""
-    preparato, persone = prepara_domanda(db, fascicolo, documento, domanda)
+    preparato, persone = prepara_domanda(
+        db, utente, fascicolo, documento, domanda
+    )
     contesto = {
         "utente": utente,
         "fascicolo": fascicolo,

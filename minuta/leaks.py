@@ -19,7 +19,8 @@ def fughe(testo: str, sensibili: Iterable[str] = ()) -> list[str]:
     trovate = []
     minuscolo = testo.lower()
     for valore in sensibili:
-        if valore and re.search(rf"(?<![\w]){re.escape(valore.lower())}(?![\w])", minuscolo):
+        schema = r"\s+".join(re.escape(p) for p in valore.lower().split())
+        if schema and re.search(rf"(?<![\w]){schema}(?![\w])", minuscolo):
             trovate.append(valore)
     for regola, tipo in ((CODICE_FISCALE, "codice fiscale"), (IBAN, "IBAN"),
                          (EMAIL, "indirizzo email"), (PARTITA_IVA_NUDA, "partita IVA")):

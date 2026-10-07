@@ -8,13 +8,13 @@ python -m app.manage migra
 python -m app.manage persone 2026-073
 : '### [/esito:l17-persone]'
 : '### [esito:l17-bloccato]'
-python -m app.manage anteprima 2026-073 avviso-415-bis.pdf.p7m
+python -m app.manage anteprima 2026-073 avviso-415-bis.pdf.p7m --da valli
 : '### [/esito:l17-bloccato]'
 : '### [esito:l17-elenco]'
 python -m app.manage persona 2026-073 "Marco Bellini" --ruolo "persona offesa" --da valli
 : '### [/esito:l17-elenco]'
 : '### [esito:l17-anteprima]'
-python -m app.manage anteprima 2026-073 avviso-415-bis.pdf.p7m --domanda "Entro quale termine la difesa deve agire, e in che modo, dopo questo avviso?"
+python -m app.manage anteprima 2026-073 avviso-415-bis.pdf.p7m --domanda "Entro quale termine la difesa deve agire, e in che modo, dopo questo avviso?" --da valli
 : '### [/esito:l17-anteprima]'
 : '### [esito:l17-chiedi]'
 python -m app.manage chiedi 2026-073 avviso-415-bis.pdf.p7m "Entro quale termine la difesa deve agire, e in che modo, dopo questo avviso?" --da valli

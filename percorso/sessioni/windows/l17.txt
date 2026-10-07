@@ -7,13 +7,13 @@ git switch --detach v0.3
 .\.venv\Scripts\python.exe -m app.manage persone 2026-073
 ### [/esito:l17-persone]
 ### [esito:l17-bloccato]
-.\.venv\Scripts\python.exe -m app.manage anteprima 2026-073 avviso-415-bis.pdf.p7m
+.\.venv\Scripts\python.exe -m app.manage anteprima 2026-073 avviso-415-bis.pdf.p7m --da valli
 ### [/esito:l17-bloccato]
 ### [esito:l17-elenco]
 .\.venv\Scripts\python.exe -m app.manage persona 2026-073 "Marco Bellini" --ruolo "persona offesa" --da valli
 ### [/esito:l17-elenco]
 ### [esito:l17-anteprima]
-.\.venv\Scripts\python.exe -m app.manage anteprima 2026-073 avviso-415-bis.pdf.p7m --domanda "Entro quale termine la difesa deve agire, e in che modo, dopo questo avviso?"
+.\.venv\Scripts\python.exe -m app.manage anteprima 2026-073 avviso-415-bis.pdf.p7m --domanda "Entro quale termine la difesa deve agire, e in che modo, dopo questo avviso?" --da valli
 ### [/esito:l17-anteprima]
 ### [esito:l17-chiedi]
 .\.venv\Scripts\python.exe -m app.manage chiedi 2026-073 avviso-415-bis.pdf.p7m "Entro quale termine la difesa deve agire, e in che modo, dopo questo avviso?" --da valli

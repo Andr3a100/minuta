@@ -300,6 +300,7 @@ def costruisci_parser() -> argparse.ArgumentParser:
     anteprima.add_argument("codice")
     anteprima.add_argument("nome", help="il nome del documento")
     anteprima.add_argument("--domanda", default="")
+    anteprima.add_argument("--da", required=True, help="chi fa la domanda")
     domanda = sub.add_parser("chiedi", help="una domanda su un documento")
     domanda.add_argument("codice")
     domanda.add_argument("nome", help="il nome del documento")
@@ -350,6 +351,7 @@ def stampa_controlli(preparato, noti: dict[str, str]) -> None:
     print(f"Nomi noti a Minuta: {len(noti)} ({', '.join(noti)})")
     print("Fughe: " + (", ".join(preparato.fughe) or "nessuna"))
     print("Nomi fuori elenco: " + (", ".join(preparato.nomi) or "nessuno"))
+    print("Testo nascosto: " + ("; ".join(preparato.nascosto) or "nessuno"))
     if preparato.salute:
         print("Dati sulla salute: " + ", ".join(preparato.salute))
 
@@ -550,10 +552,19 @@ def main(argv: list[str] | None = None) -> int:
         engine.dispose()
 
 
-def anteprima(db: Session, args) -> int:
+def chi_puo_chiedere(db: Session, args):
+    """Le regole del browser: lavora al fascicolo, e non è la segreteria."""
     fascicolo, documento = documento_del_fascicolo(db, args.codice, args.nome)
+    _fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    if utente.ruolo == "segreteria":
+        raise CommandError("La segreteria non fa richieste al modello.")
+    return utente, fascicolo, documento
+
+
+def anteprima(db: Session, args) -> int:
+    utente, fascicolo, documento = chi_puo_chiedere(db, args)
     preparato, _persone = prepara_domanda(
-        db, fascicolo, documento, args.domanda
+        db, utente, fascicolo, documento, args.domanda
     )
     print(f"Fascicolo {fascicolo.codice} · {documento.nome}")
     stampa_controlli(preparato, noti_del_fascicolo(db, fascicolo))
@@ -567,10 +578,7 @@ def anteprima(db: Session, args) -> int:
 
 
 def chiedi_al_modello(db: Session, settings, args) -> int:
-    fascicolo, documento = documento_del_fascicolo(db, args.codice, args.nome)
-    _fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
-    if utente.ruolo == "segreteria":
-        raise CommandError("La segreteria non fa richieste al modello.")
+    utente, fascicolo, documento = chi_puo_chiedere(db, args)
     print(f"Fascicolo {fascicolo.codice} · {documento.nome} · {utente.nome}")
     try:
         esito = domanda_sul_documento(
@@ -593,6 +601,8 @@ def chiedi_al_modello(db: Session, settings, args) -> int:
         print(
             "Dati sulla salute inviati: " + ", ".join(esito.preparato.salute)
         )
+    if esito.preparato.nascosto:
+        print("Testo nascosto inviato: " + "; ".join(esito.preparato.nascosto))
     print("--- la risposta, con i nomi rimessi nello studio ---")
     print(esito.risposta)
     if esito.sconosciuti:

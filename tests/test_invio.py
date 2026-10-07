@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 from percorsi import RADICE
 
-from minuta import archive
+from minuta import archive, documenti
 from minuta.invio import (
     nomi_rimasti,
     prepara,
@@ -17,12 +17,14 @@ from minuta.invio import (
     salute,
     segnaposto_sconosciuti,
 )
+from minuta.leaks import fughe
 from minuta.pseudonym import Pseudonimizzatore
 
 PARAGRAFO = (RADICE / "esempi" / "04-paragrafo.txt").read_text("utf-8")
 NOTI = {"Alessandro Riva": "PERSONA", "Logistica Riva S.r.l.": "SOGGETTO"}
 CONFIG = archive.carica_config(RADICE / "config" / "studio.json")
 ATTI = sorted((RADICE / "archivio" / "pdf").glob("*.pdf"))
+DECRETO = RADICE / "documenti-di-prova" / "2026-071" / "decreto.pdf"
 
 
 # [libro:prova-lezione-4]
@@ -53,6 +55,57 @@ def test_il_nome_di_battesimo_di_un_altro_non_tocca_nessuno():
     preparato = prepara(PARAGRAFO, noti)
     assert "Marco Bellini" in preparato.testo
     assert preparato.nomi == ["Marco Bellini"]
+
+
+def test_il_cognome_composto_non_tocca_il_nome_di_un_altro():
+    # Il cognome di Paolo Di Stefano è «Di Stefano»; «Stefano» da solo è il
+    # nome dell'avvocato, e resta.
+    noti = {"Paolo Di Stefano": "PERSONA", "Stefano Valli": "PERSONA"}
+    testo = (
+        "L'avv. Stefano Valli ha sentito il sig. Di Stefano. "
+        "DI STEFANO PAOLO ha firmato. Stefano ha chiamato."
+    )
+    preparato = prepara(testo, noti)
+    assert preparato.testo == (
+        "L'avv. [PERSONA_2] ha sentito il sig. [PERSONA_1]. "
+        "[PERSONA_1] ha firmato. Stefano ha chiamato."
+    )
+    assert not preparato.bloccato
+
+
+def test_una_persona_scritta_in_quattro_modi_ha_un_solo_segnaposto():
+    testo = (
+        "RIVA ALESSANDRO, nato a Carpi. Alessandro Riva ha firmato; "
+        "il sig. Riva era presente, e RIVA ha confermato."
+    )
+    preparato = prepara(testo, {"Alessandro Riva": "PERSONA"})
+    assert preparato.testo.count("[PERSONA_1]") == 4
+    assert preparato.tabella == {"[PERSONA_1]": "Alessandro Riva"}
+
+
+def test_il_nome_con_la_particella_fuori_elenco_si_trova():
+    testo = "ha deposto Paolo Di Stefano, e poi Giovanni La Rosa"
+    assert nomi_rimasti(testo) == ["Giovanni La Rosa", "Paolo Di Stefano"]
+    assert nomi_rimasti("davanti al Giudice Di Pace di Modena") == []
+
+
+def test_il_nome_spezzato_a_capo_e_sempre_lui():
+    # Nel decreto «Termocucine» chiude una riga, «Secchia S.r.l.» apre la
+    # successiva: fuori elenco, la metà rimasta si trova.
+    testo = documenti.leggi(DECRETO.name, DECRETO.read_bytes()).testo
+    cliente = {"Ristorazione Collinare S.r.l.": "SOGGETTO"}
+    assert prepara(testo, cliente).nomi == ["Termocucine"]
+    controparte = {"Termocucine Secchia S.r.l.": "SOGGETTO"}
+    completo = prepara(testo, {**cliente, **controparte})
+    assert not completo.bloccato
+    assert "Termocucine" not in completo.testo
+    assert "Termocucine Secchia S.r.l." in completo.tabella.values()
+
+
+def test_la_prova_delle_fughe_vede_anche_il_nome_a_capo():
+    assert fughe("firmato da Marco\nBellini", ["Marco Bellini"]) == [
+        "Marco Bellini"
+    ]
 
 
 def test_mezzo_nome_scoperto_si_trova():

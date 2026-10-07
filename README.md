@@ -19,7 +19,7 @@ tuo computer (`.env`, il database, l'ambiente virtuale) restano dove sono.
 |---|---|---|
 | 0.1 | 15 | l'applicazione: accessi, ruoli, fascicoli, i due registri |
 | 0.2 | 16 | i documenti del fascicolo: PDF, lettura ottica, Word, fatture elettroniche, buste firmate, testo nascosto |
-| 0.3 | 17 | l'elenco delle persone del fascicolo, i segnaposto, il blocco dell'invio, la prima domanda al modello |
+| 0.3 | 17 | l'elenco delle persone del fascicolo, i segnaposto, il blocco dell'invio, il testo nascosto mostrato prima, la prima domanda al modello |
 
 ## Che cosa fa
 

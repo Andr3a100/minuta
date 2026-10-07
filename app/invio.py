@@ -1,13 +1,14 @@
 """Le domande al modello sui documenti del fascicolo (lezione 17).
 
 Ogni domanda segue lo stesso ordine. Chi chiama ha già controllato chi
-chiede, su quale fascicolo e quale documento. Qui il testo da mandare, la
-domanda con il documento, passa dalla preparazione del motore
+chiede, su quale fascicolo e quale documento. Qui il testo da mandare, chi
+chiede, la domanda e il documento, passa dalla preparazione del motore
 (minuta/invio.py), con l'elenco delle persone del fascicolo e i segnaposto
 già usati. Se la preparazione trova fughe o nomi fuori elenco, la domanda
-non parte. Altrimenti parte: il registro dell'uso dell'AI ne scrive la
-voce, la tabella dei segnaposto si aggiorna, e la risposta torna con i
-nomi veri, ricomposti nello studio, tutto nella stessa transazione.
+non parte; il testo nascosto del documento non la ferma, ma si mostra
+prima. Se parte, il registro dell'uso dell'AI ne scrive la voce, la tabella
+dei segnaposto si aggiorna, e la risposta torna con i nomi veri, ricomposti
+nello studio, tutto nella stessa transazione.
 """
 
 from __future__ import annotations
@@ -166,24 +167,48 @@ def tabella_del_fascicolo(db: Session, fascicolo: Fascicolo) -> dict:
     return {r.segno: r.valore for r in righe}
 
 
-def testo_da_mandare(documento: Documento, domanda: str) -> str:
+def chi_chiede(utente: Utente, fascicolo: Fascicolo) -> str:
+    """Chi fa la domanda, e per chi: dai segnaposto il modello non lo
+    ricava. Il nome c'è se ha anche il cognome, cioè se diventa un
+    segnaposto."""
+    nome = f"{utente.nome}, " if len(utente.nome.split()) >= 2 else ""
+    return f"{nome}{utente.ruolo} dello studio che assiste {fascicolo.cliente}"
+
+
+def testo_da_mandare(documento: Documento, domanda: str, chi: str) -> str:
     pagine = lettura_di(documento)["pagine"]
     testo = "\n\n".join(p["testo"] for p in pagine if p["testo"])
-    inizio = f"DOMANDA: {domanda.strip()}\n\n" if domanda.strip() else ""
+    inizio = ""
+    if domanda.strip():
+        inizio = f"CHI CHIEDE: {chi}\nDOMANDA: {domanda.strip()}\n\n"
     return f"{inizio}DOCUMENTO: {documento.nome}\n{testo}"
 
 
+def testo_nascosto(documento: Documento) -> list[str]:
+    """Il testo nascosto trovato alla lettura (lezione 16): il modello lo
+    leggerebbe come il resto, e l'avvocato lo vede prima (lezione 12)."""
+    return [
+        f"pagina {n['pagina']}, {n['motivo']}: «{n['testo']}»"
+        for n in lettura_di(documento)["nascosti"]
+    ]
+
+
 def prepara_domanda(
-    db: Session, fascicolo: Fascicolo, documento: Documento, domanda: str
+    db: Session,
+    utente: Utente,
+    fascicolo: Fascicolo,
+    documento: Documento,
+    domanda: str,
 ) -> tuple[Preparato, int]:
     """Il testo che partirebbe, con l'esito dei controlli, e quanti nomi
     conosceva Minuta."""
     noti = noti_del_fascicolo(db, fascicolo)
     preparato = prepara(
-        testo_da_mandare(documento, domanda),
+        testo_da_mandare(documento, domanda, chi_chiede(utente, fascicolo)),
         noti,
         tabella_del_fascicolo(db, fascicolo),
     )
+    preparato.nascosto = testo_nascosto(documento)
     return preparato, len(noti)
 
 
@@ -206,7 +231,9 @@ def domanda_sul_documento(
     domanda: str,
     modello: Modello,
 ) -> Esito:
-    preparato, persone = prepara_domanda(db, fascicolo, documento, domanda)
+    preparato, persone = prepara_domanda(
+        db, utente, fascicolo, documento, domanda
+    )
     if preparato.bloccato:
         raise InvioBloccato(preparato)
     risposta, voce = chiedi(
