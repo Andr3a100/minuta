@@ -6,6 +6,7 @@ import pytest
 from aiuti import accedi, invia
 
 from app.manage import CommandError, crea_utente, imposta_attivo
+from app.migrations import migra
 from app.security import COOKIE_SESSIONE
 
 
@@ -26,10 +27,12 @@ def test_la_passphrase_sbagliata_non_dice_che_cosa_era_sbagliato(browser):
         assert "Nome utente o passphrase non validi." in risposta.text
 
 
-def test_una_passphrase_corta_non_si_puo_creare(app):
-    with app.state.session_factory() as db:
+def test_una_passphrase_corta_non_si_puo_creare(app_vuota):
+    # Come nella lezione 15: Marco Dini, con una passphrase troppo corta.
+    migra(app_vuota.state.engine)
+    with app_vuota.state.session_factory() as db:
         with pytest.raises(CommandError, match="almeno 15 caratteri"):
-            crea_utente(db, "dini", "avvocato", "Marco Dini", "troppo corta")
+            crea_utente(db, "dini", "avvocato", "Marco Dini", "corta")
 
 
 def test_non_esiste_una_pagina_di_registrazione(browser):

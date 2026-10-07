@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ documento.nome }}{% endblock %}
+{% block content %}
+<article class="scheda">
+  <h1>{{ documento.nome }}</h1>
+  <p><a href="/fascicoli/{{ fascicolo.id }}">{{ fascicolo.codice }} · {{ fascicolo.cliente }}</a></p>
+  <dl class="dati">
+    <dt>Che cos'è</dt><dd>{{ documento.tipo }}</dd>
+    <dt>Pagine</dt><dd>{{ documento.pagine }}</dd>
+    <dt>Caricato da</dt><dd>{{ nomi.get(documento.caricato_da_id, "") }}, {{ documento.caricato_il.strftime("%Y-%m-%d %H:%M") }} UTC</dd>
+    <dt>Impronta</dt><dd><code>{{ documento.impronta }}</code></dd>
+  </dl>
+  {% if lettura.busta %}
+  <h2>La firma</h2>
+  <dl class="dati">
+    <dt>Integrità</dt>
+    <dd>{% if lettura.busta.integro %}il documento è quello che è stato firmato{% else %}<strong class="errore">no: il contenuto non si legge</strong>{% endif %}</dd>
+    <dt>Certificato</dt>
+    <dd>{% if lettura.busta.certificato %}verificato{% else %}<strong>non verificato</strong>{% endif %}: {{ lettura.busta.motivo }}</dd>
+    {% if lettura.busta.firmatario %}<dt>Firmatario</dt><dd>{{ lettura.busta.firmatario }}</dd>{% endif %}
+    <dt>Revoca e sospensione</dt><dd>non controllate da Minuta</dd>
+  </dl>
+  {% endif %}
+  {% if lettura.avvisi %}
+  <h2>Da controllare</h2>
+  <ul class="avvisi">
+    {% for avviso in lettura.avvisi %}<li>{{ avviso }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  <p><a class="pulsante secondario" href="/fascicoli/{{ fascicolo.id }}/documenti/{{ documento.id }}/originale">Scarica l'originale</a></p>
+</article>
+
+{% for p in lettura.pagine %}
+<section class="scheda">
+  <h2>Pagina {{ p.numero }}{% if p.ottica %} · trascrizione della lettura ottica{% if p.risoluzione %}, scansione a {{ p.risoluzione }} punti per pollice{% endif %}{% endif %}</h2>
+  <pre class="testo">{{ p.testo }}</pre>
+</section>
+{% endfor %}
+{% endblock %}

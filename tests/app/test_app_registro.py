@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 
 import pytest
-from aiuti import con_fascicoli, invia
+from aiuti import PERSONE, con_fascicoli, invia
 from sqlalchemy import func, select
 
 from app import web
@@ -107,4 +107,6 @@ def test_le_righe_del_registro_non_si_scrivono_da_sole(app):
     with app.state.session_factory() as db:
         web.registra_evento(db, None, None, "prova")
         db.rollback()
-        assert db.scalar(select(func.count()).select_from(Evento)) == 5
+        # Le sole righe sono quelle degli utenti creati prima della prova.
+        creati = db.scalar(select(func.count()).select_from(Evento))
+        assert creati == len(PERSONE)

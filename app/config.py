@@ -52,6 +52,8 @@ class Settings:
     app_origin: str
     allowed_hosts: tuple[str, ...]
     session_hours: int = 8
+    # Gli originali dei documenti e l'elenco dei certificatori (lezione 16).
+    data_dir: str = "dati"
 
     @property
     def production(self) -> bool:
@@ -70,6 +72,8 @@ class Settings:
             raise ConfigError("APP_ORIGIN mancante")
         if not self.allowed_hosts:
             raise ConfigError("ALLOWED_HOSTS mancante")
+        if not self.data_dir:
+            raise ConfigError("DATA_DIR mancante")
         if not 1 <= self.session_hours <= 24:
             raise ConfigError("SESSION_HOURS deve essere tra 1 e 24")
         if self.production and not self.app_origin.startswith("https://"):
@@ -101,4 +105,5 @@ def load_settings(file_env: str | os.PathLike[str] = ".env") -> Settings:
         app_origin=valori.get("APP_ORIGIN", "").rstrip("/"),
         allowed_hosts=host,
         session_hours=ore,
+        data_dir=valori.get("DATA_DIR", "dati"),
     ).validate()

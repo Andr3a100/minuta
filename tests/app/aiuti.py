@@ -12,6 +12,7 @@ from app.manage import crea_prova
 # Le persone di Studio Meridiana, con il loro ruolo in Minuta (lezione 5).
 PERSONE = {
     "sarti": ("avvocato", "Elena Sarti"),
+    "dini": ("avvocato", "Marco Dini"),
     "righi": ("avvocato", "Paola Righi"),
     "valli": ("avvocato", "Stefano Valli"),
     "irene": ("praticante", "Irene"),
@@ -38,6 +39,17 @@ def accedi(client, nome_utente: str, passphrase: str | None = None):
         "csrf_token": gettone_da(client, "/accesso"),
     }
     return client.post("/accesso", data=dati, follow_redirects=False)
+
+
+def carica_file(client, fascicolo, nome: str, dati: bytes):
+    """Carica un documento dalla pagina del fascicolo, come dal browser."""
+    gettone = gettone_da(client, "/fascicoli")
+    return client.post(
+        f"/fascicoli/{fascicolo.id}/documenti",
+        data={"csrf_token": gettone},
+        files={"file": (nome, dati, "application/octet-stream")},
+        follow_redirects=False,
+    )
 
 
 def invia(client, indirizzo: str, dati: dict, pagina: str = "/fascicoli"):

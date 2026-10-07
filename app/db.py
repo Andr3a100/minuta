@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     create_engine,
     event,
 )
@@ -163,6 +164,38 @@ class UsoAI(Base):
 
 
 # [/libro:tabelle]
+
+
+# [libro:documento]
+class Documento(Base):
+    """Un documento del fascicolo (lezione 16). L'originale resta com'è
+    arrivato nella cartella dei dati, con la sua impronta come nome; qui
+    sta ciò che Minuta ne ha letto, e come."""
+
+    __tablename__ = "documenti"
+    __table_args__ = (
+        UniqueConstraint("fascicolo_id", "impronta", name="uq_documenti"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fascicolo_id: Mapped[int] = mapped_column(
+        ForeignKey("fascicoli.id"), index=True
+    )
+    nome: Mapped[str] = mapped_column(String(200))
+    impronta: Mapped[str] = mapped_column(String(64))  # SHA-256
+    byte: Mapped[int] = mapped_column(Integer)
+    tipo: Mapped[str] = mapped_column(String(80))
+    pagine: Mapped[int] = mapped_column(Integer)
+    ottica: Mapped[bool] = mapped_column(Boolean)  # c'è una trascrizione
+    nascosti: Mapped[int] = mapped_column(Integer)  # testi nascosti trovati
+    integro: Mapped[bool | None] = mapped_column(Boolean)  # solo le buste
+    certificato: Mapped[bool | None] = mapped_column(Boolean)
+    lettura: Mapped[str] = mapped_column(Text)  # pagine e avvisi, in JSON
+    caricato_da_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
+    caricato_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
+
+
+# [/libro:documento]
 
 
 class SessioneAccesso(Base):

@@ -30,34 +30,39 @@ class Nascosto:
 
 def testo_nascosto(percorso: Path) -> list[Nascosto]:
     """Le righe di testo invisibili a chi legge, pagina per pagina."""
-    trovati = []
     with pymupdf.open(percorso) as documento:
-        for numero, pagina in enumerate(documento, start=1):
-            # Senza ritaglio: anche il testo fuori dalla pagina, che il lettore
-            # del pilota (archive.leggi_pdf) non estrae ma altri programmi sì.
-            for blocco in pagina.get_text("dict", clip=pymupdf.INFINITE_RECT())["blocks"]:
-                for riga in blocco.get("lines", []):
-                    pezzi, motivi = [], []
-                    for span in riga["spans"]:
-                        if not span["text"].strip():
-                            continue
-                        perche = []
-                        if span["color"] == BIANCO:
-                            perche.append("testo bianco")
-                        if span["size"] < CORPO_MINIMO:
-                            perche.append("corpo minuscolo")
-                        if not pagina.rect.intersects(pymupdf.Rect(span["bbox"])):
-                            perche.append("fuori dalla pagina")
-                        if perche:
-                            pezzi.append(span["text"].strip())
-                            motivi += [m for m in perche if m not in motivi]
-                    if not pezzi:
+        return nel_documento(documento)
+
+
+def nel_documento(documento: pymupdf.Document) -> list[Nascosto]:
+    """Come testo_nascosto, su un PDF già aperto (lezione 16)."""
+    trovati = []
+    for numero, pagina in enumerate(documento, start=1):
+        # Senza ritaglio: anche il testo fuori dalla pagina, che il lettore
+        # del pilota (archive.leggi_pdf) non estrae ma altri programmi sì.
+        for blocco in pagina.get_text("dict", clip=pymupdf.INFINITE_RECT())["blocks"]:
+            for riga in blocco.get("lines", []):
+                pezzi, motivi = [], []
+                for span in riga["spans"]:
+                    if not span["text"].strip():
                         continue
-                    motivo = ", ".join(motivi)
-                    # Le righe consecutive con lo stesso motivo sono una frase sola.
-                    ultimo = trovati[-1] if trovati else None
-                    if ultimo and ultimo.pagina == numero and ultimo.motivo == motivo:
-                        ultimo.testo += " " + " ".join(pezzi)
-                    else:
-                        trovati.append(Nascosto(numero, " ".join(pezzi), motivo))
+                    perche = []
+                    if span["color"] == BIANCO:
+                        perche.append("testo bianco")
+                    if span["size"] < CORPO_MINIMO:
+                        perche.append("corpo minuscolo")
+                    if not pagina.rect.intersects(pymupdf.Rect(span["bbox"])):
+                        perche.append("fuori dalla pagina")
+                    if perche:
+                        pezzi.append(span["text"].strip())
+                        motivi += [m for m in perche if m not in motivi]
+                if not pezzi:
+                    continue
+                motivo = ", ".join(motivi)
+                # Le righe consecutive con lo stesso motivo sono una frase sola.
+                ultimo = trovati[-1] if trovati else None
+                if ultimo and ultimo.pagina == numero and ultimo.motivo == motivo:
+                    ultimo.testo += " " + " ".join(pezzi)
+                else:
+                    trovati.append(Nascosto(numero, " ".join(pezzi), motivo))
     return trovati

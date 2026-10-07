@@ -112,11 +112,16 @@ def _documento(corpo) -> dict:
 
 def leggi(percorso: Path) -> dict:
     """Un file FatturaPA: le parti e i documenti che contiene (un file può contenerne più d'uno)."""
-    radice = _senza_spazi_dei_nomi(ET.fromstring(_contenuto(percorso)))
+    return leggi_dati(_contenuto(percorso), percorso.name)
+
+
+def leggi_dati(dati: bytes, nome: str) -> dict:
+    """Come leggi, dal contenuto già aperto (lezione 16)."""
+    radice = _senza_spazi_dei_nomi(ET.fromstring(dati))
     if radice.tag != "FatturaElettronica":
-        raise ValueError(f"{percorso.name}: non è una fattura elettronica FatturaPA")
+        raise ValueError(f"{nome}: non è una fattura elettronica FatturaPA")
     testata = radice.find("FatturaElettronicaHeader")
-    return {"file": percorso.name,
+    return {"file": nome,
             "cedente": _soggetto(testata.find("CedentePrestatore")),
             "cessionario": _soggetto(testata.find("CessionarioCommittente")),
             "documenti": [_documento(c) for c in radice.findall("FatturaElettronicaBody")]}

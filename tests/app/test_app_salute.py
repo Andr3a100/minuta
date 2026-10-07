@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from app.migrations import migra
+from app.migrations import migra, ultima
 
 
 def test_pronto_solo_con_lo_schema_giusto(app_vuota):
@@ -12,7 +12,8 @@ def test_pronto_solo_con_lo_schema_giusto(app_vuota):
         assert client.get("/salute").json()["stato"] == "ok"
         assert client.get("/pronto").status_code == 503
         migra(app_vuota.state.engine)
-        assert client.get("/pronto").json() == {"stato": "pronto", "schema": 1}
+        pronto = client.get("/pronto").json()
+        assert pronto == {"stato": "pronto", "schema": ultima()}
 
 
 def test_le_pagine_portano_le_protezioni(browser):

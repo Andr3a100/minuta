@@ -21,6 +21,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    UniqueConstraint,
     insert,
     inspect,
     select,
@@ -153,9 +154,46 @@ def _passo_1(conn: Connection) -> None:
     meta.create_all(conn)
 
 
+# [libro:passo-2]
+def _passo_2(conn: Connection) -> None:
+    """I documenti del fascicolo (lezione 16)."""
+    meta = MetaData()
+    Table("fascicoli", meta, Column("id", Integer, primary_key=True))
+    Table("utenti", meta, Column("id", Integer, primary_key=True))
+    Table(
+        "documenti",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column(
+            "fascicolo_id",
+            ForeignKey("fascicoli.id"),
+            nullable=False,
+            index=True,
+        ),
+        Column("nome", String(200), nullable=False),
+        Column("impronta", String(64), nullable=False),
+        Column("byte", Integer, nullable=False),
+        Column("tipo", String(80), nullable=False),
+        Column("pagine", Integer, nullable=False),
+        Column("ottica", Boolean, nullable=False),
+        Column("nascosti", Integer, nullable=False),
+        Column("integro", Boolean, nullable=True),
+        Column("certificato", Boolean, nullable=True),
+        Column("lettura", Text, nullable=False),
+        Column("caricato_da_id", ForeignKey("utenti.id"), nullable=False),
+        Column("caricato_il", DateTime(timezone=True), nullable=False),
+        UniqueConstraint("fascicolo_id", "impronta", name="uq_documenti"),
+    )
+    meta.tables["documenti"].create(conn)
+
+
+# [/libro:passo-2]
+
+
 # Ogni nuova migrazione si aggiunge qui con il numero successivo.
 PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     1: ("Schema iniziale", _passo_1),
+    2: ("I documenti del fascicolo", _passo_2),
 }
 
 

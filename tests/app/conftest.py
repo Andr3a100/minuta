@@ -27,6 +27,7 @@ def impostazioni(tmp_path):
         database_url=indirizzo,
         app_origin="http://testserver",
         allowed_hosts=("testserver",),
+        data_dir=str(tmp_path / "dati"),
     ).validate()
 
 

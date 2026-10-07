@@ -7,6 +7,10 @@ Si usano dal terminale, dalla cartella del laboratorio:
         --nome "Elena Sarti"
     python -m app.manage disattiva irene
     python -m app.manage diagnosi
+    python -m app.manage certificatori
+    python -m app.manage carica 2026-071 documenti-di-prova/2026-071 --da irene
+    python -m app.manage leggi documento.pdf
+    python -m app.manage testo 2026-072 cartella-scansione.pdf
 
 Le passphrase non si scrivono mai sulla riga di comando, dove resterebbero
 nella cronologia: il programma le chiede, oppure le legge da stdin.
@@ -25,10 +29,14 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
+from minuta import certificatori
+from minuta import documenti as motore
+
 from .config import ConfigError, leggi_file_env, load_settings
 from .db import (
     RUOLI,
     Assegnazione,
+    Documento,
     Evento,
     Fascicolo,
     SessioneAccesso,
@@ -36,6 +44,14 @@ from .db import (
     Utente,
     make_engine,
     make_session_factory,
+)
+from .documenti import (
+    DocumentoRifiutato,
+    carica,
+    cartella_dati,
+    descrivi,
+    lettura_di,
+    stato_elenco,
 )
 from .migrations import MigrationError, migra, ultima, versione_attuale
 from .security import MIN_PASSPHRASE, hash_passphrase
@@ -228,7 +244,126 @@ def costruisci_parser() -> argparse.ArgumentParser:
     sub.add_parser("utenti", help="elenca gli account")
     sub.add_parser("prova", help="crea i tre fascicoli di prova del libro")
     sub.add_parser("diagnosi", help="mostra la configurazione senza segreti")
+    sub.add_parser(
+        "certificatori", help="scarica l'elenco dei certificatori di AgID"
+    )
+    caricamento = sub.add_parser(
+        "carica", help="aggiunge documenti a un fascicolo"
+    )
+    caricamento.add_argument("codice", help="il codice del fascicolo")
+    caricamento.add_argument(
+        "percorsi", nargs="+", help="file, o cartelle di file"
+    )
+    caricamento.add_argument(
+        "--da", required=True, help="chi carica: un utente del fascicolo"
+    )
+    lettura = sub.add_parser(
+        "leggi", help="mostra che cosa Minuta legge in un file, senza salvarlo"
+    )
+    lettura.add_argument("percorsi", nargs="+")
+    testo = sub.add_parser("testo", help="il testo letto da un documento")
+    testo.add_argument("codice")
+    testo.add_argument("nome")
     return parser
+
+
+def file_da(percorsi: list[str]) -> list[Path]:
+    """I file indicati; di una cartella, i file che contiene, per nome."""
+    trovati = []
+    for percorso in map(Path, percorsi):
+        if percorso.is_dir():
+            trovati += sorted(
+                f
+                for f in percorso.iterdir()
+                if f.is_file() and not f.name.startswith(".")
+            )
+        elif percorso.is_file():
+            trovati.append(percorso)
+        else:
+            raise CommandError(f"{percorso}: il file non esiste.")
+    return trovati
+
+
+GIORNI = (
+    "gennaio febbraio marzo aprile maggio giugno luglio agosto settembre "
+    "ottobre novembre dicembre"
+).split()
+
+
+def giorno(iso: str) -> str:
+    anno, mese, giorno_del_mese = (int(n) for n in iso[:10].split("-"))
+    return f"{giorno_del_mese} {GIORNI[mese - 1]} {anno}"
+
+
+def scarica_elenco(settings) -> None:
+    try:
+        elenco = certificatori.scarica(cartella_dati(settings))
+    except OSError as exc:
+        raise CommandError(f"Elenco non scaricato: {exc}") from None
+    print(
+        f"Elenco dei certificatori di AgID n. {elenco.numero}, emesso il "
+        f"{giorno(elenco.emesso)}: {elenco.servizi} servizi qualificati "
+        f"di {elenco.certificatori} certificatori."
+    )
+
+
+def fascicolo_e_utente(db: Session, codice: str, nome_utente: str):
+    fascicolo = db.scalar(select(Fascicolo).where(Fascicolo.codice == codice))
+    if fascicolo is None:
+        raise CommandError(f"Il fascicolo {codice} non esiste.")
+    utente = db.scalar(select(Utente).where(Utente.nome_utente == nome_utente))
+    if utente is None or not utente.attivo:
+        raise CommandError(f"{nome_utente}: utente inesistente o non attivo.")
+    lavora = db.scalar(
+        select(Assegnazione).where(
+            Assegnazione.fascicolo_id == fascicolo.id,
+            Assegnazione.utente_id == utente.id,
+        )
+    )
+    if lavora is None:  # le stesse regole del browser
+        raise CommandError(f"{nome_utente} non lavora al fascicolo {codice}.")
+    return fascicolo, utente
+
+
+def carica_file(db: Session, settings, args) -> int:
+    fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    print(f"Fascicolo {fascicolo.codice}, caricati da {utente.nome}:")
+    rifiutati = 0
+    for percorso in file_da(args.percorsi):
+        try:
+            _documento, lettura = carica(
+                db,
+                settings,
+                utente,
+                fascicolo,
+                percorso.name,
+                percorso.read_bytes(),
+            )
+        except (DocumentoRifiutato, motore.DocumentoNonLeggibile) as exc:
+            db.rollback()
+            print(f"{percorso.name}: rifiutato. {exc}")
+            rifiutati += 1
+            continue
+        print("\n".join(descrivi(lettura)))
+    return 1 if rifiutati else 0
+
+
+def stampa_testo(db: Session, codice: str, nome: str) -> None:
+    documento = db.scalar(
+        select(Documento)
+        .join(Fascicolo, Documento.fascicolo_id == Fascicolo.id)
+        .where(Fascicolo.codice == codice, Documento.nome == nome)
+    )
+    if documento is None:
+        raise CommandError(f"Nel fascicolo {codice} non c'è {nome}.")
+    for pagina in lettura_di(documento)["pagine"]:
+        titolo = f"pagina {pagina['numero']}"
+        if pagina["ottica"]:
+            titolo += ", lettura ottica"
+            if pagina["risoluzione"]:
+                titolo += f" a {pagina['risoluzione']} punti per pollice"
+        print(f"--- {titolo} ---")
+        print(pagina["testo"])
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -249,6 +384,18 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.comando == "diagnosi":
             return diagnosi(settings, engine)
+        if args.comando == "certificatori":
+            scarica_elenco(settings)
+            return 0
+        if args.comando == "leggi":
+            for percorso in file_da(args.percorsi):
+                lettura = motore.leggi(
+                    percorso.name,
+                    percorso.read_bytes(),
+                    cartella_dati(settings),
+                )
+                print("\n".join(descrivi(lettura)))
+            return 0
 
         with engine.connect() as conn:
             versione = versione_attuale(conn)
@@ -281,8 +428,16 @@ def main(argv: list[str] | None = None) -> int:
             elif args.comando == "prova":
                 quanti = crea_prova(db, settings.production)
                 print(f"Creati {quanti} fascicoli di prova.")
+            elif args.comando == "carica":
+                return carica_file(db, settings, args)
+            elif args.comando == "testo":
+                stampa_testo(db, args.codice, args.nome)
         return 0
-    except (CommandError, MigrationError) as exc:
+    except (
+        CommandError,
+        MigrationError,
+        motore.DocumentoNonLeggibile,
+    ) as exc:
         print(str(exc), file=sys.stderr)
         return 1
     finally:
@@ -320,11 +475,13 @@ def diagnosi(settings, engine) -> int:
                 print(f"Utenti attivi    {ruolo}: {quanti}")
             for nome, tabella in (
                 ("Fascicoli", Fascicolo),
+                ("Documenti", Documento),
                 ("Eventi", Evento),
                 ("Voci uso AI", UsoAI),
             ):
                 quanti = db.scalar(select(func.count()).select_from(tabella))
                 print(f"{nome:<16} {quanti}")
+    print(f"Certificatori    {stato_elenco(settings)}")
     return 0 if versione == ultima() else 1
 
 

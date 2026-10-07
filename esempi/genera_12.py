@@ -3,7 +3,8 @@ bianco rivolta all'intelligenza artificiale, invisibile a chi legge.
 
     .venv/bin/python esempi/genera_12.py
 
-Il PDF si costruisce in una cartella temporanea. Minuta cerca il testo
+Il PDF si costruisce in una cartella temporanea; una copia resta in
+esempi/12-ricorso-con-nota.pdf, per la lezione 16. Minuta cerca il testo
 nascosto (minuta/nascosti.py); il lettore del pilota (archive.leggi_pdf),
 invece, lo estrae come un paragrafo qualsiasi. La prova tests/test_esempi.py
 rifà l'uscita e la confronta con il file stampato nel libro.
@@ -65,4 +66,6 @@ def testo_estratto() -> str:
 
 if __name__ == "__main__":
     (CARTELLA / "12-testo-nascosto.txt").write_text(uscita(), "utf-8")
+    # Il PDF resta anche nel laboratorio: nella lezione 16 lo legge Minuta.
+    costruisci(CARTELLA / "12-ricorso-con-nota.pdf")
     print(uscita(), end="")

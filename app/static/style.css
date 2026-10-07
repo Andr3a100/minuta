@@ -63,3 +63,9 @@ th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--bordo
 .descrizione { white-space: pre-wrap; }
 .storia { padding-left: 1.2rem; }
 .materia { font-size: 0.85rem; color: #4a5a66; }
+
+.testo {
+  white-space: pre-wrap; margin: 0; font-size: 0.9rem;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+.avvisi li { color: var(--errore); margin-bottom: 0.4rem; }

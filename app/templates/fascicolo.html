@@ -27,6 +27,37 @@
 </article>
 
 <section class="scheda">
+  <h2>Documenti</h2>
+  {% if documenti %}
+  <table>
+    <thead><tr><th>Documento</th><th>Che cos'è</th><th>Da controllare</th></tr></thead>
+    <tbody>
+      {% for d in documenti %}
+      <tr>
+        <td><a href="/fascicoli/{{ fascicolo.id }}/documenti/{{ d.id }}">{{ d.nome }}</a></td>
+        <td>{{ d.tipo }}</td>
+        <td>
+          {% if d.nascosti %}<strong class="errore">testo nascosto</strong>{% endif %}
+          {% if d.ottica %}trascrizione{% endif %}
+          {% if d.integro == false %}<strong class="errore">busta non integra</strong>
+          {% elif d.certificato == false %}certificato non verificato{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="nota">Ancora nessun documento.</p>
+  {% endif %}
+  <form method="post" action="/fascicoli/{{ fascicolo.id }}/documenti" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="file">Aggiungi un documento (PDF, Word, fattura elettronica, busta firmata)</label>
+    <input id="file" name="file" type="file" required>
+    <button type="submit">Carica</button>
+  </form>
+</section>
+
+<section class="scheda">
   <h2>Registro delle attività</h2>
   <p class="nota">Orari in UTC.</p>
   <ol class="storia">
@@ -36,6 +67,7 @@
       · {{ nomi.get(evento.utente_id, "sistema") }} ·
       {% if evento.azione == "apertura" %}fascicolo aperto
       {% elif evento.azione == "stato" %}stato: {{ etichette_stati.get(dettaglio.prima, dettaglio.prima) }} → {{ etichette_stati.get(dettaglio.dopo, dettaglio.dopo) }}
+      {% elif evento.azione == "documento" %}documento caricato: {{ dettaglio.nome }}
       {% else %}{{ evento.azione }}{% endif %}
     </li>
     {% endfor %}

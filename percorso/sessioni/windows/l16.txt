@@ -1,0 +1,28 @@
+### [esito:l16-versione]
+cd ~\minuta\laboratorio
+git switch --detach v0.2
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l16-versione]
+### [esito:l16-certificatori]
+.\.venv\Scripts\python.exe -m app.manage certificatori
+### [/esito:l16-certificatori]
+### [esito:l16-civile]
+.\.venv\Scripts\python.exe -m app.manage carica 2026-071 documenti-di-prova\2026-071 --da irene
+### [/esito:l16-civile]
+### [esito:l16-penale]
+.\.venv\Scripts\python.exe -m app.manage carica 2026-073 documenti-di-prova\2026-073 --da valli
+### [/esito:l16-penale]
+### [esito:l16-nascosto]
+.\.venv\Scripts\python.exe -m app.manage leggi esempi\12-ricorso-con-nota.pdf
+### [/esito:l16-nascosto]
+### [esito:l16-scansione]
+.\.venv\Scripts\python.exe -m app.manage carica 2026-072 documenti-di-prova\2026-072\cartella-scansione.pdf --da righi
+.\.venv\Scripts\python.exe -m app.manage testo 2026-072 cartella-scansione.pdf
+### [/esito:l16-scansione]
+### [esito:l16-scansione-300]
+.\.venv\Scripts\python.exe -m app.manage carica 2026-072 documenti-di-prova\2026-072\cartella-scansione-300.pdf --da righi
+.\.venv\Scripts\python.exe -m app.manage testo 2026-072 cartella-scansione-300.pdf
+### [/esito:l16-scansione-300]
+### [esito:l16-diagnosi]
+.\.venv\Scripts\python.exe -m app.manage diagnosi
+### [/esito:l16-diagnosi]

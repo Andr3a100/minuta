@@ -1,7 +1,7 @@
 #!/bin/bash
 # Prova della Parte III su macOS e Linux: i comandi del lettore.
 #
-# Esegue, come li scrive il lettore, il primo avvio di Minuta (lezione 15)
+# Esegue, come li scrive il lettore, i comandi delle lezioni 15 e 16
 # in una shell interattiva (zsh su macOS, bash su Linux), e ne scrive il
 # verbale. Il libro stampa gli output presi da questo verbale.
 #
@@ -105,5 +105,8 @@ sessione() {
     cat "$registro"
     echo "### [/esito:l15b-server]"
     echo
+
+    # Lezione 16: Minuta 0.2, i documenti del fascicolo.
+    sessione l16
     echo "== Fine"
 } >"$verbale"

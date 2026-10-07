@@ -4,4 +4,4 @@
 arriva». Il motore del pilota, il pacchetto minuta, è la sua libreria.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

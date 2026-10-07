@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -14,11 +15,15 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .config import Settings, load_settings
 from .db import make_engine, make_session_factory
+from .documenti import MASSIMO_DOCUMENTO
 from .routes import router
 from .web import LoginRequired, pagina_errore
 
 QUI = Path(__file__).resolve().parent
-MASSIMO_CORPO = 16_384  # moduli piccoli; i documenti arriveranno con la L16
+MASSIMO_CORPO = 16_384  # i moduli sono piccoli
+# Il caricamento di un documento: il file e il modulo che lo porta.
+MASSIMO_CARICAMENTO = MASSIMO_DOCUMENTO + 65_536
+CARICAMENTO = re.compile(r"/fascicoli/\d+/documenti")
 
 # [libro:intestazioni]
 INTESTAZIONI_SICUREZZA = {
@@ -60,7 +65,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 return PlainTextResponse(
                     "Lunghezza assente o non valida.", 411
                 )
-            if int(lunghezza) > MASSIMO_CORPO:
+            limite = (
+                MASSIMO_CARICAMENTO
+                if CARICAMENTO.fullmatch(request.url.path)
+                else MASSIMO_CORPO
+            )
+            if int(lunghezza) > limite:
                 return PlainTextResponse("Richiesta troppo grande.", 413)
         risposta = await call_next(request)
         for nome, valore in INTESTAZIONI_SICUREZZA.items():

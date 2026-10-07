@@ -11,21 +11,35 @@ from __future__ import annotations
 
 import json
 from datetime import timedelta
+from urllib.parse import quote
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+)
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
 from . import __version__
 from .db import (
     Assegnazione,
+    Documento,
     Evento,
     Fascicolo,
     SessioneAccesso,
     TentativoFallito,
     Utente,
     adesso,
+)
+from .documenti import (
+    MASSIMO_DOCUMENTO,
+    DocumentoRifiutato,
+    carica,
+    lettura_di,
+    originale,
 )
 from .migrations import ultima, versione_attuale
 from .rules import (
@@ -302,10 +316,18 @@ def scheda_fascicolo(request: Request, fascicolo_id: int):
             )
         )
         persone = nomi(db)
+        documenti = list(
+            db.scalars(
+                select(Documento)
+                .where(Documento.fascicolo_id == fascicolo.id)
+                .order_by(Documento.id)
+            )
+        )
     contesto = {
         "utente": utente,
         "fascicolo": fascicolo,
         "nomi": persone,
+        "documenti": documenti,
         "assegnati": [persone[i] for i in assegnati],
         "azioni": azioni_disponibili(fascicolo.stato, utente.ruolo),
         "storia": [(e, json.loads(e.dettaglio or "{}")) for e in eventi],
@@ -357,6 +379,91 @@ def cambia_stato(
 
 
 # [/libro:cambia-stato]
+
+
+# ----------------------------------------------------------------------
+# Documenti del fascicolo (lezione 16)
+# ----------------------------------------------------------------------
+
+
+# [libro:rotta-documenti]
+@router.post("/fascicoli/{fascicolo_id}/documenti")
+def carica_documento(
+    request: Request,
+    fascicolo_id: int,
+    file: UploadFile = File(...),
+    csrf_token: str = Form(""),
+):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)  # chi sei
+        controlla_modulo(request, csrf_token)  # il modulo è nostro
+        fascicolo = fascicolo_visibile(db, fascicolo_id, utente)  # quale
+        dati = file.file.read(MASSIMO_DOCUMENTO + 1)
+        try:
+            documento, _lettura = carica(
+                db,
+                settings_of(request),
+                utente,
+                fascicolo,
+                file.filename or "",
+                dati,
+            )
+        except DocumentoRifiutato as exc:
+            raise HTTPException(422, str(exc)) from None
+        numero = documento.id
+    return vai_a(f"/fascicoli/{fascicolo_id}/documenti/{numero}")
+
+
+# [/libro:rotta-documenti]
+
+
+def documento_visibile(db, fascicolo_id: int, documento_id: int, utente):
+    """Il documento, se sta in un fascicolo a cui l'utente lavora."""
+    fascicolo = fascicolo_visibile(db, fascicolo_id, utente)
+    documento = db.get(Documento, documento_id)
+    if documento is None or documento.fascicolo_id != fascicolo.id:
+        raise HTTPException(404, "Documento non trovato.")
+    return fascicolo, documento
+
+
+@router.get(
+    "/fascicoli/{fascicolo_id}/documenti/{documento_id}",
+    response_class=HTMLResponse,
+)
+def scheda_documento(request: Request, fascicolo_id: int, documento_id: int):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        fascicolo, documento = documento_visibile(
+            db, fascicolo_id, documento_id, utente
+        )
+        persone = nomi(db)
+    contesto = {
+        "utente": utente,
+        "fascicolo": fascicolo,
+        "documento": documento,
+        "lettura": lettura_di(documento),
+        "nomi": persone,
+    }
+    return pagina(request, "documento.html", contesto)
+
+
+@router.get("/fascicoli/{fascicolo_id}/documenti/{documento_id}/originale")
+def scarica_originale(request: Request, fascicolo_id: int, documento_id: int):
+    """L'originale, com'è arrivato: si scarica, non si apre nel browser."""
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        _fascicolo, documento = documento_visibile(
+            db, fascicolo_id, documento_id, utente
+        )
+    percorso = originale(settings_of(request), documento)
+    if not percorso.is_file():
+        raise HTTPException(404, "L'originale non si trova nella cartella.")
+    disposizione = f"attachment; filename*=UTF-8''{quote(documento.nome)}"
+    return Response(
+        percorso.read_bytes(),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": disposizione},
+    )
 
 
 # ----------------------------------------------------------------------
