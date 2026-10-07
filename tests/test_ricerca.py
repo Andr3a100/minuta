@@ -1,7 +1,7 @@
 import json
 
 from minuta import search
-from conftest import RADICE
+from percorsi import RADICE
 
 DOMANDE = json.loads((RADICE / "tests/domande.json").read_text("utf-8"))
 

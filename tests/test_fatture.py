@@ -6,7 +6,7 @@ import sys
 from datetime import date, datetime
 
 import pytest
-from conftest import RADICE
+from percorsi import RADICE
 from lxml import etree
 
 from minuta import __main__ as comandi

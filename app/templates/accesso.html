@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Accesso{% endblock %}
+{% block content %}
+<section class="scheda stretta">
+  <h1>Accesso</h1>
+  <p>Entra con l'account che ti ha dato lo studio.</p>
+  {% if errore %}<p class="errore" role="alert">{{ errore }}</p>{% endif %}
+  <form method="post" action="/accesso">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="nome_utente">Nome utente</label>
+    <input id="nome_utente" name="nome_utente" autocomplete="username"
+           maxlength="40" required autofocus>
+    <label for="passphrase">Passphrase</label>
+    <input id="passphrase" name="passphrase" type="password"
+           autocomplete="current-password" required>
+    <button type="submit">Entra</button>
+  </form>
+</section>
+{% endblock %}

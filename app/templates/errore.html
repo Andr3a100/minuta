@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Errore {{ status_code }}{% endblock %}
+{% block content %}
+<section class="scheda stretta">
+  <h1>Non è stato possibile completare la richiesta</h1>
+  <p class="errore" role="alert">{{ messaggio }}</p>
+  <p class="nota">Codice {{ status_code }}.</p>
+  <p><a href="/fascicoli">Torna all'elenco dei fascicoli</a></p>
+</section>
+{% endblock %}

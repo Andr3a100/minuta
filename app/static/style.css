@@ -1,0 +1,65 @@
+/* Minuta: uno stile sobrio e leggibile, senza JavaScript. */
+:root {
+  --testo: #1d2a33;
+  --sfondo: #f7f5f0;
+  --carta: #ffffff;
+  --accento: #1f4e79;
+  --bordo: #d5d0c4;
+  --errore: #9b1c1c;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--testo);
+  background: var(--sfondo);
+}
+body { margin: 0; line-height: 1.5; }
+main { max-width: 64rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+.barra {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 1rem;
+  justify-content: space-between; padding: 0.75rem 1rem;
+  background: var(--accento); color: #fff;
+}
+.barra a, .barra button { color: #fff; }
+.barra nav { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.marchio { font-weight: 700; text-decoration: none; font-size: 1.15rem; }
+.in-linea { display: inline; margin: 0; }
+.barra button {
+  background: transparent; border: 1px solid #fff; border-radius: 4px;
+  padding: 0.2rem 0.7rem; cursor: pointer;
+}
+.scheda {
+  background: var(--carta); border: 1px solid var(--bordo);
+  border-radius: 6px; padding: 1.25rem; margin-bottom: 1.25rem;
+}
+.stretta { max-width: 26rem; margin: 2rem auto; }
+.intestazione {
+  display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: 1rem;
+}
+h1 { font-size: 1.5rem; margin: 0 0 0.75rem; }
+h2 { font-size: 1.15rem; margin: 0 0 0.5rem; }
+label { display: block; font-weight: 600; margin-top: 0.9rem; }
+input, select, textarea {
+  width: 100%; box-sizing: border-box; font: inherit;
+  padding: 0.45rem; border: 1px solid var(--bordo); border-radius: 4px;
+}
+button, .pulsante {
+  display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem;
+  font: inherit; color: #fff; background: var(--accento);
+  border: 0; border-radius: 4px; text-decoration: none; cursor: pointer;
+}
+.pulsante.secondario { background: #4a5a66; margin-top: 0; }
+.azioni { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+:focus-visible { outline: 3px solid #f2a900; outline-offset: 2px; }
+table {
+  width: 100%; border-collapse: collapse; background: var(--carta);
+  border: 1px solid var(--bordo);
+}
+th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--bordo); }
+.errore, .campo-errore { color: var(--errore); font-weight: 600; }
+.nota { color: #55606a; font-size: 0.9rem; }
+.riepilogo { margin: 0.5rem 0 1rem; }
+.dati { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; }
+.dati dt { font-weight: 600; }
+.dati dd { margin: 0; }
+.descrizione { white-space: pre-wrap; }
+.storia { padding-left: 1.2rem; }
+.materia { font-size: 0.85rem; color: #4a5a66; }

@@ -4,7 +4,7 @@ import pytest
 
 from minuta.leaks import fughe
 from minuta.pseudonym import Pseudonimizzatore, segnaposto_estranei
-from conftest import RADICE
+from percorsi import RADICE
 
 FILE = sorted(p.stem for p in (RADICE / "archivio/pdf").glob("*.pdf"))
 

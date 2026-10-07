@@ -3,7 +3,7 @@ import json
 import shutil
 
 import pytest
-from conftest import RADICE
+from percorsi import RADICE
 
 from minuta import __main__ as comandi
 from minuta import archive, draft, learning, search

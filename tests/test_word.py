@@ -2,7 +2,7 @@ import json
 import shutil
 
 import pytest
-from conftest import RADICE
+from percorsi import RADICE
 from docx import Document
 from docx.enum.text import WD_COLOR_INDEX
 from docx.opc.constants import RELATIONSHIP_TYPE as RT

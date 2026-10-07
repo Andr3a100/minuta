@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Minuta{% endblock %} · Minuta</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="barra">
+    <a class="marchio" href="/fascicoli">Minuta</a>
+    {% if utente %}
+    <nav aria-label="Menu principale">
+      <span class="chi">{{ utente.nome }} · {{ etichette_ruoli[utente.ruolo] }}</span>
+      <form method="post" action="/uscita" class="in-linea">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Esci</button>
+      </form>
+    </nav>
+    {% endif %}
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

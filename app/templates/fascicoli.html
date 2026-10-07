@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Fascicoli{% endblock %}
+{% block content %}
+<div class="intestazione">
+  <h1>Fascicoli</h1>
+  {% if utente.ruolo in ("avvocato", "segreteria") %}
+  <a class="pulsante" href="/fascicoli/nuovo">Apri un fascicolo</a>
+  {% endif %}
+</div>
+<p class="nota">Vedi solo i fascicoli a cui lavori.</p>
+
+{% if fascicoli %}
+<table>
+  <thead>
+    <tr>
+      <th scope="col">Codice</th>
+      <th scope="col">Cliente</th>
+      <th scope="col">Materia</th>
+      <th scope="col">Avvocato</th>
+      <th scope="col">Stato</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for f in fascicoli %}
+    <tr>
+      <td><a href="/fascicoli/{{ f.id }}">{{ f.codice }}</a></td>
+      <td>{{ f.cliente }}</td>
+      <td>{{ etichette_materie[f.materia] }}</td>
+      <td>{{ nomi.get(f.avvocato_id, "") }}</td>
+      <td>{{ etichette_stati[f.stato] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Nessun fascicolo da mostrare.</p>
+{% endif %}
+{% endblock %}

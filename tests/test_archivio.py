@@ -3,7 +3,7 @@ import csv
 import pytest
 
 from minuta import archive
-from conftest import RADICE
+from percorsi import RADICE
 
 ATTESI = list(csv.DictReader(open(RADICE / "archivio/indice.csv", encoding="utf-8"), delimiter=";"))
 

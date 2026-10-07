@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Apri un fascicolo{% endblock %}
+{% block content %}
+<section class="scheda">
+  <h1>Apri un fascicolo</h1>
+  {% if errori %}
+  <p class="errore" role="alert">Controlla i campi segnalati.</p>
+  {% endif %}
+  <form method="post" action="/fascicoli/nuovo">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <label for="codice">Codice</label>
+    <input id="codice" name="codice" maxlength="8" required placeholder="2026-041"
+           value="{{ valori.get('codice', '') }}"
+           {% if errori.codice %}aria-describedby="err-codice" aria-invalid="true"{% endif %}>
+    {% if errori.codice %}<p id="err-codice" class="campo-errore">{{ errori.codice }}</p>{% endif %}
+
+    <label for="cliente">Cliente</label>
+    <input id="cliente" name="cliente" maxlength="120" required
+           value="{{ valori.get('cliente', '') }}"
+           {% if errori.cliente %}aria-describedby="err-cliente" aria-invalid="true"{% endif %}>
+    {% if errori.cliente %}<p id="err-cliente" class="campo-errore">{{ errori.cliente }}</p>{% endif %}
+
+    <label for="materia">Materia</label>
+    <select id="materia" name="materia" required
+            {% if errori.materia %}aria-describedby="err-materia" aria-invalid="true"{% endif %}>
+      <option value="">Scegli la materia</option>
+      {% for chiave, etichetta in etichette_materie.items() %}
+      <option value="{{ chiave }}"{% if valori.get('materia') == chiave %} selected{% endif %}>{{ etichetta }}</option>
+      {% endfor %}
+    </select>
+    {% if errori.materia %}<p id="err-materia" class="campo-errore">{{ errori.materia }}</p>{% endif %}
+
+    <label for="oggetto">Oggetto</label>
+    <input id="oggetto" name="oggetto" maxlength="200" required
+           value="{{ valori.get('oggetto', '') }}"
+           {% if errori.oggetto %}aria-describedby="err-oggetto" aria-invalid="true"{% endif %}>
+    {% if errori.oggetto %}<p id="err-oggetto" class="campo-errore">{{ errori.oggetto }}</p>{% endif %}
+
+    <label for="avvocato_id">Avvocato</label>
+    <select id="avvocato_id" name="avvocato_id" required
+            {% if errori.avvocato_id %}aria-describedby="err-avvocato" aria-invalid="true"{% endif %}>
+      <option value="">Scegli un avvocato</option>
+      {% for a in avvocati %}
+      <option value="{{ a.id }}"{% if valori.get('avvocato_id') == a.id|string %} selected{% endif %}>{{ a.nome }}</option>
+      {% endfor %}
+    </select>
+    {% if errori.avvocato_id %}<p id="err-avvocato" class="campo-errore">{{ errori.avvocato_id }}</p>{% endif %}
+
+    <label for="praticante_id">Praticante</label>
+    <select id="praticante_id" name="praticante_id"
+            {% if errori.praticante_id %}aria-describedby="err-praticante" aria-invalid="true"{% endif %}>
+      <option value="">Nessuno</option>
+      {% for p in praticanti %}
+      <option value="{{ p.id }}"{% if valori.get('praticante_id') == p.id|string %} selected{% endif %}>{{ p.nome }}</option>
+      {% endfor %}
+    </select>
+    {% if errori.praticante_id %}<p id="err-praticante" class="campo-errore">{{ errori.praticante_id }}</p>{% endif %}
+
+    <button type="submit">Apri</button>
+    <a href="/fascicoli">Annulla</a>
+  </form>
+</section>
+{% endblock %}

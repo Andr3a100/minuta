@@ -4,7 +4,7 @@ import pymupdf
 
 from minuta.__main__ import main
 from minuta.leaks import fughe
-from conftest import RADICE
+from percorsi import RADICE
 
 
 def test_gli_esempi_per_l_addestramento_sono_pseudonimizzati(oracolo, capsys):

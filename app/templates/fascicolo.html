@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Fascicolo {{ fascicolo.codice }}{% endblock %}
+{% block content %}
+<article class="scheda">
+  <h1>{{ fascicolo.codice }} · {{ fascicolo.cliente }}</h1>
+  <dl class="dati">
+    <dt>Materia</dt><dd>{{ etichette_materie[fascicolo.materia] }}</dd>
+    <dt>Oggetto</dt><dd>{{ fascicolo.oggetto }}</dd>
+    <dt>Avvocato</dt><dd>{{ nomi.get(fascicolo.avvocato_id, "") }}</dd>
+    <dt>Ci lavorano</dt><dd>{{ assegnati|join(", ") }}</dd>
+    <dt>Stato</dt><dd>{{ etichette_stati[fascicolo.stato] }}</dd>
+    <dt>Versione</dt><dd>{{ fascicolo.versione }}</dd>
+  </dl>
+
+  {% if azioni %}
+  <div class="azioni">
+    {% for nuovo, etichetta in azioni %}
+    <form method="post" action="/fascicoli/{{ fascicolo.id }}/stato" class="in-linea">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="versione" value="{{ fascicolo.versione }}">
+      <input type="hidden" name="stato" value="{{ nuovo }}">
+      <button type="submit">{{ etichetta }}</button>
+    </form>
+    {% endfor %}
+  </div>
+  {% endif %}
+</article>
+
+<section class="scheda">
+  <h2>Registro delle attività</h2>
+  <p class="nota">Orari in UTC.</p>
+  <ol class="storia">
+    {% for evento, dettaglio in storia %}
+    <li>
+      <time datetime="{{ evento.creato_il.isoformat() }}">{{ evento.creato_il.strftime("%Y-%m-%d %H:%M") }} UTC</time>
+      · {{ nomi.get(evento.utente_id, "sistema") }} ·
+      {% if evento.azione == "apertura" %}fascicolo aperto
+      {% elif evento.azione == "stato" %}stato: {{ etichette_stati.get(dettaglio.prima, dettaglio.prima) }} → {{ etichette_stati.get(dettaglio.dopo, dettaglio.dopo) }}
+      {% else %}{{ evento.azione }}{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+<p><a href="/fascicoli">Torna all'elenco</a></p>
+{% endblock %}

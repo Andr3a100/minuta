@@ -5,7 +5,7 @@ import pytest
 
 from minuta import archive, citations, profile
 
-RADICE = Path(__file__).resolve().parents[1]
+from percorsi import RADICE
 
 
 @pytest.fixture(scope="session")
