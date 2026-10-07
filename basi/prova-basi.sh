@@ -14,6 +14,10 @@ if [ -z "${CI:-}" ]; then
     HOME="$(mktemp -d)"
     export HOME
 fi
+# Le sessioni girano senza le variabili con cui la CI si annuncia: pytest,
+# quando le trova, non accorcia i messaggi, e sul computer del lettore li
+# accorcia.
+unset CI BUILD_NUMBER
 # I permessi dei file nuovi come su un computer qualsiasi.
 umask 022
 

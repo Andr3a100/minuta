@@ -68,6 +68,10 @@ Remove-Item Env:OPENAI_API_KEY, Env:MINUTA_API_KEY, Env:ANTHROPIC_API_KEY `
 # I programmi esterni passano da cmd, che unisce output ed errori come li
 # vedrebbe il lettore; i comandi di PowerShell restano in PowerShell.
 $nativi = '^(py|curl\.exe|\.\\\.venv\\Scripts\\python\.exe)(\s|$)'
+# Le sessioni girano senza le variabili con cui la CI si annuncia: pytest,
+# quando le trova, non accorcia i messaggi, e sul computer del lettore li
+# accorcia.
+Remove-Item Env:CI, Env:BUILD_NUMBER -ErrorAction SilentlyContinue
 $verbaleTesto = New-Object System.Text.StringBuilder
 
 function Scrivi([string] $Testo) { [void]$verbaleTesto.AppendLine($Testo) }
