@@ -51,12 +51,16 @@ $leggimi = $leggimi.Replace("`r`n", "`n").Replace("`n", "`r`n")
 Copy-Item -Recurse "$basi\conti", "$basi\sql", "$basi\documenti" "$casa\.materiale\"
 # I file come li scrive il lettore, che copia il codice stampato: senza le
 # righe dei contrassegni per il libro. I numeri di riga dei messaggi sono
-# cosi' quelli del suo file.
+# cosi' quelli del suo file. Gli altri file restano come sono, e gli a capo
+# restano quelli del checkout.
 Get-ChildItem -Recurse "$casa\.materiale" -Include '*.py', '*.sql' |
     ForEach-Object {
-        $righe = [IO.File]::ReadAllLines($_.FullName, $utf8) |
+        $testo = [IO.File]::ReadAllText($_.FullName, $utf8)
+        if ($testo -notmatch '\[/?libro:') { return }
+        $acapo = if ($testo.Contains("`r`n")) { "`r`n" } else { "`n" }
+        $righe = $testo -split '\r?\n' |
             Where-Object { $_ -notmatch '\[/?libro:' }
-        $testo = ($righe -join "`n").TrimEnd("`n") + "`n"
+        $testo = ($righe -join $acapo).TrimEnd("`r", "`n") + $acapo
         [IO.File]::WriteAllText($_.FullName, $testo, $utf8)
     }
 

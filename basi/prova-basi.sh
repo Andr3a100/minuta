@@ -33,9 +33,9 @@ cp "$basi/LEGGIMI.md" ~/minuta/quaderno/
 cp -R "$basi/conti" "$basi/sql" "$basi/documenti" ~/.materiale/
 # I file come li scrive il lettore, che copia il codice stampato: senza le
 # righe dei contrassegni per il libro. I numeri di riga dei messaggi sono
-# così quelli del suo file.
-find ~/.materiale \( -name '*.py' -o -name '*.sql' \) -exec \
-    perl -0777 -pi -e 's/^.*\[\/?libro:.*\n//mg; s/\n+\z/\n/' {} +
+# così quelli del suo file. Gli altri file restano come sono.
+find ~/.materiale \( -name '*.py' -o -name '*.sql' \) -exec perl -0777 -pi -e \
+    'if (/\[\/?libro:/) { s/^.*\[\/?libro:.*\n//mg; s/\n+\z/\n/ }' {} +
 
 # curl mostra la barra di avanzamento solo quando l'output non va sullo
 # schermo: qui la si toglie, per avere lo stesso output del lettore.
