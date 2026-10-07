@@ -15,7 +15,8 @@ if percorso.suffix.lower() == ".pdf":
 elif percorso.suffix.lower() == ".docx":
     import docx
 
-    testo = "\n".join(p.text for p in docx.Document(percorso).paragraphs).strip()
+    paragrafi = docx.Document(percorso).paragraphs
+    testo = "\n".join(p.text for p in paragrafi).strip()
 else:
     sys.exit(f"{percorso.name}: formato non previsto")
 print(testo or f"{percorso.name}: nessun testo da leggere, solo immagini")

@@ -148,3 +148,77 @@ def test_b7_i_fatti_che_la_lezione_descrive(tmp_path):
         "SELECT count(*), avg(minuti_studio) FROM fascicoli "
         f"WHERE studiato_da = {paola}"
     ).fetchall() == [(2, 132.5)]
+
+
+# Lezione B8: i quattro documenti e ciò che il libro ne dice.
+
+DOCUMENTI = BASI / "documenti"
+
+
+def test_b8_pdf_con_testo_e_scansione():
+    import pymupdf
+
+    with pymupdf.open(DOCUMENTI / "decreto.pdf") as pdf:
+        testo = pdf[0].get_text()
+    assert "INGIUNGE" in testo and "14.280,00" in testo
+    with pymupdf.open(DOCUMENTI / "decreto-scansione.pdf") as scansione:
+        assert scansione[0].get_text().strip() == ""
+        assert len(scansione[0].get_images()) == 1
+    # «La scansione pesa diciassette volte di più.»
+    peso = (DOCUMENTI / "decreto-scansione.pdf").stat().st_size
+    assert round(peso / (DOCUMENTI / "decreto.pdf").stat().st_size) == 17
+
+
+def test_b8_il_word_e_un_archivio_di_xml():
+    import zipfile
+
+    with zipfile.ZipFile(DOCUMENTI / "promemoria.docx") as archivio:
+        assert "word/document.xml" in archivio.namelist()
+
+
+def test_b8_testo_dei_tre_documenti():
+    pdf = esegui(DOCUMENTI, "testo.py", "decreto.pdf")
+    assert pdf.stdout.startswith("TRIBUNALE DI MODENA\n")
+    scansione = esegui(DOCUMENTI, "testo.py", "decreto-scansione.pdf")
+    assert scansione.stdout == (
+        "decreto-scansione.pdf: nessun testo da leggere, solo immagini\n"
+    )
+    word = esegui(DOCUMENTI, "testo.py", "promemoria.docx")
+    assert len(word.stdout.splitlines()) == 3
+
+
+def test_b8_la_busta_e_la_verifica_che_non_verifica(tmp_path):
+    busta = str(DOCUMENTI / "fattura.xml.p7m")
+    xml = tmp_path / "fattura.xml"
+    aperta = subprocess.run(
+        ["openssl", "smime", "-verify", "-noverify", "-inform", "DER",
+         "-in", busta, "-out", str(xml)],
+        capture_output=True, text=True,
+    )
+    assert aperta.returncode == 0
+    assert "Verification successful" in aperta.stderr
+    letta = esegui(DOCUMENTI, "fattura.py", str(xml))
+    assert letta.stdout.splitlines() == [
+        "Fornitore: Termocucine Secchia S.r.l.",
+        "Cliente:   Ristorazione Collinare S.r.l.",
+        "Numero:    112",
+        "Data:      2026-02-16",
+        "Totale:    6100.00 euro",
+        "Scadenza:  2026-03-18",
+    ]
+    # Senza -noverify il certificato di prova non regge.
+    vera = subprocess.run(
+        ["openssl", "smime", "-verify", "-inform", "DER", "-in", busta],
+        capture_output=True, text=True,
+    )
+    assert vera.returncode != 0
+    assert "Verification failure" in vera.stderr
+    certificato = subprocess.run(
+        ["openssl", "pkcs7", "-inform", "DER", "-in", busta,
+         "-print_certs", "-noout"],
+        capture_output=True, text=True,
+    ).stdout
+    titolare, garante = (
+        r.split("=", 1)[1] for r in certificato.splitlines() if "=" in r
+    )
+    assert titolare == garante and "certificato di prova" in titolare

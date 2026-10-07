@@ -15,7 +15,14 @@ python testo.py decreto.pdf
 python testo.py decreto-scansione.pdf
 python testo.py promemoria.docx
 : '### [/esito:b8-testo]'
+: '### [esito:b8-openssl]'
+openssl version
+: '### [/esito:b8-openssl]'
 : '### [esito:b8-firma]'
 openssl smime -verify -noverify -inform DER -in fattura.xml.p7m -out fattura.xml
 python fattura.py fattura.xml
 : '### [/esito:b8-firma]'
+: '### [esito:b8-errore]'
+openssl smime -verify -inform DER -in fattura.xml.p7m
+openssl pkcs7 -inform DER -in fattura.xml.p7m -print_certs -noout
+: '### [/esito:b8-errore]'

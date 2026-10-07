@@ -13,7 +13,16 @@ cd ~\minuta\documenti
 ..\conti\.venv\Scripts\python.exe testo.py decreto-scansione.pdf
 ..\conti\.venv\Scripts\python.exe testo.py promemoria.docx
 ### [/esito:b8-testo]
+### [esito:b8-openssl]
+$env:Path = "C:\Program Files\Git\usr\bin;" + $env:Path
+(Get-Command openssl).Source
+openssl version
+### [/esito:b8-openssl]
 ### [esito:b8-firma]
-& "C:\Program Files\Git\usr\bin\openssl.exe" smime -verify -noverify -inform DER -in fattura.xml.p7m -out fattura.xml
+openssl smime -verify -noverify -inform DER -in fattura.xml.p7m -out fattura.xml
 ..\conti\.venv\Scripts\python.exe fattura.py fattura.xml
 ### [/esito:b8-firma]
+### [esito:b8-errore]
+openssl smime -verify -inform DER -in fattura.xml.p7m
+openssl pkcs7 -inform DER -in fattura.xml.p7m -print_certs -noout
+### [/esito:b8-errore]

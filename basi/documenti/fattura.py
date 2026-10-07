@@ -10,7 +10,9 @@ import xml.etree.ElementTree as ET
 def trova(nodo, percorso):
     """Il testo di un elemento, qualunque sia lo spazio dei nomi."""
     for parte in percorso.split("/"):
-        nodo = next(e for e in nodo.iter() if e.tag.rsplit("}", 1)[-1] == parte)
+        nodo = next(
+            e for e in nodo.iter() if e.tag.rsplit("}", 1)[-1] == parte
+        )
     return nodo.text
 
 

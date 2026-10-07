@@ -70,7 +70,7 @@ Remove-Item -Force $env:GIT_CONFIG_GLOBAL -ErrorAction SilentlyContinue
 
 # I programmi esterni passano da cmd, che unisce output ed errori come li
 # vedrebbe il lettore; i comandi di PowerShell restano in PowerShell.
-$nativi = '^(git|py|python|sqlite3|curl\.exe|\.\\\.venv\\Scripts\\python\.exe|\.\.\\conti\\\.venv\\Scripts\\python\.exe|& "C:\\Program Files\\Git\\usr\\bin\\openssl\.exe")(\s|$)'
+$nativi = '^(git|py|python|sqlite3|curl\.exe|openssl|\.\\\.venv\\Scripts\\python\.exe|\.\.\\conti\\\.venv\\Scripts\\python\.exe|& "C:\\Program Files\\Git\\usr\\bin\\openssl\.exe")(\s|$)'
 $verbaleTesto = New-Object System.Text.StringBuilder
 
 function Scrivi([string] $Testo) { [void]$verbaleTesto.AppendLine($Testo) }
