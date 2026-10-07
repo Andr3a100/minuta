@@ -25,85 +25,48 @@ PROVA = RADICE / "documenti-di-prova"
 sys.path.insert(0, str(RADICE / "strumenti"))
 import genera_documenti_di_prova  # noqa: E402
 
+FIRMA = "basicConstraints=CA:FALSE\nkeyUsage=nonRepudiation,digitalSignature\n"
 
-def openssl(*argomenti, entrata: bytes | None = None) -> bytes:
+
+def openssl(comando: str, *file: str, entrata: bytes | None = None) -> bytes:
+    """openssl, con le opzioni scritte come sul terminale e i file a parte."""
     return subprocess.run(
-        ["openssl", *argomenti],
-        input=entrata,
-        capture_output=True,
-        check=True,
+        ["openssl", *comando.split(), *file],
+        input=entrata, capture_output=True, check=True,
     ).stdout
+
+
+def nuovo_certificatore(cartella: Path, nome: str) -> Path:
+    """Un certificatore che firma da sé il proprio certificato."""
+    cartella.mkdir(parents=True, exist_ok=True)
+    pem = cartella / "ca.pem"
+    openssl("req -x509 -newkey rsa:2048 -nodes -days 30",
+            "-keyout", str(cartella / "ca.key"), "-out", str(pem),
+            "-subj", f"/CN={nome}")
+    return pem
 
 
 @pytest.fixture
 def certificatore(tmp_path):
     """Un certificatore di prova e un firmatario con un suo certificato."""
     c = tmp_path / "pki"
-    c.mkdir()
-    openssl(
-        "req",
-        "-x509",
-        "-newkey",
-        "rsa:2048",
-        "-nodes",
-        "-keyout",
-        str(c / "ca.key"),
-        "-out",
-        str(c / "ca.pem"),
-        "-days",
-        "3650",
-        "-subj",
-        "/CN=Certificatore di prova",
-    )
-    openssl(
-        "req",
-        "-newkey",
-        "rsa:2048",
-        "-nodes",
-        "-keyout",
-        str(c / "firma.key"),
-        "-out",
-        str(c / "firma.csr"),
-        "-subj",
-        "/CN=Firmatario di prova",
-    )
-    (c / "est.cnf").write_text(
-        "basicConstraints=CA:FALSE\nkeyUsage=nonRepudiation,digitalSignature\n"
-    )
-    openssl(
-        "x509",
-        "-req",
-        "-in",
-        str(c / "firma.csr"),
-        "-CA",
-        str(c / "ca.pem"),
-        "-CAkey",
-        str(c / "ca.key"),
-        "-CAcreateserial",
-        "-out",
-        str(c / "firma.pem"),
-        "-days",
-        "365",
-        "-extfile",
-        str(c / "est.cnf"),
-    )
+    nuovo_certificatore(c, "Certificatore di prova")
+    openssl("req -newkey rsa:2048 -nodes",
+            "-keyout", str(c / "firma.key"), "-out", str(c / "firma.csr"),
+            "-subj", "/CN=Firmatario di prova")
+    (c / "firma.cnf").write_text(FIRMA)
+    openssl("x509 -req -CAcreateserial -days 30",
+            "-in", str(c / "firma.csr"), "-CA", str(c / "ca.pem"),
+            "-CAkey", str(c / "ca.key"), "-out", str(c / "firma.pem"),
+            "-extfile", str(c / "firma.cnf"))
     return c
 
 
 def busta(certificatore: Path, contenuto: bytes) -> bytes:
-    return openssl(
-        "smime",
-        "-sign",
-        "-binary",
-        "-nodetach",
-        "-signer",
-        str(certificatore / "firma.pem"),
-        "-inkey",
-        str(certificatore / "firma.key"),
-        "-outform",
-        "DER",
-        entrata=contenuto,
-    )
+    return openssl("smime -sign -binary -nodetach -outform DER",
+                   "-signer", str(certificatore / "firma.pem"),
+                   "-inkey", str(certificatore / "firma.key"),
+                   entrata=contenuto)
 
 
 def elenco(cartella: Path, *certificati: Path) -> Path:
@@ -111,14 +74,25 @@ def elenco(cartella: Path, *certificati: Path) -> Path:
     cartella.mkdir(parents=True, exist_ok=True)
     pem = "".join(c.read_text() for c in certificati)
     (cartella / "certificatori.pem").write_text(pem)
-    notizie = {
-        "emesso": "2026-09-24T07:16:56Z",
-        "numero": 1,
-        "servizi": len(certificati),
-        "certificatori": 1,
-    }
+    notizie = {"emesso": "2026-09-24T07:16:56Z", "numero": 1,
+               "servizi": len(certificati), "certificatori": 1}
     (cartella / "certificatori.json").write_text(json.dumps(notizie))
     return cartella
+
+
+@pytest.fixture
+def sistema(tmp_path, certificatore, monkeypatch):
+    """Il certificatore di prova fra i certificati del sistema, come quelli
+    dei siti web; nell'elenco, invece, solo un altro certificatore."""
+    cartella = tmp_path / "sistema"
+    cartella.mkdir()
+    pem = certificatore / "ca.pem"
+    impronta = openssl("x509 -hash -noout -in", str(pem)).decode().strip()
+    (cartella / f"{impronta}.0").write_bytes(pem.read_bytes())
+    monkeypatch.setenv("SSL_CERT_DIR", str(cartella))
+    monkeypatch.setenv("SSL_CERT_FILE", str(pem))
+    altro = nuovo_certificatore(tmp_path / "altro", "Un altro certificatore")
+    return elenco(tmp_path / "elenco", altro)
 
 
 def leggi(percorso: Path, cartella: Path | None = None):
@@ -132,14 +106,11 @@ def test_il_modello_della_lingua_e_quello_dichiarato():
 
 
 def test_il_tipo_si_riconosce_dal_contenuto(certificatore):
-    assert (
-        documenti.riconosci((PROVA / "2026-071/decreto.pdf").read_bytes())
-        == "pdf"
-    )
-    assert (
-        documenti.riconosci((PROVA / "2026-071/promemoria.docx").read_bytes())
-        == "word"
-    )
+    def tipo(nome):
+        return documenti.riconosci((PROVA / nome).read_bytes())
+
+    assert tipo("2026-071/decreto.pdf") == "pdf"
+    assert tipo("2026-071/promemoria.docx") == "word"
     firmata = busta(certificatore, b"<a/>")
     assert documenti.riconosci(firmata) == "busta"
     assert documenti.riconosci(base64.encodebytes(firmata)) == "busta"
@@ -171,6 +142,7 @@ def test_la_scansione_a_300_punti_si_legge_esatta():
     ]
 
 
+# [libro:prova-scansione]
 def test_la_scansione_a_100_punti_sbaglia_una_cifra():
     # L'errore deliberato della lezione 16: un 8 letto come 6.
     lettura = leggi(PROVA / "2026-072/cartella-scansione.pdf")
@@ -180,8 +152,10 @@ def test_la_scansione_a_100_punti_sbaglia_una_cifra():
     assert "Totale da pagare 4,837,66" in righe
     assert "meno dei 300 consigliati" in lettura.avvisi[0]
     # Le voci trascritte non danno il totale: 20 centesimi di differenza.
-    voci = [3412.00, 1023.60, 396.18, 5.68]
-    assert round(sum(voci), 2) == 4837.46
+    assert round(3412.00 + 1023.60 + 396.18 + 5.68, 2) == 4837.46
+
+
+# [/libro:prova-scansione]
 
 
 def test_word_e_fatture_diventano_testo():
@@ -214,8 +188,8 @@ def test_busta_integra_ma_certificato_firmato_da_se_stesso(
     assert lettura.tipo == "busta firmata con PDF"
     assert lettura.busta.integro is True
     assert lettura.busta.certificato is False
-    assert (
-        lettura.busta.motivo == "firmato da sé stesso, non da un certificatore"
+    assert lettura.busta.motivo == (
+        "firmato da sé stesso, non da un certificatore"
     )
     assert lettura.busta.firmatario == (
         "Procura della Repubblica di Modena (certificato di prova)"
@@ -231,70 +205,34 @@ def test_certificato_verificato_solo_con_il_certificatore_nell_elenco(
     lettura = documenti.leggi("prova.xml.p7m", firmata, dentro)
     assert lettura.busta.certificato is True
     assert lettura.busta.firmatario == "Firmatario di prova"
-    altro = tmp_path / "altro"
-    altro.mkdir()
-    openssl(
-        "req",
-        "-x509",
-        "-newkey",
-        "rsa:2048",
-        "-nodes",
-        "-keyout",
-        str(altro / "k.pem"),
-        "-out",
-        str(altro / "ca.pem"),
-        "-days",
-        "30",
-        "-subj",
-        "/CN=Un altro certificatore",
-    )
-    fuori = elenco(tmp_path / "senza", altro / "ca.pem")
+    altro = nuovo_certificatore(tmp_path / "altro", "Un altro certificatore")
+    fuori = elenco(tmp_path / "senza", altro)
     lettura = documenti.leggi("prova.xml.p7m", firmata, fuori)
     assert lettura.busta.certificato is False
     assert lettura.busta.motivo == "chi l'ha emesso non è nell'elenco di AgID"
 
 
-def test_i_certificati_del_sistema_non_contano(
-    tmp_path, certificatore, monkeypatch
-):
-    # Il certificatore è fidato per il sistema (come quelli dei siti web),
-    # ma non sta nell'elenco: la firma resta non verificata.
-    sistema = tmp_path / "sistema"
-    sistema.mkdir()
-    impronta = (
-        openssl(
-            "x509", "-hash", "-noout", "-in", str(certificatore / "ca.pem")
-        )
-        .decode()
-        .strip()
-    )
-    (sistema / f"{impronta}.0").write_bytes(
-        (certificatore / "ca.pem").read_bytes()
-    )
-    monkeypatch.setenv("SSL_CERT_DIR", str(sistema))
-    monkeypatch.setenv("SSL_CERT_FILE", str(certificatore / "ca.pem"))
-    altro = tmp_path / "altro.pem"
-    openssl(
-        "req",
-        "-x509",
-        "-newkey",
-        "rsa:2048",
-        "-nodes",
-        "-keyout",
-        str(tmp_path / "k.pem"),
-        "-out",
-        str(altro),
-        "-days",
-        "30",
-        "-subj",
-        "/CN=Un altro certificatore",
-    )
-    fuori = elenco(tmp_path / "elenco", altro)
-    lettura = documenti.leggi(
-        "prova.xml.p7m", busta(certificatore, b"<a/>"), fuori
-    )
+def test_i_certificati_del_sistema_non_contano(certificatore, sistema):
+    firmata = busta(certificatore, b"<a/>")
+    lettura = documenti.leggi("prova.xml.p7m", firmata, sistema)
     assert lettura.busta.integro is True
     assert lettura.busta.certificato is False
+
+
+def test_controllo_senza_esclusioni_il_sistema_conterebbe(
+    certificatore, sistema
+):
+    # L'esperimento di controllo della prova precedente: la stessa verifica,
+    # senza le opzioni che escludono i certificati di sistema, passerebbe.
+    # LibreSSL non legge le raccolte indicate dall'ambiente: lì non si fa.
+    if documenti._versione().startswith("LibreSSL"):
+        pytest.skip("LibreSSL non usa SSL_CERT_DIR e SSL_CERT_FILE")
+    pem = str(sistema / "certificatori.pem")
+    ingenua = subprocess.run(
+        ["openssl", *documenti.VERIFICA, "-CAfile", pem],
+        input=busta(certificatore, b"<a/>"), capture_output=True,
+    )
+    assert ingenua.returncode == 0, ingenua.stderr
 
 
 def test_senza_elenco_il_certificato_non_e_verificato(certificatore):
@@ -306,9 +244,10 @@ def test_senza_elenco_il_certificato_non_e_verificato(certificatore):
 
 
 def test_una_busta_manomessa_non_si_legge(certificatore):
-    firmata = bytearray(busta(certificatore, b"<nota>pagare 5,88 euro</nota>"))
+    contenuto = b"<nota>pagare 5,88 euro</nota>"
+    firmata = bytearray(busta(certificatore, contenuto))
     posizione = bytes(firmata).index(b"5,88")
-    firmata[posizione + 2] = ord("6")  # 5,68: il contenuto non è più quello
+    firmata[posizione + 2] = ord("6")  # 5,68: non è più quello firmato
     lettura = documenti.leggi("prova.xml.p7m", bytes(firmata))
     assert lettura.busta.integro is False
     assert lettura.pagine == []

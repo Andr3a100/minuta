@@ -18,6 +18,7 @@ tuo computer (`.env`, il database, l'ambiente virtuale) restano dove sono.
 | Versione | Lezione | Che cosa aggiunge |
 |---|---|---|
 | 0.1 | 15 | l'applicazione: accessi, ruoli, fascicoli, i due registri |
+| 0.2 | 16 | i documenti del fascicolo: PDF, lettura ottica, Word, fatture elettroniche, buste firmate, testo nascosto |
 
 ## Che cosa fa
 
