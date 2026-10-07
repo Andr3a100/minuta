@@ -1,0 +1,40 @@
+: '### [esito:l19-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v0.5
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l19-versione]'
+: '### [esito:l19-termini]'
+python -m app.manage termini
+: '### [/esito:l19-termini]'
+: '### [esito:l19-scheda]'
+python -m app.manage scheda 2026-072 cartella-scansione-300.pdf --da righi
+: '### [/esito:l19-scheda]'
+: '### [esito:l19-conferma-scheda]'
+python -m app.manage togli-riga 2026-072 cartella-scansione-300.pdf 1 --da righi
+python -m app.manage togli-riga 2026-072 cartella-scansione-300.pdf 2 --da righi
+python -m app.manage conferma-scheda 2026-072 cartella-scansione-300.pdf --da righi
+: '### [/esito:l19-conferma-scheda]'
+: '### [esito:l19-scadenza]'
+python -m app.manage scadenza 2026-072 cartella-scansione-300.pdf --termine ricorso --da rosa
+: '### [/esito:l19-scadenza]'
+: '### [esito:l19-conferma]'
+python -m app.manage conferma-scadenza 2026-072 cartella-scansione-300.pdf --da rosa
+python -m app.manage conferma-scadenza 2026-072 cartella-scansione-300.pdf --da righi
+: '### [/esito:l19-conferma]'
+: '### [esito:l19-decreto]'
+python -m app.manage scadenza 2026-071 decreto.pdf --termine opposizione --da rosa
+: '### [/esito:l19-decreto]'
+: '### [esito:l19-ricevuta]'
+python -m app.manage carica 2026-071 documenti-di-prova/2026-071/ricevuta-pec.pdf --da irene
+python -m app.manage scheda 2026-071 ricevuta-pec.pdf --da irene
+python -m app.manage conferma-scheda 2026-071 ricevuta-pec.pdf --da sarti
+python -m app.manage scadenza 2026-071 ricevuta-pec.pdf --termine opposizione --da rosa
+: '### [/esito:l19-ricevuta]'
+: '### [esito:l19-prove]'
+python -m app.manage calcola-termine opposizione 2027-02-07
+python -m app.manage calcola-termine opposizione 2027-06-21
+: '### [/esito:l19-prove]'
+: '### [esito:l19-diagnosi]'
+python -m app.manage diagnosi
+: '### [/esito:l19-diagnosi]'

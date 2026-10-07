@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -268,6 +269,34 @@ class Scheda(Base):
 
 
 # [/libro:scheda]
+
+
+class Scadenza(Base):
+    """Una scadenza calcolata da Minuta (lezione 19): il termine, la data di
+    partenza presa dalla scheda confermata, i passaggi del calcolo con le
+    loro norme. Resta da verificare finché un avvocato non la conferma; se
+    le regole non bastano, la data manca e il motivo è scritto."""
+
+    __tablename__ = "scadenze"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fascicolo_id: Mapped[int] = mapped_column(
+        ForeignKey("fascicoli.id"), index=True
+    )
+    documento_id: Mapped[int] = mapped_column(ForeignKey("documenti.id"))
+    scheda_id: Mapped[int] = mapped_column(ForeignKey("schede.id"))
+    termine: Mapped[str] = mapped_column(String(120))
+    norma: Mapped[str] = mapped_column(String(120))
+    partenza: Mapped[date] = mapped_column(Date)
+    scadenza: Mapped[date | None] = mapped_column(Date)
+    passaggi: Mapped[str] = mapped_column(Text)  # in JSON
+    da_decidere: Mapped[str | None] = mapped_column(Text)
+    calcolata_da_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
+    calcolata_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
+    confermata_da_id: Mapped[int | None] = mapped_column(
+        ForeignKey("utenti.id")
+    )
+    confermata_il: Mapped[datetime | None] = mapped_column(OrarioUTC)
 
 
 class SessioneAccesso(Base):

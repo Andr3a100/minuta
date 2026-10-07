@@ -14,6 +14,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Column,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -286,12 +287,44 @@ def _passo_4(conn: Connection) -> None:
     meta.tables["schede"].create(conn)
 
 
+def _passo_5(conn: Connection) -> None:
+    """Le scadenze calcolate da Minuta (lezione 19)."""
+    meta = MetaData()
+    for nome in ("fascicoli", "documenti", "schede", "utenti"):
+        Table(nome, meta, Column("id", Integer, primary_key=True))
+    Table(
+        "scadenze",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column(
+            "fascicolo_id",
+            ForeignKey("fascicoli.id"),
+            nullable=False,
+            index=True,
+        ),
+        Column("documento_id", ForeignKey("documenti.id"), nullable=False),
+        Column("scheda_id", ForeignKey("schede.id"), nullable=False),
+        Column("termine", String(120), nullable=False),
+        Column("norma", String(120), nullable=False),
+        Column("partenza", Date, nullable=False),
+        Column("scadenza", Date, nullable=True),
+        Column("passaggi", Text, nullable=False),
+        Column("da_decidere", Text, nullable=True),
+        Column("calcolata_da_id", ForeignKey("utenti.id"), nullable=False),
+        Column("calcolata_il", DateTime(timezone=True), nullable=False),
+        Column("confermata_da_id", ForeignKey("utenti.id"), nullable=True),
+        Column("confermata_il", DateTime(timezone=True), nullable=True),
+    )
+    meta.tables["scadenze"].create(conn)
+
+
 # Ogni nuova migrazione si aggiunge qui con il numero successivo.
 PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     1: ("Schema iniziale", _passo_1),
     2: ("I documenti del fascicolo", _passo_2),
     3: ("Le persone del fascicolo e i segnaposto", _passo_3),
     4: ("Le schede degli atti in arrivo", _passo_4),
+    5: ("Le scadenze", _passo_5),
 }
 
 

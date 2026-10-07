@@ -31,6 +31,7 @@ import re
 import sys
 import textwrap
 from dataclasses import asdict
+from datetime import date
 from pathlib import Path
 
 from sqlalchemy import delete, func, select
@@ -40,6 +41,12 @@ from sqlalchemy.orm import Session
 from minuta import certificatori
 from minuta import documenti as motore
 from minuta.invio import SISTEMA
+from minuta.scadenze import (
+    TermineSconosciuto,
+    calcola,
+    carica_regole,
+    in_lettere,
+)
 from minuta.scheda import Riga, SchedaIlleggibile
 
 from .config import ConfigError, leggi_file_env, load_settings
@@ -50,6 +57,7 @@ from .db import (
     Evento,
     Fascicolo,
     PersonaFascicolo,
+    Scadenza,
     Scheda,
     SessioneAccesso,
     UsoAI,
@@ -77,6 +85,12 @@ from .invio import (
 )
 from .migrations import MigrationError, migra, ultima, versione_attuale
 from .registro import RichiestaNonAmmessa
+from .scadenze import (
+    ScadenzaRifiutata,
+    calcola_scadenza,
+    conferma_scadenza,
+    ultima_scadenza,
+)
 from .schede import (
     SchedaRifiutata,
     conferma_scheda,
@@ -338,6 +352,23 @@ def costruisci_parser() -> argparse.ArgumentParser:
     conferma.add_argument("codice")
     conferma.add_argument("nome", help="il nome del documento")
     conferma.add_argument("--da", required=True, help="l'avvocato")
+    sub.add_parser("termini", help="le regole dei termini, con le norme")
+    scadenza = sub.add_parser("scadenza", help="calcola una scadenza")
+    scadenza.add_argument("codice")
+    scadenza.add_argument("nome", help="il documento con la scheda")
+    scadenza.add_argument("--termine", required=True)
+    scadenza.add_argument("--da", required=True, help="chi la calcola")
+    conferma_s = sub.add_parser(
+        "conferma-scadenza", help="conferma l'ultima scadenza del documento"
+    )
+    conferma_s.add_argument("codice")
+    conferma_s.add_argument("nome", help="il documento con la scheda")
+    conferma_s.add_argument("--da", required=True, help="l'avvocato")
+    prova = sub.add_parser(
+        "calcola-termine", help="prova il calcolo su una data, senza salvare"
+    )
+    prova.add_argument("termine")
+    prova.add_argument("partenza", type=date.fromisoformat, help="AAAA-MM-GG")
     return parser
 
 
@@ -486,6 +517,18 @@ def stampa_testo(db: Session, codice: str, nome: str) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = costruisci_parser().parse_args(argv)
+    # Le regole dei termini non chiedono configurazione né database.
+    if args.comando == "termini":
+        stampa_regole(carica_regole())
+        return 0
+    if args.comando == "calcola-termine":
+        try:
+            calcolo = calcola(args.termine, args.partenza, carica_regole())
+        except TermineSconosciuto as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        stampa_calcolo(calcolo)
+        return 0
     try:
         settings = load_settings()
     except ConfigError as exc:
@@ -573,6 +616,10 @@ def main(argv: list[str] | None = None) -> int:
                 togli_dalla_scheda(db, args)
             elif args.comando == "conferma-scheda":
                 conferma_dalla_riga_di_comando(db, args)
+            elif args.comando == "scadenza":
+                scadenza_dalla_scheda(db, args)
+            elif args.comando == "conferma-scadenza":
+                conferma_scadenza_da_riga(db, args)
         return 0
     except (
         CommandError,
@@ -581,6 +628,8 @@ def main(argv: list[str] | None = None) -> int:
         PersonaRifiutata,
         RichiestaNonAmmessa,
         SchedaRifiutata,
+        ScadenzaRifiutata,
+        TermineSconosciuto,
     ) as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -780,6 +829,90 @@ def conferma_dalla_riga_di_comando(db: Session, args) -> None:
     print("\n".join(righe_stampate(righe_di(scheda))))
 
 
+def stampa_regole(regole: dict) -> None:
+    print("Le regole di config/termini.json:")
+    for t in regole["termini"]:
+        validita = ""
+        if "dal" in t:
+            validita = f", dal {t['dal']}"
+        if "fino_al" in t:
+            validita = f", fino al {t['fino_al']}"
+        riga = (
+            f"{t['nome']} ({t['materia']}): {t['giorni']} giorni dalla "
+            f"{t['da']}, {t['norma']}{validita}, letta il {t['letta_il']}"
+        )
+        if t.get("rinvio") == "da verificare":
+            riga += "; rinvio al c.p.c. da verificare"
+        print(
+            "\n".join(
+                textwrap.wrap(
+                    riga, 79, initial_indent="  ", subsequent_indent="    "
+                )
+            )
+        )
+    computo = regole["computo"]
+    conta = (
+        f"Si contano: nel civile con l'{computo['civile']['norma']}, che "
+        f"sposta anche la scadenza del sabato; nel penale con "
+        f"l'{computo['penale']['norma']}"
+    )
+    print("\n".join(textwrap.wrap(conta, 79, subsequent_indent="  ")))
+    print(f"Agosto: {regole['sospensione_feriale']['norma']}.")
+    norme = "; ".join(n["norma"] for n in regole["festivi"]["norme"])
+    print(
+        "\n".join(
+            textwrap.wrap(f"Festivi: {norme}.", 79, subsequent_indent="  ")
+        )
+    )
+
+
+def stampa_calcolo(calcolo, salvato: bool = False) -> None:
+    print(f"Termine: {calcolo.termine}")
+    for passaggio in calcolo.passaggi:
+        print(
+            "\n".join(
+                textwrap.wrap(
+                    passaggio,
+                    79,
+                    initial_indent="  · ",
+                    subsequent_indent="    ",
+                )
+            )
+        )
+    if calcolo.scadenza is None:
+        motivo = f"Decide l'avvocato: {calcolo.da_decidere}."
+        print("\n".join(textwrap.wrap(motivo, 79, subsequent_indent="  ")))
+    else:
+        stato = ", da verificare" if salvato else ""
+        print(f"Scadenza: {in_lettere(calcolo.scadenza)}{stato}.")
+
+
+def scadenza_dalla_scheda(db: Session, args) -> None:
+    fascicolo, documento = documento_del_fascicolo(db, args.codice, args.nome)
+    _fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    _scadenza, calcolo, riga = calcola_scadenza(
+        db, utente, fascicolo, documento, args.termine
+    )
+    print(f"Fascicolo {fascicolo.codice} · {documento.nome} · {utente.nome}")
+    print(
+        f"Partenza dalla scheda, riga {riga}: {in_lettere(calcolo.partenza)}"
+    )
+    stampa_calcolo(calcolo, salvato=True)
+
+
+def conferma_scadenza_da_riga(db: Session, args) -> None:
+    fascicolo, documento = documento_del_fascicolo(db, args.codice, args.nome)
+    _fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    scadenza = ultima_scadenza(db, documento)
+    if scadenza is None:
+        raise CommandError(f"{documento.nome} non ha ancora una scadenza.")
+    conferma_scadenza(db, utente, fascicolo, scadenza)
+    print(
+        f"Scadenza confermata da {utente.nome}: {scadenza.termine}, "
+        f"{in_lettere(scadenza.scadenza)}."
+    )
+
+
 # [libro:diagnosi]
 def diagnosi(settings, engine) -> int:
     """Le informazioni utili per chiedere aiuto, senza segreti."""
@@ -816,6 +949,7 @@ def diagnosi(settings, engine) -> int:
                 ("Documenti", Documento),
                 ("Persone", PersonaFascicolo),
                 ("Schede", Scheda),
+                ("Scadenze", Scadenza),
                 ("Eventi", Evento),
                 ("Voci uso AI", UsoAI),
             ):

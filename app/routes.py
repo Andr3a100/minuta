@@ -23,6 +23,7 @@ from fastapi.responses import (
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
+from minuta.scadenze import TermineSconosciuto, carica_regole, in_lettere
 from minuta.scheda import SchedaIlleggibile
 
 from . import __version__
@@ -32,6 +33,7 @@ from .db import (
     Evento,
     Fascicolo,
     PersonaFascicolo,
+    Scadenza,
     SessioneAccesso,
     TentativoFallito,
     Utente,
@@ -64,6 +66,7 @@ from .rules import (
     passaggio_ammesso,
     passaggio_previsto,
 )
+from .scadenze import ScadenzaRifiutata, calcola_scadenza, conferma_scadenza
 from .schede import (
     SchedaRifiutata,
     conferma_scheda,
@@ -353,12 +356,21 @@ def scheda_fascicolo(request: Request, fascicolo_id: int):
                 .order_by(PersonaFascicolo.id)
             )
         )
+        scadenze = list(
+            db.scalars(
+                select(Scadenza)
+                .where(Scadenza.fascicolo_id == fascicolo.id)
+                .order_by(Scadenza.id)
+            )
+        )
     contesto = {
         "utente": utente,
         "fascicolo": fascicolo,
         "nomi": persone,
         "documenti": documenti,
         "elenco": elenco,
+        "scadenze": [(s, json.loads(s.passaggi)) for s in scadenze],
+        "in_lettere": in_lettere,
         "assegnati": [persone[i] for i in assegnati],
         "azioni": azioni_disponibili(fascicolo.stato, utente.ruolo),
         "storia": [(e, json.loads(e.dettaglio or "{}")) for e in eventi],
@@ -637,6 +649,7 @@ def pagina_scheda(
         "errore": errore,
         "blocco": blocco,
         "noti": noti_del_fascicolo(db, fascicolo) if blocco else {},
+        "termini": sorted({t["nome"] for t in carica_regole()["termini"]}),
     }
     return pagina(request, "scheda.html", contesto, stato)
 
@@ -734,6 +747,58 @@ def cambia_scheda(
                 request, db, utente, fascicolo, documento, str(exc), stato=409
             )
     return RedirectResponse(indirizzo_scheda(fascicolo, documento), 303)
+
+
+# ----------------------------------------------------------------------
+# Le scadenze (lezione 19)
+# ----------------------------------------------------------------------
+
+
+@router.post("/fascicoli/{fascicolo_id}/documenti/{documento_id}/scadenza")
+def nuova_scadenza(
+    request: Request,
+    fascicolo_id: int,
+    documento_id: int,
+    termine: str = Form(""),
+    csrf_token: str = Form(""),
+):
+    """Il calcolo non chiama nessun modello: lo può chiedere anche la
+    segreteria, che tiene lo scadenziario."""
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        controlla_modulo(request, csrf_token)
+        fascicolo, documento = documento_visibile(
+            db, fascicolo_id, documento_id, utente
+        )
+        try:
+            calcola_scadenza(db, utente, fascicolo, documento, termine)
+        except (ScadenzaRifiutata, TermineSconosciuto) as exc:
+            return pagina_scheda(
+                request, db, utente, fascicolo, documento, str(exc), stato=409
+            )
+    return RedirectResponse(f"/fascicoli/{fascicolo.id}#scadenze", 303)
+
+
+@router.post("/fascicoli/{fascicolo_id}/scadenze/{scadenza_id}/conferma")
+def conferma_una_scadenza(
+    request: Request,
+    fascicolo_id: int,
+    scadenza_id: int,
+    csrf_token: str = Form(""),
+):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        richiedi_ruolo(utente, "avvocato")
+        controlla_modulo(request, csrf_token)
+        fascicolo = fascicolo_visibile(db, fascicolo_id, utente)
+        scadenza = db.get(Scadenza, scadenza_id)
+        if scadenza is None or scadenza.fascicolo_id != fascicolo.id:
+            raise HTTPException(404, "Scadenza non trovata.")
+        try:
+            conferma_scadenza(db, utente, fascicolo, scadenza)
+        except ScadenzaRifiutata as exc:
+            raise HTTPException(409, str(exc)) from None
+    return RedirectResponse(f"/fascicoli/{fascicolo.id}#scadenze", 303)
 
 
 # ----------------------------------------------------------------------

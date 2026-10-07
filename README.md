@@ -21,6 +21,7 @@ tuo computer (`.env`, il database, l'ambiente virtuale) restano dove sono.
 | 0.2 | 16 | i documenti del fascicolo: PDF, lettura ottica, Word, fatture elettroniche, buste firmate, testo nascosto |
 | 0.3 | 17 | l'elenco delle persone del fascicolo, i segnaposto, il blocco dell'invio, il testo nascosto mostrato prima, la prima domanda al modello |
 | 0.4 | 18 | la scheda dell'atto in arrivo: righe con la pagina, date e importi controllati sull'atto, conferma dell'avvocato |
+| 0.5 | 19 | le scadenze: regole con le norme in `config/termini.json`, partenza dalla scheda confermata, calcolo passaggio per passaggio, conferma dell'avvocato |
 
 ## Che cosa fa
 

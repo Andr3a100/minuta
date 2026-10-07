@@ -47,6 +47,16 @@
     {% if segnalate %}<span class="nota">Restano righe segnalate: {{ segnalate|join(", ") }}.</span>{% endif %}
   </form>
   {% endif %}
+  {% if scheda.confermata_da_id %}
+  <form method="post" action="{{ qui }}/scadenza">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="termine">Calcola una scadenza dalla data della notificazione</label>
+    <select id="termine" name="termine">
+      {% for nome in termini %}<option>{{ nome }}</option>{% endfor %}
+    </select>
+    <button type="submit">Calcola</button>
+  </form>
+  {% endif %}
   {% else %}
   <p>Il documento non ha ancora una scheda.</p>
   {% endif %}

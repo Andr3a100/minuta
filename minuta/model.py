@@ -190,15 +190,23 @@ class ModelloFinto:
     def _scheda(self, sistema: str, richiesta: str) -> Risposta:
         """Non legge l'atto: sbaglia apposta, sempre allo stesso modo, come
         può sbagliare un modello vero. L'ultima data diventa la data
-        dell'atto, e di solito è giusta; la prima, la data della
-        notificazione; nel primo importo le ultime due cifre si scambiano;
-        il primo soggetto è la controparte, a una pagina che non c'è."""
+        dell'atto, e di solito è giusta; la data della notificazione è
+        quella dopo «notificata», «consegnato» o «il giorno» (L19), e se
+        non c'è, la prima che trova; nel primo importo le ultime due cifre
+        si scambiano; il primo soggetto è la controparte, a una pagina che
+        non c'è."""
         atto = richiesta.split("PAGINA 1", 1)[-1]
         mesi = (
             "gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto"
             "|settembre|ottobre|novembre|dicembre"
         )
-        date = re.findall(rf"\b\d{{1,2}}°? (?:{mesi}) \d{{4}}", atto)
+        data = rf"\d{{1,2}}°? (?:{mesi}) \d{{4}}"
+        date = re.findall(rf"\b{data}", atto)
+        notifica = re.search(
+            rf"(?:notificat\w*|consegnat\w*|il giorno)\s+(?:il\s+)?({data})",
+            atto,
+            re.IGNORECASE,
+        )
         importi = re.findall(r"\d{1,3}(?:\.\d{3})*,\d{2}", atto)
         soggetti = re.findall(r"\[SOGGETTO_\d+\]", atto)
         righe = []
@@ -217,8 +225,9 @@ class ModelloFinto:
         if date:
             righe.append({"voce": "date", "pagina": 1,
                           "testo": f"Data dell'atto: {date[-1]}"})
+            notificata = notifica.group(1) if notifica else date[0]
             righe.append({"voce": "date", "pagina": 1,
-                          "testo": f"Data della notificazione: {date[0]}"})
+                          "testo": f"Data della notificazione: {notificata}"})
         testo = json.dumps({"righe": righe}, ensure_ascii=False)
         return Risposta(testo, self.nome, len(sistema + richiesta) // 4,
                         len(testo) // 4)

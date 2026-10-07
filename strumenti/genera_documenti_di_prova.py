@@ -7,7 +7,8 @@ Scrive in documenti-di-prova/ una cartella per fascicolo:
   ingiuntivo della lezione 11 e il decreto, come PDF con il testo; le tre
   fatture di Termocucine Secchia nel formato FatturaPA, convalidate sullo
   schema ufficiale e firmate con un certificato di prova; il promemoria per
-  il cliente in Word;
+  il cliente in Word; la ricevuta di avvenuta consegna della notifica del
+  decreto via PEC (lezione 19);
 - 2026-072, Ivo Marchetti (tributario): la cartella di pagamento, come la
   scansiona uno scanner da ufficio, a 100 e a 300 punti per pollice;
 - 2026-073, Alessandro Riva (penale): l'avviso di conclusione delle indagini,
@@ -50,6 +51,20 @@ opposizione, si procederà a esecuzione forzata.
 
 Modena, 15 settembre 2026
 Il giudice"""
+
+# La ricevuta di avvenuta consegna della notifica via PEC (lezione 19): per
+# chi la riceve, la notifica si perfeziona quando la ricevuta è generata.
+# Gli indirizzi stanno sul dominio riservato agli esempi.
+RICEVUTA = """RICEVUTA DI AVVENUTA CONSEGNA
+
+Il giorno 21 settembre 2026 alle ore 10:42:17 (+0200) il messaggio
+«Notificazione ai sensi della legge 53/1994: decreto ingiuntivo n. 1873/2026»
+proveniente da «avvocato.termocucine@pec.example.com»
+ed indirizzato a «ristorazionecollinare@pec.example.com»
+è stato consegnato nella casella di destinazione.
+
+Identificativo messaggio:
+opec21.20260921104217.04211.811.1.53@pec.example.com"""
 
 PROMEMORIA = [
     "Ristorazione Collinare S.r.l. · promemoria sul decreto ingiuntivo",
@@ -274,6 +289,15 @@ def civile(cartella: Path) -> None:
         promemoria.add_paragraph(paragrafo)
     promemoria.core_properties.author = "Studio Meridiana"
     promemoria.save(cartella / "promemoria.docx")
+    ricevuta(cartella)
+
+
+def ricevuta(cartella: Path) -> None:
+    pdf_con_testo(
+        cartella / "ricevuta-pec.pdf",
+        RICEVUTA,
+        "Ricevuta di avvenuta consegna",
+    )
 
 
 def tributario(cartella: Path) -> None:

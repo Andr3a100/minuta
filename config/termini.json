@@ -1,0 +1,122 @@
+{
+  "_come_si_legge": "Le regole con cui Minuta calcola i termini (lezione 19). Ogni regola porta la norma, l'indirizzo della fonte ufficiale e la data in cui l'abbiamo letta. Lo studio le legge e le corregge, con la data della nuova lettura. Dove una regola dice «da verificare», Minuta non la usa: si ferma e lo dice.",
+  "termini": [
+    {
+      "nome": "opposizione al decreto ingiuntivo",
+      "materia": "civile",
+      "giorni": 40,
+      "da": "notificazione",
+      "norma": "art. 641, primo comma, c.p.c.",
+      "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443:1~art641",
+      "letta_il": "2026-10-07",
+      "computo": "civile",
+      "sospensione_feriale": "si",
+      "nota": "Il giudice può ridurre o aumentare il termine: vale quello scritto nel decreto."
+    },
+    {
+      "nome": "ricorso contro la cartella di pagamento",
+      "materia": "tributario",
+      "giorni": 60,
+      "da": "notificazione",
+      "norma": "art. 21, comma 1, D.Lgs. 546/1992",
+      "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art21!vig=2026-10-06",
+      "letta_il": "2026-10-07",
+      "fino_al": "2026-12-31",
+      "computo": "civile",
+      "sospensione_feriale": "da verificare",
+      "rinvio": {
+        "norma": "art. 1, comma 2, D.Lgs. 546/1992",
+        "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art1!vig=2026-10-07",
+        "letta_il": "2026-10-07"
+      }
+    },
+    {
+      "nome": "ricorso contro la cartella di pagamento",
+      "materia": "tributario",
+      "giorni": 60,
+      "da": "notificazione",
+      "norma": "art. 67, D.Lgs. 175/2024",
+      "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175:1~art67!vig=2027-01-01",
+      "letta_il": "2026-10-07",
+      "dal": "2027-01-01",
+      "computo": "civile",
+      "sospensione_feriale": "da verificare",
+      "rinvio": "da verificare"
+    },
+    {
+      "nome": "facoltà dopo l'avviso di conclusione delle indagini",
+      "materia": "penale",
+      "giorni": 20,
+      "da": "notificazione",
+      "norma": "art. 415-bis, comma 3, c.p.p.",
+      "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art415bis",
+      "letta_il": "2026-10-07",
+      "computo": "penale",
+      "sospensione_feriale": "si",
+      "nota": "La sospensione non opera nei casi dell'art. 2 della legge 742/1969, per esempio con imputati in custodia cautelare che vi rinunciano."
+    }
+  ],
+  "computo": {
+    "civile": {
+      "norma": "art. 155 c.p.c.",
+      "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443:1~art155",
+      "letta_il": "2026-10-07",
+      "sabato": true
+    },
+    "penale": {
+      "norma": "art. 172 c.p.p.",
+      "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447~art172",
+      "letta_il": "2026-10-07",
+      "sabato": false
+    }
+  },
+  "sospensione_feriale": {
+    "norma": "art. 1, legge 742/1969",
+    "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1969-10-07;742~art1",
+    "letta_il": "2026-10-07",
+    "dal": "08-01",
+    "al": "08-31"
+  },
+  "festivi": {
+    "norme": [
+      {
+        "norma": "art. 2, legge 260/1949",
+        "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1949-05-27;260~art2",
+        "letta_il": "2026-10-07"
+      },
+      {
+        "norma": "art. 1, legge 54/1977",
+        "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1977-03-05;54~art1",
+        "letta_il": "2026-10-07"
+      },
+      {
+        "norma": "art. 1, D.P.R. 792/1985",
+        "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1985-12-28;792~art1",
+        "letta_il": "2026-10-07"
+      },
+      {
+        "norma": "art. 1, legge 336/2000",
+        "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2000-11-20;336~art1",
+        "letta_il": "2026-10-07"
+      }
+    ],
+    "domeniche": true,
+    "lunedi_dopo_pasqua": true,
+    "fissi": {
+      "01-01": "Capodanno",
+      "01-06": "Epifania",
+      "04-25": "anniversario della Liberazione",
+      "05-01": "festa del lavoro",
+      "06-02": "festa della Repubblica",
+      "08-15": "Assunzione",
+      "10-04": "San Francesco, festa nazionale",
+      "11-01": "Ognissanti",
+      "12-08": "Immacolata Concezione",
+      "12-25": "Natale",
+      "12-26": "Santo Stefano"
+    },
+    "dal_anno": {
+      "10-04": 2026
+    }
+  }
+}

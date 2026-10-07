@@ -55,6 +55,33 @@
   </form>
 </section>
 
+<section class="scheda" id="scadenze">
+  <h2>Scadenze</h2>
+  {% if scadenze %}
+  <ul class="storia">
+    {% for s, passaggi in scadenze %}
+    <li>
+      <strong>{{ s.termine }}</strong>:
+      {% if s.scadenza %}{{ in_lettere(s.scadenza) }}{% else %}<span class="errore">decide l'avvocato: {{ s.da_decidere }}</span>{% endif %}
+      <span class="nota">· {{ s.norma }} ·
+        {% if s.confermata_da_id %}confermata da {{ nomi.get(s.confermata_da_id, "") }}{% else %}da verificare{% endif %}</span>
+      <details><summary>Il calcolo</summary>
+        <ul>{% for passaggio in passaggi %}<li>{{ passaggio }}</li>{% endfor %}</ul>
+      </details>
+      {% if utente.ruolo == "avvocato" and s.scadenza and not s.confermata_da_id %}
+      <form method="post" action="/fascicoli/{{ fascicolo.id }}/scadenze/{{ s.id }}/conferma">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Conferma la scadenza</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="nota">Nessuna scadenza: si calcolano dalla scheda confermata del documento della notificazione.</p>
+  {% endif %}
+</section>
+
 <section class="scheda">
   <h2>Documenti</h2>
   {% if documenti %}
@@ -101,6 +128,8 @@
       {% elif evento.azione == "scheda" %}scheda preparata: {{ dettaglio.nome }}, {{ dettaglio.righe }} righe
       {% elif evento.azione == "riga tolta" %}riga {{ dettaglio.riga }} tolta dalla scheda: {{ dettaglio.testo }}
       {% elif evento.azione == "scheda confermata" %}scheda confermata
+      {% elif evento.azione == "scadenza" %}scadenza calcolata: {{ dettaglio.termine }}
+      {% elif evento.azione == "scadenza confermata" %}scadenza confermata: {{ dettaglio.termine }}
       {% else %}{{ evento.azione }}{% endif %}
     </li>
     {% endfor %}
