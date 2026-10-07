@@ -1,5 +1,8 @@
-: '### [esito:l15-cartella]'
+: '### [esito:l15-versione]'
 cd ~/minuta/laboratorio
+git switch --detach v0.1
+: '### [/esito:l15-versione]'
+: '### [esito:l15-cartella]'
 ls
 : '### [/esito:l15-cartella]'
 : '### [esito:l15-ambiente]'

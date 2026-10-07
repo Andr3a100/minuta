@@ -38,14 +38,23 @@ function Crea-Utenti {
 }
 
 # Il punto di partenza della lezione 15: la cartella minuta della Parte 0,
-# con dentro il laboratorio. Le passphrase di prova stanno in file a parte.
+# con dentro il laboratorio, un repository Git con un'etichetta per ogni
+# versione di Minuta. Ogni lezione passa alla sua versione con git switch;
+# quella a cui si sta ancora lavorando prende l'etichetta dall'ultimo
+# commit. Le passphrase di prova stanno in file a parte.
 Remove-Item -Recurse -Force "$casa\minuta\laboratorio", "$casa\.materiale" `
     -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force "$casa\minuta" | Out-Null
 New-Item -ItemType Directory "$casa\.materiale" | Out-Null
-$archivio = Join-Path $env:TEMP 'laboratorio.zip'
-git -C $lab archive --format=zip --prefix=laboratorio/ -o $archivio HEAD
-Expand-Archive -Force $archivio -DestinationPath "$casa\minuta"
+$clone = "$casa\minuta\laboratorio"
+git clone -q $lab $clone
+$versioni = Get-Content "$percorso\sessioni\windows\*.txt" |
+    Select-String '^git switch --detach (v[0-9.]+)$' |
+    ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique
+foreach ($versione in $versioni) {
+    git -C $clone rev-parse -q --verify "refs/tags/$versione" | Out-Null
+    if ($LASTEXITCODE -ne 0) { git -C $clone tag $versione HEAD }
+}
 foreach ($nome in 'sarti', 'dini', 'righi', 'valli', 'irene', 'rosa') {
     [IO.File]::WriteAllText("$casa\.materiale\$nome.txt", `
         "passphrase di prova per $nome`n", $utf8)
@@ -68,7 +77,7 @@ Remove-Item Env:OPENAI_API_KEY, Env:MINUTA_API_KEY, Env:ANTHROPIC_API_KEY `
 
 # I programmi esterni passano da cmd, che unisce output ed errori come li
 # vedrebbe il lettore; i comandi di PowerShell restano in PowerShell.
-$nativi = '^(py|curl\.exe|\.\\\.venv\\Scripts\\python\.exe)(\s|$)'
+$nativi = '^(py|git|curl\.exe|\.\\\.venv\\Scripts\\python\.exe)(\s|$)'
 # Le sessioni girano senza le variabili con cui la CI si annuncia: pytest,
 # quando le trova, non accorcia i messaggi, e sul computer del lettore li
 # accorcia.

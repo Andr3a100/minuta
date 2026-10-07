@@ -97,7 +97,10 @@ jobs:
           - os: windows-latest
             shell_lettore: powershell
     steps:
+      # Tutta la storia, con le etichette delle versioni di Minuta.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"

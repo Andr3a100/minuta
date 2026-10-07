@@ -27,11 +27,19 @@ verbale="$1"
 shell_lettore="${2:-bash}"
 
 # Il punto di partenza della lezione 15: la cartella minuta della Parte 0,
-# con dentro il laboratorio. Le passphrase di prova stanno in file a parte.
+# con dentro il laboratorio, un repository Git con un'etichetta per ogni
+# versione di Minuta. Ogni lezione passa alla sua versione con git switch;
+# quella a cui si sta ancora lavorando prende l'etichetta dall'ultimo
+# commit. Le passphrase di prova stanno in file a parte.
 rm -rf ~/minuta/laboratorio ~/.materiale
 mkdir -p ~/minuta ~/.materiale
-(cd "$lab" && git archive --format=tar --prefix=laboratorio/ HEAD) |
-    tar -x -C ~/minuta
+git clone -q "$lab" ~/minuta/laboratorio
+for versione in $(cat "$percorso"/sessioni/unix/*.txt |
+    sed -n 's/^git switch --detach \(v[0-9.]*\)$/\1/p' | sort -u); do
+    git -C ~/minuta/laboratorio rev-parse -q --verify \
+        "refs/tags/$versione" >/dev/null ||
+        git -C ~/minuta/laboratorio tag "$versione" HEAD
+done
 for nome in sarti dini righi valli irene rosa; do
     echo "passphrase di prova per $nome" >~/.materiale/"$nome".txt
 done
