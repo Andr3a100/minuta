@@ -25,6 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from minuta.scadenze import TermineSconosciuto, carica_regole, in_lettere
 from minuta.scheda import SchedaIlleggibile
+from minuta.verifiche import STATI, TipoSconosciuto, carica_domande
 
 from . import __version__
 from .db import (
@@ -82,6 +83,12 @@ from .security import (
     impronta,
     nuovo_gettone,
     verifica_passphrase,
+)
+from .verifiche import (
+    VerificaRifiutata,
+    decidi_domanda,
+    prepara_verifiche,
+    ultima_verifica,
 )
 from .web import (
     apri_db,
@@ -799,6 +806,99 @@ def conferma_una_scadenza(
         except ScadenzaRifiutata as exc:
             raise HTTPException(409, str(exc)) from None
     return RedirectResponse(f"/fascicoli/{fascicolo.id}#scadenze", 303)
+
+
+# ----------------------------------------------------------------------
+# Le verifiche (lezione 20)
+# ----------------------------------------------------------------------
+
+
+def pagina_verifiche(
+    request, db, utente, fascicolo, documento, errore=None, stato=200
+):
+    verifica = ultima_verifica(db, documento)
+    contesto = {
+        "utente": utente,
+        "fascicolo": fascicolo,
+        "documento": documento,
+        "verifica": verifica,
+        "domande": json.loads(verifica.domande) if verifica else [],
+        "tipi": list(carica_domande()["tipi"]),
+        "stati": STATI,
+        "errore": errore,
+    }
+    return pagina(request, "verifiche.html", contesto, stato)
+
+
+@router.get(
+    "/fascicoli/{fascicolo_id}/documenti/{documento_id}/verifiche",
+    response_class=HTMLResponse,
+)
+def mostra_verifiche(request: Request, fascicolo_id: int, documento_id: int):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        fascicolo, documento = documento_visibile(
+            db, fascicolo_id, documento_id, utente
+        )
+        return pagina_verifiche(request, db, utente, fascicolo, documento)
+
+
+@router.post("/fascicoli/{fascicolo_id}/documenti/{documento_id}/verifiche")
+def nuove_verifiche(
+    request: Request,
+    fascicolo_id: int,
+    documento_id: int,
+    tipo: str = Form(""),
+    csrf_token: str = Form(""),
+):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        richiedi_ruolo(utente, "avvocato", "praticante")
+        controlla_modulo(request, csrf_token)
+        fascicolo, documento = documento_visibile(
+            db, fascicolo_id, documento_id, utente
+        )
+        try:
+            prepara_verifiche(db, utente, fascicolo, documento, tipo)
+        except (VerificaRifiutata, TipoSconosciuto) as exc:
+            return pagina_verifiche(
+                request, db, utente, fascicolo, documento, str(exc), 409
+            )
+    return RedirectResponse(
+        f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/verifiche", 303
+    )
+
+
+@router.post(
+    "/fascicoli/{fascicolo_id}/documenti/{documento_id}/verifiche/{numero}"
+)
+def stato_verifica(
+    request: Request,
+    fascicolo_id: int,
+    documento_id: int,
+    numero: int,
+    stato: str = Form(""),
+    csrf_token: str = Form(""),
+):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        richiedi_ruolo(utente, "avvocato")
+        controlla_modulo(request, csrf_token)
+        fascicolo, documento = documento_visibile(
+            db, fascicolo_id, documento_id, utente
+        )
+        verifica = ultima_verifica(db, documento)
+        if verifica is None:
+            raise HTTPException(404, "Il documento non ha verifiche.")
+        try:
+            decidi_domanda(db, utente, fascicolo, verifica, numero, stato)
+        except VerificaRifiutata as exc:
+            return pagina_verifiche(
+                request, db, utente, fascicolo, documento, str(exc), 409
+            )
+    return RedirectResponse(
+        f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/verifiche", 303
+    )
 
 
 # ----------------------------------------------------------------------

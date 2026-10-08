@@ -1,0 +1,22 @@
+: '### [esito:l20-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v0.6
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l20-versione]'
+: '### [esito:l20-domande]'
+python -m app.manage domande
+: '### [/esito:l20-domande]'
+: '### [esito:l20-cento]'
+python -m app.manage verifiche 2026-072 cartella-scansione.pdf --tipo cartella --da righi
+: '### [/esito:l20-cento]'
+: '### [esito:l20-trecento]'
+python -m app.manage verifiche 2026-072 cartella-scansione-300.pdf --tipo cartella --da righi
+: '### [/esito:l20-trecento]'
+: '### [esito:l20-stato]'
+python -m app.manage stato-verifica 2026-072 cartella-scansione-300.pdf 1 verificata --da righi
+python -m app.manage stato-verifica 2026-072 cartella-scansione-300.pdf 2 verificata --da rosa
+: '### [/esito:l20-stato]'
+: '### [esito:l20-diagnosi]'
+python -m app.manage diagnosi
+: '### [/esito:l20-diagnosi]'

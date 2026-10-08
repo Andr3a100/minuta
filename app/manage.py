@@ -48,6 +48,7 @@ from minuta.scadenze import (
     in_lettere,
 )
 from minuta.scheda import Riga, SchedaIlleggibile
+from minuta.verifiche import TipoSconosciuto, carica_domande
 
 from .config import ConfigError, leggi_file_env, load_settings
 from .db import (
@@ -62,6 +63,7 @@ from .db import (
     SessioneAccesso,
     UsoAI,
     Utente,
+    Verifica,
     make_engine,
     make_session_factory,
 )
@@ -101,6 +103,12 @@ from .schede import (
     ultima_scheda,
 )
 from .security import MIN_PASSPHRASE, hash_passphrase
+from .verifiche import (
+    VerificaRifiutata,
+    decidi_domanda,
+    prepara_verifiche,
+    ultima_verifica,
+)
 from .web import registra_evento
 
 NOME_UTENTE = re.compile(r"[a-z][a-z0-9._-]{2,39}")
@@ -369,6 +377,20 @@ def costruisci_parser() -> argparse.ArgumentParser:
     )
     prova.add_argument("termine")
     prova.add_argument("partenza", type=date.fromisoformat, help="AAAA-MM-GG")
+    sub.add_parser("domande", help="le domande delle verifiche, per tipo")
+    verifiche = sub.add_parser("verifiche", help="le verifiche di un atto")
+    verifiche.add_argument("codice")
+    verifiche.add_argument("nome", help="il nome del documento")
+    verifiche.add_argument("--tipo", required=True, help="il tipo di atto")
+    verifiche.add_argument("--da", required=True, help="chi le prepara")
+    stato = sub.add_parser("stato-verifica", help="lo stato di una domanda")
+    stato.add_argument("codice")
+    stato.add_argument("nome", help="il nome del documento")
+    stato.add_argument("numero", type=int, help="il numero della domanda")
+    stato.add_argument(
+        "stato", choices=["aperta", "verificata", "non-pertinente"]
+    )
+    stato.add_argument("--da", required=True, help="l'avvocato")
     return parser
 
 
@@ -521,6 +543,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.comando == "termini":
         stampa_regole(carica_regole())
         return 0
+    if args.comando == "domande":
+        stampa_domande(carica_domande())
+        return 0
     if args.comando == "calcola-termine":
         try:
             calcolo = calcola(args.termine, args.partenza, carica_regole())
@@ -620,6 +645,10 @@ def main(argv: list[str] | None = None) -> int:
                 scadenza_dalla_scheda(db, args)
             elif args.comando == "conferma-scadenza":
                 conferma_scadenza_da_riga(db, args)
+            elif args.comando == "verifiche":
+                verifiche_del_documento(db, args)
+            elif args.comando == "stato-verifica":
+                stato_di_una_verifica(db, args)
         return 0
     except (
         CommandError,
@@ -630,6 +659,8 @@ def main(argv: list[str] | None = None) -> int:
         SchedaRifiutata,
         ScadenzaRifiutata,
         TermineSconosciuto,
+        VerificaRifiutata,
+        TipoSconosciuto,
     ) as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -913,6 +944,73 @@ def conferma_scadenza_da_riga(db: Session, args) -> None:
     )
 
 
+def a_capo(testo: str, primo: str, altri: str) -> list[str]:
+    return textwrap.wrap(
+        testo, 79, initial_indent=primo, subsequent_indent=altri
+    )
+
+
+def stampa_domande(domande: dict) -> None:
+    print("Le domande di config/verifiche.json:")
+    for tipo, elenco in domande["tipi"].items():
+        print(tipo)
+        for n, d in enumerate(elenco, start=1):
+            if d.get("norma"):
+                da = f"{d['norma']}, letta il {d['letta_il']}"
+            elif d.get("controllo") == "somme":
+                da = "Minuta rifà le somme"
+            elif d.get("controllo") == "scadenze":
+                da = "Minuta riporta le scadenze del documento"
+            else:
+                da = "dalla scheda: " + ", ".join(d.get("voci", []))
+            print(
+                "\n".join(
+                    a_capo(f"{d['domanda']} ({da})", f"  {n:2}. ", "      ")
+                )
+            )
+
+
+def righe_delle_verifiche(domande: list[dict]) -> list[str]:
+    """Le verifiche come le mostra il terminale: per ogni domanda lo stato,
+    dove guardare, la norma, i fatti e i controlli; «!» dove qualcosa
+    non torna."""
+    stampa = []
+    for n, d in enumerate(domande, start=1):
+        stato = d["stato"] + (f", {d['deciso_da']}" if d["deciso_da"] else "")
+        stampa += a_capo(f"{d['domanda']} [{stato}]", f"{n:2}. ", "    ")
+        stampa += a_capo(f"dove guardare: {d['dove']}", "    ", "      ")
+        if d["norma"]:
+            norma = f"norma: {d['norma']}, letta il {d['letta_il']}"
+            stampa += a_capo(norma, "    ", "      ")
+        for voce in d["fatti"] + d["controlli"]:
+            if voce.startswith("! "):
+                stampa += a_capo(voce[2:], "    ! ", "      ")
+            else:
+                stampa += a_capo(voce, "    · ", "      ")
+    return stampa
+
+
+def verifiche_del_documento(db: Session, args) -> None:
+    fascicolo, documento = documento_del_fascicolo(db, args.codice, args.nome)
+    _fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    verifica = prepara_verifiche(db, utente, fascicolo, documento, args.tipo)
+    print(f"Verifiche di {documento.nome} · {verifica.tipo} · {utente.nome}")
+    print("\n".join(righe_delle_verifiche(json.loads(verifica.domande))))
+
+
+def stato_di_una_verifica(db: Session, args) -> None:
+    fascicolo, documento = documento_del_fascicolo(db, args.codice, args.nome)
+    _fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    verifica = ultima_verifica(db, documento)
+    if verifica is None:
+        raise CommandError(f"{documento.nome} non ha ancora le verifiche.")
+    stato = args.stato.replace("-", " ")
+    domanda = decidi_domanda(
+        db, utente, fascicolo, verifica, args.numero, stato
+    )
+    print(f"Domanda {args.numero}, {stato}: {domanda['domanda']}")
+
+
 # [libro:diagnosi]
 def diagnosi(settings, engine) -> int:
     """Le informazioni utili per chiedere aiuto, senza segreti."""
@@ -950,6 +1048,7 @@ def diagnosi(settings, engine) -> int:
                 ("Persone", PersonaFascicolo),
                 ("Schede", Scheda),
                 ("Scadenze", Scadenza),
+                ("Verifiche", Verifica),
                 ("Eventi", Evento),
                 ("Voci uso AI", UsoAI),
             ):

@@ -1,0 +1,48 @@
+{
+  "_come_si_legge": "Le domande che Minuta prepara per ogni tipo di atto (lezione 20). Sono domande, non conclusioni: dicono dove guardare nel fascicolo e quale norma leggere. Minuta le riempie con le righe della scheda confermata e con i controlli che sa fare da sola; lo stato lo decide l'avvocato. Lo studio le corregge e ne aggiunge, con la data della lettura di ogni norma.",
+  "tipi": {
+    "cartella di pagamento": [
+      {
+        "domanda": "Le voci della cartella fanno il totale?",
+        "dove": "gli importi della cartella, pagina per pagina",
+        "controllo": "somme"
+      },
+      {
+        "domanda": "La cartella è stata notificata entro il 31 dicembre del terzo anno successivo a quello in cui è stata presentata la dichiarazione?",
+        "dove": "la data della notificazione nella scheda; l'anno della dichiarazione nei documenti del cliente",
+        "voci": ["date"],
+        "norma": "art. 25, comma 1, lettera a), D.P.R. 602/1973",
+        "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-09-29;602~art25!vig=2026-10-07",
+        "letta_il": "2026-10-07",
+        "nota": "vale per le somme del controllo automatizzato; Normattiva segnala aggiornamenti e sospensioni da leggere"
+      },
+      {
+        "domanda": "Il ricorso si può ancora proporre?",
+        "dove": "la scadenza calcolata e confermata (lezione 19)",
+        "controllo": "scadenze"
+      }
+    ],
+    "decreto ingiuntivo": [
+      {
+        "domanda": "La somma ingiunta torna con le fatture prodotte nel ricorso?",
+        "dove": "il ricorso e le fatture del fascicolo",
+        "voci": ["importi"]
+      },
+      {
+        "domanda": "Il ricorso dice che il debitore non ha pagato e non ha mai contestato: i documenti del cliente dicono lo stesso?",
+        "dove": "i pagamenti e la corrispondenza del cliente",
+        "voci": ["fatti"]
+      },
+      {
+        "domanda": "Il decreto concede la provvisoria esecuzione chiesta nel ricorso?",
+        "dove": "il dispositivo del decreto e le conclusioni del ricorso",
+        "voci": ["richieste"]
+      },
+      {
+        "domanda": "L'opposizione si può ancora proporre?",
+        "dove": "la scadenza calcolata e confermata (lezione 19)",
+        "controllo": "scadenze"
+      }
+    ]
+  }
+}

@@ -130,6 +130,8 @@
       {% elif evento.azione == "scheda confermata" %}scheda confermata
       {% elif evento.azione == "scadenza" %}scadenza calcolata: {{ dettaglio.termine }}
       {% elif evento.azione == "scadenza confermata" %}scadenza confermata: {{ dettaglio.termine }}
+      {% elif evento.azione == "verifiche" %}verifiche preparate: {{ dettaglio.nome }}, {{ dettaglio.tipo }}
+      {% elif evento.azione == "verifica" %}domanda {{ dettaglio.domanda }} delle verifiche: {{ dettaglio.stato }}
       {% else %}{{ evento.azione }}{% endif %}
     </li>
     {% endfor %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Verifiche di {{ documento.nome }}{% endblock %}
+{% block content %}
+{% set qui = "/fascicoli/" ~ fascicolo.id ~ "/documenti/" ~ documento.id %}
+<article class="scheda">
+  <h1>Le verifiche di {{ documento.nome }}</h1>
+  <p><a href="{{ qui }}">{{ documento.nome }}</a> · <a href="/fascicoli/{{ fascicolo.id }}">{{ fascicolo.codice }} · {{ fascicolo.cliente }}</a></p>
+  {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
+  {% if verifica %}
+  <p class="nota">{{ verifica.tipo }} · domande, non conclusioni: lo stato lo decide l'avvocato.</p>
+  <ol>
+    {% for d in domande %}
+    <li>
+      <strong>{{ d.domanda }}</strong> <span class="nota">[{{ d.stato }}{% if d.deciso_da %}, {{ d.deciso_da }}{% endif %}]</span>
+      <br><span class="nota">Dove guardare: {{ d.dove }}{% if d.norma %} · {{ d.norma }}, letta il {{ d.letta_il }}{% endif %}</span>
+      <ul>
+        {% for voce in d.fatti + d.controlli %}
+        <li{% if voce.startswith("! ") %} class="errore"{% endif %}>{{ voce[2:] if voce.startswith("! ") else voce }}</li>
+        {% endfor %}
+      </ul>
+      {% if utente.ruolo == "avvocato" %}
+      <form method="post" action="{{ qui }}/verifiche/{{ loop.index }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <select name="stato">{% for s in stati %}<option{% if s == d.stato %} selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        <button type="submit">Salva lo stato</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p>Il documento non ha ancora le verifiche.</p>
+  {% endif %}
+  {% if utente.ruolo != "segreteria" %}
+  <form method="post" action="{{ qui }}/verifiche">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="tipo">Prepara le verifiche per il tipo di atto</label>
+    <select id="tipo" name="tipo">{% for t in tipi %}<option>{{ t }}</option>{% endfor %}</select>
+    <button type="submit">Prepara</button>
+  </form>
+  {% endif %}
+</article>
+{% endblock %}

@@ -22,6 +22,7 @@ tuo computer (`.env`, il database, l'ambiente virtuale) restano dove sono.
 | 0.3 | 17 | l'elenco delle persone del fascicolo, i segnaposto, il blocco dell'invio, il testo nascosto mostrato prima, la prima domanda al modello |
 | 0.4 | 18 | la scheda dell'atto in arrivo: righe con la pagina, date e importi controllati sull'atto, conferma dell'avvocato |
 | 0.5 | 19 | le scadenze: regole con le norme in `config/termini.json`, partenza dalla scheda confermata, calcolo passaggio per passaggio, conferma dell'avvocato |
+| 0.6 | 20 | le verifiche: domande per tipo di atto in `config/verifiche.json`, riempite con i fatti della scheda, le somme rifatte e le scadenze; lo stato lo decide l'avvocato |
 
 ## Che cosa fa
 

@@ -271,6 +271,24 @@ class Scheda(Base):
 # [/libro:scheda]
 
 
+class Verifica(Base):
+    """Le verifiche di un documento (lezione 20): le domande del suo tipo di
+    atto, riempite da Minuta con i fatti e i controlli, e lo stato di
+    ciascuna deciso dall'avvocato, in JSON."""
+
+    __tablename__ = "verifiche"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fascicolo_id: Mapped[int] = mapped_column(
+        ForeignKey("fascicoli.id"), index=True
+    )
+    documento_id: Mapped[int] = mapped_column(ForeignKey("documenti.id"))
+    tipo: Mapped[str] = mapped_column(String(80))
+    domande: Mapped[str] = mapped_column(Text)
+    preparata_da_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
+    preparata_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
+
+
 class Scadenza(Base):
     """Una scadenza calcolata da Minuta (lezione 19): il termine, la data di
     partenza presa dalla scheda confermata, i passaggi del calcolo con le
