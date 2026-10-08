@@ -14,7 +14,7 @@ $d = "interessi moratori"
 .\.venv\Scripts\python.exe -m app.manage cerca "$d" --autore dini --al 2023-12-31 --da irene
 ### [/esito:l22-filtri]
 ### [esito:l22-precedente]
-$d = "Come abbiamo chiesto la provvisoria esecuzione?"
+$d = "Nei ricorsi dell'archivio, come si chiede la provvisoria esecuzione?"
 .\.venv\Scripts\python.exe -m app.manage domanda 2026-071 "$d" --archivio --da irene
 ### [/esito:l22-precedente]
 ### [esito:l22-fornitura]
