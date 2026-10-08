@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Domande su {{ fascicolo.codice }}{% endblock %}
+{% block content %}
+<article class="scheda">
+  <h1>Domande sul fascicolo</h1>
+  <p><a href="/fascicoli/{{ fascicolo.id }}">{{ fascicolo.codice }} · {{ fascicolo.cliente }}</a></p>
+  {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
+  {% if blocco %}
+  <p class="errore">La domanda non è partita: nei passi scelti resta qualcosa da nascondere.</p>
+  <ul>
+    <li>Nomi noti a Minuta: {{ noti|length }} ({{ noti|join(", ") }}).</li>
+    {% if blocco.fughe %}<li class="errore">Fughe: {{ blocco.fughe|join(", ") }}.</li>{% endif %}
+    {% if blocco.nomi %}<li class="errore">Nomi che non sono nell'elenco: {{ blocco.nomi|join(", ") }}.</li>{% endif %}
+  </ul>
+  {% endif %}
+  {% if utente.ruolo != "segreteria" %}
+  <form method="post" action="/fascicoli/{{ fascicolo.id }}/domande">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="domanda">La domanda</label>
+    <textarea id="domanda" name="domanda" rows="3" required maxlength="2000"></textarea>
+    <p class="nota">Partono solo i passi dei documenti che contengono le parole della domanda, pseudonimizzati. Se nessuno le contiene, non parte niente.</p>
+    <button type="submit">Chiedi</button>
+  </form>
+  {% endif %}
+</article>
+{% for r, passi, frasi in risposte %}
+<section class="scheda">
+  <h2>{{ r.domanda }}</h2>
+  <p class="nota">Passi mandati: {% for d, p in passi %}{{ d }}, pagina {{ p }}{% if not loop.last %}; {% endif %}{% else %}nessuno{% endfor %}.</p>
+  {% if r.manca %}<p><strong>Nel fascicolo non c'è:</strong> {{ r.manca }}</p>{% endif %}
+  <ol>
+    {% for f in frasi %}
+    <li>{{ f.testo }}<br><span class="nota">{{ f.documento }}, pagina {{ f.pagina }}: «{{ f.citazione }}»</span>
+      {% for problema in f.problemi %}<br><span class="errore">{{ problema }}</span>{% endfor %}</li>
+    {% endfor %}
+  </ol>
+</section>
+{% endfor %}
+{% endblock %}

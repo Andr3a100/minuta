@@ -138,6 +138,8 @@ class ModelloFinto:
     def scrivi(self, sistema: str, richiesta: str) -> Risposta:
         if "SCHEDA:" in richiesta:  # la scheda dell'atto in arrivo (L18)
             return self._scheda(sistema, richiesta)
+        if "DOMANDA SUL FASCICOLO:" in richiesta:  # le domande (L21)
+            return self._sul_fascicolo(sistema, richiesta)
         if "STILE:" not in richiesta:  # una domanda, non una bozza (L17)
             return self._generico(sistema, richiesta)
         dati = dict(re.findall(r"^([A-Z_ ]+): (.+)$", richiesta.split("ESEMPIO E1", 1)[0], re.M))
@@ -186,6 +188,27 @@ class ModelloFinto:
         testo = "\n\n".join(p)
         return Risposta(testo, self.nome, len(sistema + richiesta) // 4, len(testo) // 4)
 
+
+    def _sul_fascicolo(self, sistema: str, richiesta: str) -> Risposta:
+        """Non legge i passi: per ciascuno cita la prima riga, parola per
+        parola; poi cita di nuovo la prima, con le ultime due parole
+        scambiate, come può sbagliare un modello vero (L21)."""
+        passi = re.findall(
+            r"^DOCUMENTO: (.+?) · PAGINA (\d+)\n(.+)$", richiesta, re.M
+        )
+        frasi = [
+            {"testo": "Il passo comincia così.", "documento": documento,
+             "pagina": int(pagina), "citazione": riga.strip()}
+            for documento, pagina, riga in passi
+        ]
+        if frasi and len(frasi[0]["citazione"].split()) > 1:
+            parole = frasi[0]["citazione"].split()
+            parole[-2], parole[-1] = parole[-1], parole[-2]
+            frasi.append({**frasi[0], "testo": "E poi così.",
+                          "citazione": " ".join(parole)})
+        testo = json.dumps({"frasi": frasi}, ensure_ascii=False)
+        return Risposta(testo, self.nome, len(sistema + richiesta) // 4,
+                        len(testo) // 4)
 
     def _scheda(self, sistema: str, richiesta: str) -> Risposta:
         """Non legge l'atto: sbaglia apposta, sempre allo stesso modo, come

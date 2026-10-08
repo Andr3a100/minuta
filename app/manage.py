@@ -40,6 +40,7 @@ from sqlalchemy.orm import Session
 
 from minuta import certificatori
 from minuta import documenti as motore
+from minuta.domande import RispostaIlleggibile
 from minuta.invio import SISTEMA
 from minuta.scadenze import (
     TermineSconosciuto,
@@ -58,6 +59,7 @@ from .db import (
     Evento,
     Fascicolo,
     PersonaFascicolo,
+    RispostaFascicolo,
     Scadenza,
     Scheda,
     SessioneAccesso,
@@ -87,6 +89,7 @@ from .invio import (
 )
 from .migrations import MigrationError, migra, ultima, versione_attuale
 from .registro import RichiestaNonAmmessa
+from .risposte import domanda_sul_fascicolo
 from .scadenze import (
     ScadenzaRifiutata,
     calcola_scadenza,
@@ -391,6 +394,13 @@ def costruisci_parser() -> argparse.ArgumentParser:
         "stato", choices=["aperta", "verificata", "non-pertinente"]
     )
     stato.add_argument("--da", required=True, help="l'avvocato")
+    sul = sub.add_parser("domanda", help="una domanda su tutto il fascicolo")
+    sul.add_argument("codice")
+    sul.add_argument("domanda")
+    sul.add_argument("--da", required=True, help="chi fa la domanda")
+    sul.add_argument(
+        "--verbale", help="salva lo scambio in un file JSON, per il libro"
+    )
     return parser
 
 
@@ -649,6 +659,8 @@ def main(argv: list[str] | None = None) -> int:
                 verifiche_del_documento(db, args)
             elif args.comando == "stato-verifica":
                 stato_di_una_verifica(db, args)
+            elif args.comando == "domanda":
+                return domanda_al_fascicolo(db, settings, args)
         return 0
     except (
         CommandError,
@@ -1011,6 +1023,86 @@ def stato_di_una_verifica(db: Session, args) -> None:
     print(f"Domanda {args.numero}, {stato}: {domanda['domanda']}")
 
 
+def righe_della_risposta(frasi) -> list[str]:
+    """Ogni frase con la sua citazione, e sotto i problemi che Minuta vi ha
+    trovato."""
+    stampa = []
+    for n, frase in enumerate(frasi, start=1):
+        stampa += a_capo(frase.testo, f"{n:2}. ", "    ")
+        dove = f"{frase.documento}, pagina {frase.pagina}"
+        stampa += a_capo(f"{dove}: «{frase.citazione}»", "    ", "      ")
+        for problema in frase.problemi:
+            stampa += a_capo(problema, "    ! ", "      ")
+    return stampa
+
+
+def domanda_al_fascicolo(db: Session, settings, args) -> int:
+    fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    try:
+        esito = domanda_sul_fascicolo(
+            db, utente, fascicolo, args.domanda, modello_da(settings)
+        )
+    except InvioBloccato as blocco:
+        print(f"Fascicolo {fascicolo.codice} · {utente.nome}")
+        stampa_controlli(blocco.preparato, noti_del_fascicolo(db, fascicolo))
+        print(
+            "Invio BLOCCATO: niente parte finché resta qualcosa da nascondere."
+        )
+        return 1
+    except RispostaIlleggibile as exc:
+        print(f"La risposta non è nella forma chiesta: {exc}.")
+        print("La richiesta è partita, e la sua voce resta nel registro.")
+        return 1
+    print(f"Fascicolo {fascicolo.codice} · {utente.nome}")
+    if not esito.passi:
+        print(
+            "\n".join(a_capo(f"Risposta di Minuta: {esito.manca}.", "", "  "))
+        )
+        print("Nessuna richiesta è partita.")
+        return 0
+    scelti = "; ".join(
+        f"{p.documento}, pagina {p.pagina}" for p in esito.passi
+    )
+    print("\n".join(a_capo(f"Passi mandati: {scelti}", "", "  ")))
+    print(f"Controllo: {esito.voce.controllo}")
+    print("--- la risposta, con i nomi rimessi nello studio ---")
+    stampa = righe_della_risposta(esito.frasi)
+    if esito.manca:
+        stampa = a_capo(f"Nel fascicolo non c'è: {esito.manca}", "", "  ")
+    print("\n".join(stampa))
+    segnalate = [str(n) for n, f in enumerate(esito.frasi, 1) if f.problemi]
+    print("Citazioni segnalate: " + (", ".join(segnalate) or "nessuna"))
+    print(riga_del_registro(esito.voce))
+    if args.verbale:
+        voce = esito.voce
+        Path(args.verbale).write_text(
+            json.dumps(
+                {
+                    "quando": voce.quando.isoformat(),
+                    "modello": voce.modello,
+                    "domanda": args.domanda,
+                    "sistema": SISTEMA,
+                    "inviato": esito.preparato.testo,
+                    "arrivata": esito.arrivata,
+                    "passi": [(p.documento, p.pagina) for p in esito.passi],
+                    "frasi": [asdict(f) for f in esito.frasi],
+                    "manca": esito.manca,
+                    "stampa": "\n".join(stampa),
+                    "token_in": voce.token_in,
+                    "token_out": voce.token_out,
+                    "costo_usd": voce.costo_usd,
+                    "controllo": voce.controllo,
+                    "categorie": voce.categorie,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            "utf-8",
+        )
+    return 0
+
+
 # [libro:diagnosi]
 def diagnosi(settings, engine) -> int:
     """Le informazioni utili per chiedere aiuto, senza segreti."""
@@ -1049,6 +1141,7 @@ def diagnosi(settings, engine) -> int:
                 ("Schede", Scheda),
                 ("Scadenze", Scadenza),
                 ("Verifiche", Verifica),
+                ("Risposte", RispostaFascicolo),
                 ("Eventi", Evento),
                 ("Voci uso AI", UsoAI),
             ):

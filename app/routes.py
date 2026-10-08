@@ -23,6 +23,7 @@ from fastapi.responses import (
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
+from minuta.domande import RispostaIlleggibile
 from minuta.scadenze import TermineSconosciuto, carica_regole, in_lettere
 from minuta.scheda import SchedaIlleggibile
 from minuta.verifiche import STATI, TipoSconosciuto, carica_domande
@@ -34,6 +35,7 @@ from .db import (
     Evento,
     Fascicolo,
     PersonaFascicolo,
+    RispostaFascicolo,
     Scadenza,
     SessioneAccesso,
     TentativoFallito,
@@ -58,6 +60,7 @@ from .invio import (
 )
 from .migrations import ultima, versione_attuale
 from .registro import RichiestaNonAmmessa
+from .risposte import domanda_sul_fascicolo
 from .rules import (
     APRONO,
     ValidationErrors,
@@ -899,6 +902,81 @@ def stato_verifica(
     return RedirectResponse(
         f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/verifiche", 303
     )
+
+
+# ----------------------------------------------------------------------
+# Le domande sul fascicolo (lezione 21)
+# ----------------------------------------------------------------------
+
+
+def pagina_domande(
+    request, db, utente, fascicolo, errore=None, blocco=None, stato=200
+):
+    risposte = list(
+        db.scalars(
+            select(RispostaFascicolo)
+            .where(RispostaFascicolo.fascicolo_id == fascicolo.id)
+            .order_by(RispostaFascicolo.id.desc())
+            .limit(10)
+        )
+    )
+    contesto = {
+        "utente": utente,
+        "fascicolo": fascicolo,
+        "risposte": [
+            (r, json.loads(r.passi), json.loads(r.frasi)) for r in risposte
+        ],
+        "errore": errore,
+        "blocco": blocco,
+        "noti": noti_del_fascicolo(db, fascicolo) if blocco else {},
+    }
+    return pagina(request, "domande.html", contesto, stato)
+
+
+@router.get("/fascicoli/{fascicolo_id}/domande", response_class=HTMLResponse)
+def mostra_domande(request: Request, fascicolo_id: int):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        fascicolo = fascicolo_visibile(db, fascicolo_id, utente)
+        return pagina_domande(request, db, utente, fascicolo)
+
+
+@router.post("/fascicoli/{fascicolo_id}/domande")
+def nuova_domanda(
+    request: Request,
+    fascicolo_id: int,
+    domanda: str = Form(""),
+    csrf_token: str = Form(""),
+):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        richiedi_ruolo(utente, "avvocato", "praticante")
+        controlla_modulo(request, csrf_token)
+        fascicolo = fascicolo_visibile(db, fascicolo_id, utente)
+        domanda = domanda.strip()[:2000]
+        if not domanda:
+            raise HTTPException(422, "Scrivi la domanda.")
+        try:
+            domanda_sul_fascicolo(
+                db, utente, fascicolo, domanda, request.app.state.modello
+            )
+        except InvioBloccato as blocco:
+            return pagina_domande(
+                request,
+                db,
+                utente,
+                fascicolo,
+                blocco=blocco.preparato,
+                stato=422,
+            )
+        except RispostaIlleggibile as exc:
+            errore = (
+                f"La risposta del modello non è nella forma chiesta: {exc}."
+            )
+            return pagina_domande(
+                request, db, utente, fascicolo, errore, stato=502
+            )
+    return RedirectResponse(f"/fascicoli/{fascicolo.id}/domande", 303)
 
 
 # ----------------------------------------------------------------------

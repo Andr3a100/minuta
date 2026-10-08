@@ -271,6 +271,27 @@ class Scheda(Base):
 # [/libro:scheda]
 
 
+class RispostaFascicolo(Base):
+    """Una domanda sul fascicolo e la sua risposta (lezione 21): i passi
+    mandati, le frasi con le citazioni e i loro problemi, oppure che cosa
+    manca, in JSON. Senza passi non parte nessuna richiesta, e la voce del
+    registro manca."""
+
+    __tablename__ = "risposte"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fascicolo_id: Mapped[int] = mapped_column(
+        ForeignKey("fascicoli.id"), index=True
+    )
+    domanda: Mapped[str] = mapped_column(Text)
+    passi: Mapped[str] = mapped_column(Text)
+    frasi: Mapped[str] = mapped_column(Text)
+    manca: Mapped[str | None] = mapped_column(Text)
+    uso_ai_id: Mapped[int | None] = mapped_column(ForeignKey("uso_ai.id"))
+    chiesta_da_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
+    chiesta_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
+
+
 class Verifica(Base):
     """Le verifiche di un documento (lezione 20): le domande del suo tipo di
     atto, riempite da Minuta con i fatti e i controlli, e lo stato di

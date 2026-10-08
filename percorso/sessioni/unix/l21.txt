@@ -1,0 +1,18 @@
+: '### [esito:l21-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v0.7
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l21-versione]'
+: '### [esito:l21-diritti]'
+python -m app.manage domanda 2026-073 "Che cosa ha diritto di fare l'indagato dopo l'avviso?" --da valli
+: '### [/esito:l21-diritti]'
+: '### [esito:l21-consulente]'
+python -m app.manage domanda 2026-073 "Che cosa dice il consulente tecnico?" --da valli
+: '### [/esito:l21-consulente]'
+: '### [esito:l21-fornitura]'
+python -m app.manage domanda 2026-071 "La resistente ha contestato la fornitura?" --da irene
+: '### [/esito:l21-fornitura]'
+: '### [esito:l21-diagnosi]'
+python -m app.manage diagnosi
+: '### [/esito:l21-diagnosi]'
