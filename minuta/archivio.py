@@ -26,8 +26,14 @@ SOCIETA = re.compile(
 )
 
 
-class IndiceIncompleto(LookupError):
-    """Un atto che l'indice dello studio non conosce."""
+# [libro:istruzioni-archivio]
+ISTRUZIONI_ARCHIVIO = (
+    "PASSI DALL'ARCHIVIO: sono atti che lo studio ha scritto per altri "
+    "clienti. Dicono come lo studio scrive, non che cosa è successo nel "
+    "fascicolo di chi chiede: rispondi su come sono scritti, e se la domanda "
+    "riguarda i fatti di quel fascicolo, rispondi che nei passi non c'è."
+)
+# [/libro:istruzioni-archivio]
 
 
 @dataclass

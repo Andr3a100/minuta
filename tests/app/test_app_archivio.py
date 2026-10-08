@@ -11,6 +11,7 @@ import pytest
 from aiuti import con_fascicoli, invia
 from sqlalchemy import func, inspect, select
 
+from app import documenti as app_documenti
 from app import manage
 from app.archivio import ArchivioRifiutato, carica_atto, cerca_nell_archivio
 from app.db import (
@@ -29,7 +30,7 @@ from app.risposte import (
     domanda_all_archivio,
     noti_con_l_archivio,
 )
-from minuta.archivio import leggi_indice
+from minuta.archivio import ISTRUZIONI_ARCHIVIO, leggi_indice
 from minuta.invio import prepara
 from minuta.leaks import fughe
 from minuta.model import ModelloFinto, Risposta
@@ -115,6 +116,29 @@ def test_carica_un_avvocato_e_solo_con_le_persone(app, impostazioni, civile):
             carica_atto(db, impostazioni, utente(db, "sarti"), pdf, ["X"])
 
 
+def test_al_fascicolo_non_si_parla_di_archivio(
+    app, browser, impostazioni, civile
+):
+    ricorso = (
+        ARCHIVIO.parent / "documenti-di-prova" / "2026-071" / "ricorso.pdf"
+    )
+    with app.state.session_factory() as db:
+        app_documenti.carica(
+            db,
+            impostazioni,
+            utente(db, "irene"),
+            db.get(type(civile), civile.id),
+            ricorso.name,
+            ricorso.read_bytes(),
+        )
+    app.state.modello = registratore = ModelloCheRicorda()
+    domanda = {"domanda": "Chi è la ricorrente del ricorso?"}
+    invia(browser("irene"), f"/fascicoli/{civile.id}/domande", domanda)
+    (inviato,) = registratore.ricevuti
+    assert "DOCUMENTO: ricorso.pdf · PAGINA 1" in inviato
+    assert ISTRUZIONI_ARCHIVIO not in inviato
+
+
 def test_cercare_non_manda_niente(app, civile):
     app.state.modello = registratore = ModelloCheRicorda()
     with app.state.session_factory() as db:
@@ -138,6 +162,7 @@ def test_dall_archivio_i_nomi_partono_e_restano_segnaposto(
     indirizzo = f"/fascicoli/{civile.id}/domande"
     invia(browser("irene"), indirizzo, {**domanda, "fonte": "archivio"})
     (inviato,) = registratore.ricevuti
+    assert ISTRUZIONI_ARCHIVIO in inviato  # sono precedenti, non fatti
     assert "DOCUMENTO: archivio-01 · PAGINA 1" in inviato
     assert "ricorso.pdf" not in inviato  # il fascicolo non si mescola
     assert fughe(inviato, RISERVATI["01-2019-sarti-imballaggi-bassi"]) == []

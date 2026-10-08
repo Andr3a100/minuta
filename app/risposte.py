@@ -27,7 +27,11 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from minuta.archivio import etichetta, passi_dell_archivio
+from minuta.archivio import (
+    ISTRUZIONI_ARCHIVIO,
+    etichetta,
+    passi_dell_archivio,
+)
 from minuta.domande import (
     ISTRUZIONI,
     Frase,
@@ -257,7 +261,8 @@ def domanda_all_archivio(
     atti = [a for a in atti_dell_archivio(db) if etichetta(a.id) in mandati]
     noti = noti_con_l_archivio(db, fascicolo, atti)
     testo = (
-        f"{ISTRUZIONI}\n\nCHI CHIEDE: {chi_chiede(utente, fascicolo)}\n"
+        f"{ISTRUZIONI}\n\n{ISTRUZIONI_ARCHIVIO}\n\n"
+        f"CHI CHIEDE: {chi_chiede(utente, fascicolo)}\n"
         f"DOMANDA: {domanda}\n\n{a_passi(passi)}"
     )
     prima = tabella_del_fascicolo(db, fascicolo)
