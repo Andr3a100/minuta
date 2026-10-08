@@ -22,7 +22,7 @@ def test_legature_e_a_capo_normalizzati():
     assert archive.normalizza("Oﬃcine Mecca-\nniche") == "Officine Meccaniche"
 
 
-@pytest.mark.parametrize("file", ["01-2019-sarti-imballaggi-bassi", "03-2021-dini-officine-righi"])
+@pytest.mark.parametrize("file", ["01-2019-sarti-imballaggi-bassi", "03-2021-dini-officine-lugli"])
 def test_sezioni_nei_due_stili(atti, file):
     ruoli = [ruolo for ruolo, _ in atti[file].sezioni]
     for ruolo in ("fatti", "diritto", "conclusioni", "documenti", "firma"):

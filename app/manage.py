@@ -40,6 +40,7 @@ from sqlalchemy.orm import Session
 
 from minuta import certificatori
 from minuta import documenti as motore
+from minuta.archivio import leggi_indice
 from minuta.domande import RispostaIlleggibile
 from minuta.invio import SISTEMA
 from minuta.scadenze import (
@@ -51,10 +52,18 @@ from minuta.scadenze import (
 from minuta.scheda import Riga, SchedaIlleggibile
 from minuta.verifiche import TipoSconosciuto, carica_domande
 
+from .archivio import (
+    ArchivioRifiutato,
+    atti_dell_archivio,
+    carica_atto,
+    cerca_nell_archivio,
+    puo_leggere,
+)
 from .config import ConfigError, leggi_file_env, load_settings
 from .db import (
     RUOLI,
     Assegnazione,
+    AttoArchivio,
     Documento,
     Evento,
     Fascicolo,
@@ -89,7 +98,7 @@ from .invio import (
 )
 from .migrations import MigrationError, migra, ultima, versione_attuale
 from .registro import RichiestaNonAmmessa
-from .risposte import domanda_sul_fascicolo
+from .risposte import domanda_all_archivio, domanda_sul_fascicolo
 from .scadenze import (
     ScadenzaRifiutata,
     calcola_scadenza,
@@ -399,9 +408,37 @@ def costruisci_parser() -> argparse.ArgumentParser:
     sul.add_argument("domanda")
     sul.add_argument("--da", required=True, help="chi fa la domanda")
     sul.add_argument(
+        "--archivio",
+        action="store_true",
+        help="chiede agli atti dell'archivio, non ai documenti del fascicolo",
+    )
+    filtri(sul)
+    sul.add_argument(
         "--verbale", help="salva lo scambio in un file JSON, per il libro"
     )
+    carica_a = sub.add_parser(
+        "carica-archivio", help="carica atti firmati nell'archivio"
+    )
+    carica_a.add_argument("percorsi", nargs="+", help="file o cartelle")
+    carica_a.add_argument(
+        "--indice", help="il CSV con le persone di ogni atto (indice.csv)"
+    )
+    carica_a.add_argument("--da", required=True, help="l'avvocato")
+    elenco = sub.add_parser("archivio", help="gli atti dell'archivio")
+    elenco.add_argument("--da", required=True, help="chi lo consulta")
+    cerca = sub.add_parser("cerca", help="cerca negli atti dell'archivio")
+    cerca.add_argument("parole")
+    filtri(cerca)
+    cerca.add_argument("--da", required=True, help="chi cerca")
     return parser
+
+
+def filtri(comando: argparse.ArgumentParser) -> None:
+    """Tipo, autore e periodo: gli stessi per cercare e per chiedere."""
+    comando.add_argument("--tipo", help="il tipo di atto (basta l'inizio)")
+    comando.add_argument("--autore", help="il nome utente dell'avvocato")
+    comando.add_argument("--dal", type=date.fromisoformat, help="AAAA-MM-GG")
+    comando.add_argument("--al", type=date.fromisoformat, help="AAAA-MM-GG")
 
 
 def documento_del_fascicolo(db: Session, codice: str, nome: str):
@@ -661,8 +698,15 @@ def main(argv: list[str] | None = None) -> int:
                 stato_di_una_verifica(db, args)
             elif args.comando == "domanda":
                 return domanda_al_fascicolo(db, settings, args)
+            elif args.comando == "carica-archivio":
+                return carica_l_archivio(db, settings, args)
+            elif args.comando == "archivio":
+                stampa_archivio(db, args)
+            elif args.comando == "cerca":
+                cerca_dalla_riga(db, args)
         return 0
     except (
+        ArchivioRifiutato,
         CommandError,
         MigrationError,
         motore.DocumentoNonLeggibile,
@@ -1038,10 +1082,26 @@ def righe_della_risposta(frasi) -> list[str]:
 
 def domanda_al_fascicolo(db: Session, settings, args) -> int:
     fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    filtrata = args.tipo or args.autore or args.dal or args.al
+    if filtrata and not args.archivio:
+        raise CommandError("Tipo, autore e periodo valgono con --archivio.")
     try:
-        esito = domanda_sul_fascicolo(
-            db, utente, fascicolo, args.domanda, modello_da(settings)
-        )
+        if args.archivio:
+            esito = domanda_all_archivio(
+                db,
+                utente,
+                fascicolo,
+                args.domanda,
+                modello_da(settings),
+                args.tipo,
+                args.autore,
+                args.dal,
+                args.al,
+            )
+        else:
+            esito = domanda_sul_fascicolo(
+                db, utente, fascicolo, args.domanda, modello_da(settings)
+            )
     except InvioBloccato as blocco:
         print(f"Fascicolo {fascicolo.codice} · {utente.nome}")
         stampa_controlli(blocco.preparato, noti_del_fascicolo(db, fascicolo))
@@ -1063,12 +1123,21 @@ def domanda_al_fascicolo(db: Session, settings, args) -> int:
     scelti = "; ".join(
         f"{p.documento}, pagina {p.pagina}" for p in esito.passi
     )
-    print("\n".join(a_capo(f"Passi mandati: {scelti}", "", "  ")))
-    print(f"Controllo: {esito.voce.controllo}")
-    print("--- la risposta, con i nomi rimessi nello studio ---")
+    dall_archivio = esito.fonte == "archivio"
+    mandati = (
+        "Passi mandati, dall'archivio" if dall_archivio else "Passi mandati"
+    )
+    print("\n".join(a_capo(f"{mandati}: {scelti}", "", "  ")))
+    print("\n".join(a_capo(f"Controllo: {esito.voce.controllo}", "", "  ")))
+    if dall_archivio:
+        print(
+            "--- la risposta: atti di altri clienti, i nomi restano nascosti ---"
+        )
+    else:
+        print("--- la risposta, con i nomi rimessi nello studio ---")
     stampa = righe_della_risposta(esito.frasi)
     if esito.manca:
-        stampa = a_capo(f"Nel fascicolo non c'è: {esito.manca}", "", "  ")
+        stampa = a_capo(f"Nei passi mandati non c'è: {esito.manca}", "", "  ")
     print("\n".join(stampa))
     segnalate = [str(n) for n, f in enumerate(esito.frasi, 1) if f.problemi]
     print("Citazioni segnalate: " + (", ".join(segnalate) or "nessuna"))
@@ -1084,6 +1153,7 @@ def domanda_al_fascicolo(db: Session, settings, args) -> int:
                     "sistema": SISTEMA,
                     "inviato": esito.preparato.testo,
                     "arrivata": esito.arrivata,
+                    "fonte": esito.fonte,
                     "passi": [(p.documento, p.pagina) for p in esito.passi],
                     "frasi": [asdict(f) for f in esito.frasi],
                     "manca": esito.manca,
@@ -1101,6 +1171,94 @@ def domanda_al_fascicolo(db: Session, settings, args) -> int:
             "utf-8",
         )
     return 0
+
+
+def utente_attivo(db: Session, nome_utente: str) -> Utente:
+    utente = db.scalar(select(Utente).where(Utente.nome_utente == nome_utente))
+    if utente is None or not utente.attivo:
+        raise CommandError(f"{nome_utente}: utente inesistente o non attivo.")
+    return utente
+
+
+def indice_per(percorsi: list[str], indice: str | None) -> Path:
+    """L'indice dello studio: quello indicato, oppure indice.csv nella
+    cartella degli atti o in quella che la contiene."""
+    if indice:
+        return Path(indice)
+    for percorso in map(Path, percorsi):
+        cartella = percorso if percorso.is_dir() else percorso.parent
+        for candidato in (cartella, cartella.parent):
+            if (candidato / "indice.csv").is_file():
+                return candidato / "indice.csv"
+    raise CommandError("Manca l'indice dello studio: indicalo con --indice.")
+
+
+def riga_dell_atto(numero, data, autore, tipo) -> str:
+    giorno_atto = data.isoformat() if data else "senza data"
+    return f"{numero:02d}  {giorno_atto}  {autore or '?':<6} {tipo or '?'}"
+
+
+def carica_l_archivio(db: Session, settings, args) -> int:
+    utente = utente_attivo(db, args.da)
+    if utente.ruolo != "avvocato":
+        raise ArchivioRifiutato("L'archivio lo carica un avvocato.")
+    indice = indice_per(args.percorsi, args.indice)
+    persone = leggi_indice(indice)
+    da = indice.as_posix()  # lo stesso percorso su ogni sistema
+    print(f"Archivio, caricato da {utente.nome}; le persone da {da}:")
+    autori = {u.id: u.nome_utente for u in db.scalars(select(Utente))}
+    rifiutati = 0
+    for percorso in file_da(args.percorsi):
+        if percorso.suffix.lower() != ".pdf":
+            continue
+        elenco = persone.get(percorso.name) or persone.get(percorso.stem)
+        try:
+            atto = carica_atto(db, settings, utente, percorso, elenco)
+        except (ArchivioRifiutato, motore.DocumentoNonLeggibile) as exc:
+            db.rollback()
+            print(f"{percorso.name}: {exc}")
+            rifiutati += 1
+            continue
+        print(
+            riga_dell_atto(
+                atto.id, atto.data, autori.get(atto.autore_id), atto.tipo
+            )
+        )
+    print(f"Atti nell'archivio: {len(atti_dell_archivio(db))}.")
+    return 1 if rifiutati else 0
+
+
+def stampa_archivio(db: Session, args) -> None:
+    if not puo_leggere(utente_attivo(db, args.da)):
+        raise ArchivioRifiutato("La segreteria non consulta l'archivio.")
+    autori = {u.id: u.nome_utente for u in db.scalars(select(Utente))}
+    atti = atti_dell_archivio(db)
+    print(f"Atti nell'archivio: {len(atti)}.")
+    for a in atti:
+        print(riga_dell_atto(a.id, a.data, autori.get(a.autore_id), a.tipo))
+
+
+def cerca_dalla_riga(db: Session, args) -> None:
+    trovati = cerca_nell_archivio(
+        db,
+        utente_attivo(db, args.da),
+        args.parole,
+        args.tipo,
+        args.autore,
+        args.dal,
+        args.al,
+    )
+    totale = db.scalar(select(func.count()).select_from(AttoArchivio))
+    print(f"Atti con le parole cercate: {len(trovati)} su {totale}.")
+    for t in trovati:
+        a = t.atto
+        print(riga_dell_atto(a.numero, a.data, a.autore, a.tipo))
+        dove = " · ".join(
+            f"pagina {n}: {', '.join(comuni)}"
+            for n, comuni in t.pagine.items()
+        )
+        print("\n".join(a_capo(dove, "    ", "    ")))
+    print("La ricerca è avvenuta nello studio: non è partito niente.")
 
 
 # [libro:diagnosi]
@@ -1142,6 +1300,7 @@ def diagnosi(settings, engine) -> int:
                 ("Scadenze", Scadenza),
                 ("Verifiche", Verifica),
                 ("Risposte", RispostaFascicolo),
+                ("Archivio", AttoArchivio),
                 ("Eventi", Evento),
                 ("Voci uso AI", UsoAI),
             ):

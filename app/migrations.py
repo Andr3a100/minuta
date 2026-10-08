@@ -368,6 +368,35 @@ def _passo_7(conn: Connection) -> None:
     meta.tables["risposte"].create(conn)
 
 
+def _passo_8(conn: Connection) -> None:
+    """L'archivio dello studio, e la fonte delle risposte (lezione 22)."""
+    meta = MetaData()
+    Table("utenti", meta, Column("id", Integer, primary_key=True))
+    Table(
+        "archivio",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column("nome", String(200), nullable=False),
+        Column("impronta", String(64), nullable=False, unique=True),
+        Column("tipo", String(120), nullable=True),
+        Column("autore_id", ForeignKey("utenti.id"), nullable=True),
+        Column("data", Date, nullable=True),
+        Column("giudice", String(120), nullable=True),
+        Column("valore", Float, nullable=True),
+        Column("pagine", Text, nullable=False),
+        Column("persone", Text, nullable=False),
+        Column("nascosti", Integer, nullable=False),
+        Column("caricato_da_id", ForeignKey("utenti.id"), nullable=False),
+        Column("caricato_il", DateTime(timezone=True), nullable=False),
+    )
+    meta.tables["archivio"].create(conn)
+    # Le risposte di prima venivano tutte dai documenti del fascicolo.
+    conn.exec_driver_sql(
+        "ALTER TABLE risposte ADD COLUMN fonte VARCHAR(20) NOT NULL "
+        "DEFAULT 'fascicolo'"
+    )
+
+
 # Ogni nuova migrazione si aggiunge qui con il numero successivo.
 PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     1: ("Schema iniziale", _passo_1),
@@ -377,6 +406,7 @@ PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     5: ("Le scadenze", _passo_5),
     6: ("Le verifiche", _passo_6),
     7: ("Le domande sul fascicolo", _passo_7),
+    8: ("L'archivio dello studio", _passo_8),
 }
 
 

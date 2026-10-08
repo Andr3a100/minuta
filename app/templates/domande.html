@@ -18,7 +18,12 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <label for="domanda">La domanda</label>
     <textarea id="domanda" name="domanda" rows="3" required maxlength="2000"></textarea>
-    <p class="nota">Partono solo i passi dei documenti che contengono le parole della domanda, pseudonimizzati. Se nessuno le contiene, non parte niente.</p>
+    <label for="fonte">Dove cercare</label>
+    <select id="fonte" name="fonte">
+      <option value="fascicolo">nei documenti del fascicolo</option>
+      <option value="archivio">negli atti dell'archivio, di altri clienti</option>
+    </select>
+    <p class="nota">Partono solo i passi che contengono le parole della domanda, pseudonimizzati; se nessuno le contiene, non parte niente. Gli atti dell'archivio non si mescolano mai ai documenti del fascicolo, e i nomi dei loro clienti restano nascosti anche nella risposta.</p>
     <button type="submit">Chiedi</button>
   </form>
   {% endif %}
@@ -26,8 +31,9 @@
 {% for r, passi, frasi in risposte %}
 <section class="scheda">
   <h2>{{ r.domanda }}</h2>
-  <p class="nota">Passi mandati: {% for d, p in passi %}{{ d }}, pagina {{ p }}{% if not loop.last %}; {% endif %}{% else %}nessuno{% endfor %}.</p>
-  {% if r.manca %}<p><strong>Nel fascicolo non c'è:</strong> {{ r.manca }}</p>{% endif %}
+  <p class="nota">Passi mandati{% if r.fonte == "archivio" %}, dall'archivio: atti di altri clienti, i loro nomi restano nascosti{% endif %}: {% for d, p in passi %}{{ d }}, pagina {{ p }}{% if not loop.last %}; {% endif %}{% else %}nessuno{% endfor %}.</p>
+  {% if r.manca and passi %}<p><strong>Nei passi mandati non c'è:</strong> {{ r.manca }}</p>
+  {% elif r.manca %}<p><strong>Risposta di Minuta:</strong> {{ r.manca }}.</p>{% endif %}
   <ol>
     {% for f in frasi %}
     <li>{{ f.testo }}<br><span class="nota">{{ f.documento }}, pagina {{ f.pagina }}: «{{ f.citazione }}»</span>

@@ -1,0 +1,29 @@
+### [esito:l22-versione]
+cd ~\minuta\laboratorio
+git switch --detach v0.8
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l22-versione]
+### [esito:l22-carica]
+.\.venv\Scripts\python.exe -m app.manage carica-archivio archivio/pdf --da sarti
+### [/esito:l22-carica]
+### [esito:l22-cerca]
+.\.venv\Scripts\python.exe -m app.manage cerca "provvisoria esecuzione" --da irene
+### [/esito:l22-cerca]
+### [esito:l22-filtri]
+$d = "interessi moratori"
+.\.venv\Scripts\python.exe -m app.manage cerca "$d" --autore dini --al 2023-12-31 --da irene
+### [/esito:l22-filtri]
+### [esito:l22-precedente]
+$d = "Come abbiamo chiesto la provvisoria esecuzione?"
+.\.venv\Scripts\python.exe -m app.manage domanda 2026-071 "$d" --archivio --da irene
+### [/esito:l22-precedente]
+### [esito:l22-fornitura]
+$d = "La resistente ha contestato la fornitura?"
+.\.venv\Scripts\python.exe -m app.manage domanda 2026-071 "$d" --archivio --da irene
+### [/esito:l22-fornitura]
+### [esito:l22-segreteria]
+.\.venv\Scripts\python.exe -m app.manage cerca "interessi" --da rosa
+### [/esito:l22-segreteria]
+### [esito:l22-diagnosi]
+.\.venv\Scripts\python.exe -m app.manage diagnosi
+### [/esito:l22-diagnosi]

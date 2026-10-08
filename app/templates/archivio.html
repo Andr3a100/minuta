@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Archivio{% endblock %}
+{% block content %}
+<article class="scheda">
+  <h1>L'archivio dello studio</h1>
+  <p class="nota">Gli atti firmati di ieri, da cui si impara come si scrive. La ricerca avviene nello studio: non manda niente a nessuno.</p>
+  <form method="get" action="/archivio">
+    <label for="parole">Parole</label>
+    <input id="parole" name="parole" value="{{ cercato.parole }}" maxlength="200">
+    <label for="tipo">Tipo di atto (basta l'inizio)</label>
+    <input id="tipo" name="tipo" value="{{ cercato.tipo }}" maxlength="120">
+    <label for="autore">Autore</label>
+    <select id="autore" name="autore">
+      <option value="">tutti</option>
+      {% for a in avvocati %}<option value="{{ a.nome_utente }}"{% if cercato.autore == a.nome_utente %} selected{% endif %}>{{ a.nome }}</option>{% endfor %}
+    </select>
+    <label for="dal">Dal</label>
+    <input id="dal" name="dal" type="date" value="{{ cercato.dal }}">
+    <label for="al">Al</label>
+    <input id="al" name="al" type="date" value="{{ cercato.al }}">
+    <button type="submit">Cerca</button>
+  </form>
+</article>
+{% if trovati is not none %}
+<section class="scheda">
+  <h2>Atti con le parole cercate: {{ trovati|length }}</h2>
+  <ol>
+    {% for t in trovati %}
+    <li>Atto {{ "%02d"|format(t.atto.numero) }} · {{ t.atto.data or "senza data" }} · {{ t.atto.autore or "?" }} · {{ t.atto.tipo or "?" }}<br>
+      <span class="nota">{% for n, comuni in t.pagine.items() %}pagina {{ n }}: {{ comuni|join(", ") }}{% if not loop.last %} · {% endif %}{% endfor %}</span></li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+<section class="scheda">
+  <h2>Atti nell'archivio: {{ atti|length }}</h2>
+  {% if atti %}
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">N.</th>
+        <th scope="col">Data</th>
+        <th scope="col">Autore</th>
+        <th scope="col">Tipo</th>
+        <th scope="col">Giudice</th>
+        <th scope="col">File</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in atti %}
+      <tr>
+        <td>{{ "%02d"|format(a.id) }}</td>
+        <td>{{ a.data or "" }}</td>
+        <td>{{ autori.get(a.autore_id, "") }}</td>
+        <td>{{ a.tipo or "" }}</td>
+        <td>{{ a.giudice or "" }}</td>
+        <td>{{ a.nome }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  <p class="nota">L'archivio lo carica un avvocato, dal terminale: python -m app.manage carica-archivio.</p>
+</section>
+{% endblock %}

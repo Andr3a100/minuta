@@ -11,6 +11,7 @@
     <a class="marchio" href="/fascicoli">Minuta</a>
     {% if utente %}
     <nav aria-label="Menu principale">
+      {% if utente.ruolo in ("avvocato", "praticante") %}<a href="/archivio">Archivio</a>{% endif %}
       <span class="chi">{{ utente.nome }} · {{ etichette_ruoli[utente.ruolo] }}</span>
       <form method="post" action="/uscita" class="in-linea">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

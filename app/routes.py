@@ -10,7 +10,7 @@ transazione.
 from __future__ import annotations
 
 import json
-from datetime import timedelta
+from datetime import date, timedelta
 from urllib.parse import quote
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
@@ -29,6 +29,7 @@ from minuta.scheda import SchedaIlleggibile
 from minuta.verifiche import STATI, TipoSconosciuto, carica_domande
 
 from . import __version__
+from .archivio import atti_dell_archivio, cerca_nell_archivio, puo_leggere
 from .db import (
     Assegnazione,
     Documento,
@@ -60,7 +61,7 @@ from .invio import (
 )
 from .migrations import ultima, versione_attuale
 from .registro import RichiestaNonAmmessa
-from .risposte import domanda_sul_fascicolo
+from .risposte import domanda_all_archivio, domanda_sul_fascicolo
 from .rules import (
     APRONO,
     ValidationErrors,
@@ -946,6 +947,7 @@ def nuova_domanda(
     request: Request,
     fascicolo_id: int,
     domanda: str = Form(""),
+    fonte: str = Form("fascicolo"),
     csrf_token: str = Form(""),
 ):
     with apri_db(request) as db:
@@ -956,10 +958,13 @@ def nuova_domanda(
         domanda = domanda.strip()[:2000]
         if not domanda:
             raise HTTPException(422, "Scrivi la domanda.")
+        chiedi_a = (
+            domanda_all_archivio
+            if fonte == "archivio"
+            else domanda_sul_fascicolo
+        )
         try:
-            domanda_sul_fascicolo(
-                db, utente, fascicolo, domanda, request.app.state.modello
-            )
+            chiedi_a(db, utente, fascicolo, domanda, request.app.state.modello)
         except InvioBloccato as blocco:
             return pagina_domande(
                 request,
@@ -977,6 +982,60 @@ def nuova_domanda(
                 request, db, utente, fascicolo, errore, stato=502
             )
     return RedirectResponse(f"/fascicoli/{fascicolo.id}/domande", 303)
+
+
+# ----------------------------------------------------------------------
+# L'archivio dello studio (lezione 22)
+# ----------------------------------------------------------------------
+
+
+def data_o_niente(testo: str) -> date | None:
+    try:
+        return date.fromisoformat(testo) if testo else None
+    except ValueError:
+        raise HTTPException(422, "Le date si scrivono AAAA-MM-GG.") from None
+
+
+@router.get("/archivio", response_class=HTMLResponse)
+def mostra_archivio(
+    request: Request,
+    parole: str = "",
+    tipo: str = "",
+    autore: str = "",
+    dal: str = "",
+    al: str = "",
+):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        if not puo_leggere(utente):  # per la segreteria non c'è
+            raise HTTPException(404, "Pagina non trovata.")
+        trovati = None
+        if parole.strip():
+            trovati = cerca_nell_archivio(
+                db,
+                utente,
+                parole.strip()[:200],
+                tipo.strip() or None,
+                autore.strip() or None,
+                data_o_niente(dal),
+                data_o_niente(al),
+            )
+        utenti = list(db.scalars(select(Utente).order_by(Utente.nome)))
+        contesto = {
+            "utente": utente,
+            "atti": atti_dell_archivio(db),
+            "autori": {u.id: u.nome for u in utenti},
+            "avvocati": [u for u in utenti if u.ruolo == "avvocato"],
+            "trovati": trovati,
+            "cercato": {
+                "parole": parole,
+                "tipo": tipo,
+                "autore": autore,
+                "dal": dal,
+                "al": al,
+            },
+        }
+        return pagina(request, "archivio.html", contesto)
 
 
 # ----------------------------------------------------------------------

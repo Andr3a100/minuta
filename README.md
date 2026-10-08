@@ -24,6 +24,7 @@ tuo computer (`.env`, il database, l'ambiente virtuale) restano dove sono.
 | 0.5 | 19 | le scadenze: regole con le norme in `config/termini.json`, partenza dalla scheda confermata, calcolo passaggio per passaggio, conferma dell'avvocato |
 | 0.6 | 20 | le verifiche: domande per tipo di atto in `config/verifiche.json`, riempite con i fatti della scheda, le somme rifatte e le scadenze; lo stato lo decide l'avvocato |
 | 0.7 | 21 | le domande sul fascicolo: partono solo i passi che ne contengono le parole, ogni citazione si controlla sulla pagina, «non c'è» quando non c'è |
+| 0.8 | 22 | l'archivio dello studio: gli atti firmati entrano con le persone da nascondere, si cercano per parole, tipo, autore e periodo; alle domande rispondono senza mescolarsi al fascicolo, e i nomi dei loro clienti restano segnaposto |
 
 ## Che cosa fa
 

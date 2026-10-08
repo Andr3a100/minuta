@@ -1,11 +1,11 @@
 id;file;data;autore;tipo;giudice;valore;ricorrente;controparte;note
 01;01-2019-sarti-imballaggi-bassi;2019-03-18;sarti;ricorso decreto ingiuntivo;Tribunale di Modena;18450.00;Imballaggi Bassi S.r.l.;Supermercati Lanza S.p.A.;fornitura tra imprese, D.Lgs. 231/2002
 02;02-2020-sarti-termoidraulica-galli;2020-06-09;sarti;ricorso decreto ingiuntivo;Giudice di Pace di Modena;2380.00;Termoidraulica Galli S.n.c.;Ottavio Rinaldi;consumatore, interessi legali
-03;03-2021-dini-officine-righi;2021-02-22;dini;ricorso decreto ingiuntivo;Tribunale di Modena;27900.00;Officine Meccaniche Righi S.r.l.;Logistica Emiliana S.r.l.;servizi tra imprese
+03;03-2021-dini-officine-lugli;2021-02-22;dini;ricorso decreto ingiuntivo;Tribunale di Modena;27900.00;Officine Meccaniche Lugli S.r.l.;Logistica Emiliana S.r.l.;servizi tra imprese
 04;04-2022-dini-benassi-locazione;2022-05-11;dini;ricorso decreto ingiuntivo;Tribunale di Modena;3600.00;Laura Benassi;Paolo Ghirardini;canoni di locazione
-05;05-2022-sarti-edilnova;2022-10-03;sarti;ricorso decreto ingiuntivo provvisoriamente esecutivo;Tribunale di Modena;42000.00;Edilnova S.r.l.;Costruzioni Marchetti S.r.l.;art. 642 secondo comma, riconoscimento di debito
+05;05-2022-sarti-edilnova;2022-10-03;sarti;ricorso decreto ingiuntivo provvisoriamente esecutivo;Tribunale di Modena;42000.00;Edilnova S.r.l.;Costruzioni Panaro S.r.l.;art. 642 secondo comma, riconoscimento di debito
 06;06-2023-dini-datanet;2023-04-17;dini;ricorso decreto ingiuntivo;Tribunale di Modena;14640.00;Datanet Soluzioni S.r.l.;Studio Associato Neri & Bruni;atto mediocre: interessi generici, niente valore, refuso
-07;07-2024-sarti-tipografia-ronchi;2024-01-29;sarti;ricorso decreto ingiuntivo;Tribunale di Modena;11325.60;Tipografia Ronchi S.r.l.;Agenzia Eventi Bellini S.r.l.;fornitura tra imprese
+07;07-2024-sarti-tipografia-ronchi;2024-01-29;sarti;ricorso decreto ingiuntivo;Tribunale di Modena;11325.60;Tipografia Ronchi S.r.l.;Agenzia Eventi Estense S.r.l.;fornitura tra imprese
 08;08-2025-dini-climatek;2025-03-12;dini;ricorso decreto ingiuntivo;Tribunale di Modena;23180.00;Climatek Impianti S.r.l.;Mobilificio Ugolini S.r.l.;appalto tra imprese
-09;09-2025-dini-diffida-valli;2025-09-08;dini;diffida e messa in mora;;6940.00;Imballaggi Bassi S.r.l.;Gastronomia Valli S.n.c.;stragiudiziale
+09;09-2025-dini-diffida-barbieri;2025-09-08;dini;diffida e messa in mora;;6940.00;Imballaggi Bassi S.r.l.;Gastronomia Barbieri S.n.c.;stragiudiziale
 10;10-2026-sarti-ferramenta-corradini;2026-02-16;sarti;ricorso decreto ingiuntivo provvisoriamente esecutivo;Tribunale di Modena;16000.00;Ferramenta Corradini S.r.l.;Edil Frignano S.r.l.;art. 642 primo comma, assegno protestato

@@ -275,7 +275,8 @@ class RispostaFascicolo(Base):
     """Una domanda sul fascicolo e la sua risposta (lezione 21): i passi
     mandati, le frasi con le citazioni e i loro problemi, oppure che cosa
     manca, in JSON. Senza passi non parte nessuna richiesta, e la voce del
-    registro manca."""
+    registro manca. La fonte dice da dove vengono i passi: i documenti del
+    fascicolo o gli atti dell'archivio (lezione 22)."""
 
     __tablename__ = "risposte"
 
@@ -290,6 +291,34 @@ class RispostaFascicolo(Base):
     uso_ai_id: Mapped[int | None] = mapped_column(ForeignKey("uso_ai.id"))
     chiesta_da_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
     chiesta_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
+    fonte: Mapped[str] = mapped_column(String(20), default="fascicolo")
+
+
+# [libro:atto-archivio]
+class AttoArchivio(Base):
+    """Un atto dell'archivio dello studio (lezione 22): le pagine lette, i
+    dati letti dall'atto e le persone da nascondere, dall'indice dello
+    studio. L'originale resta nella cartella dei dati, con la sua impronta
+    come nome."""
+
+    __tablename__ = "archivio"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nome: Mapped[str] = mapped_column(String(200))
+    impronta: Mapped[str] = mapped_column(String(64), unique=True)
+    tipo: Mapped[str | None] = mapped_column(String(120))
+    autore_id: Mapped[int | None] = mapped_column(ForeignKey("utenti.id"))
+    data: Mapped[date | None] = mapped_column(Date)
+    giudice: Mapped[str | None] = mapped_column(String(120))
+    valore: Mapped[float | None] = mapped_column(Float)
+    pagine: Mapped[str] = mapped_column(Text)  # i testi, in JSON
+    persone: Mapped[str] = mapped_column(Text)  # da nascondere, in JSON
+    nascosti: Mapped[int] = mapped_column(Integer)  # testi nascosti trovati
+    caricato_da_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
+    caricato_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
+
+
+# [/libro:atto-archivio]
 
 
 class Verifica(Base):

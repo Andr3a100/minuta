@@ -21,7 +21,9 @@ MINUSCOLA = "a-zà-öø-ÿ"
 NOME = rf"[{MAIUSCOLA}][{MINUSCOLA}'’]+"
 NOME_MAIUSCOLO = rf"[{MAIUSCOLA}]{{2,}}"
 
-EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+# Un indirizzo può andare a capo dopo un trattino del dominio: «pec-» a fine
+# riga e «avvocati.example» sotto (lezione 22).
+EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:-\n[\w-]+)*(?:\.[\w-]+)+")
 IBAN = re.compile(r"\bIT\d{2}[A-Z]\d{10}[0-9A-Z]{12}\b")
 CODICE_FISCALE = re.compile(r"\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b")
 PARTITA_IVA = re.compile(r"(?:P\.\s?IVA|partita IVA)\s*:?\s*(\d{11})", re.I)
