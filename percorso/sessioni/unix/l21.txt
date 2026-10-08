@@ -5,13 +5,16 @@ source .venv/bin/activate
 python -m app.manage migra
 : '### [/esito:l21-versione]'
 : '### [esito:l21-diritti]'
-python -m app.manage domanda 2026-073 "Che cosa ha diritto di fare l'indagato dopo l'avviso?" --da valli
+d="Che cosa ha diritto di fare l'indagato dopo l'avviso?"
+python -m app.manage domanda 2026-073 "$d" --da valli
 : '### [/esito:l21-diritti]'
 : '### [esito:l21-consulente]'
-python -m app.manage domanda 2026-073 "Che cosa dice il consulente tecnico?" --da valli
+d="Che cosa dice il consulente tecnico?"
+python -m app.manage domanda 2026-073 "$d" --da valli
 : '### [/esito:l21-consulente]'
 : '### [esito:l21-fornitura]'
-python -m app.manage domanda 2026-071 "La resistente ha contestato la fornitura?" --da irene
+d="La resistente ha contestato la fornitura?"
+python -m app.manage domanda 2026-071 "$d" --da irene
 : '### [/esito:l21-fornitura]'
 : '### [esito:l21-diagnosi]'
 python -m app.manage diagnosi

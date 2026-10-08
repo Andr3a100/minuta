@@ -95,7 +95,8 @@ def test_la_citazione_con_i_segnaposto_si_controlla_con_i_nomi(
     app, browser, penale
 ):
     app.state.modello = ModelloCheRicorda(
-        '{"frasi": [{"testo": "È indagato.", "documento": "avviso-415-bis.pdf.p7m", '
+        '{"frasi": [{"testo": "È indagato.", '
+        '"documento": "avviso-415-bis.pdf.p7m", '
         '"pagina": 1, "citazione": "[PERSONA_1], legale rappresentante di '
         '[SOGGETTO_1], indagato"}]}'
     )
