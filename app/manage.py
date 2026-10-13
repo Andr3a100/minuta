@@ -53,6 +53,7 @@ from minuta.scadenze import (
 from minuta.scheda import Riga, SchedaIlleggibile
 from minuta.verifiche import TipoSconosciuto, carica_domande
 
+from .addestramento import AddestramentoRifiutato, prepara_insieme
 from .archivio import (
     ArchivioRifiutato,
     atti_dell_archivio,
@@ -503,6 +504,10 @@ def costruisci_parser() -> argparse.ArgumentParser:
     letta = sub.add_parser("norma-letta", help="registra una norma letta")
     letta.add_argument("chiave", help="per esempio «c.p.c. art. 645»")
     letta.add_argument("--da", required=True, help="l'avvocato che l'ha letta")
+    add = sub.add_parser(
+        "addestramento", help="l'insieme di addestramento, senza nomi né fatti"
+    )
+    add.add_argument("--da", required=True, help="l'avvocato")
     val = sub.add_parser("valuta", help="la suite di valutazione")
     val.add_argument(
         "--accetta",
@@ -817,6 +822,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {voce['indirizzo']}")
             elif args.comando == "citazioni":
                 citazioni_dalla_riga(db, args)
+            elif args.comando == "addestramento":
+                insieme_dalla_riga(db, settings, args)
             elif args.comando == "valuta":
                 return valuta(args.accetta)
             elif args.comando == "correzioni":
@@ -829,6 +836,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
         return 0
     except (
+        AddestramentoRifiutato,
         ArchivioRifiutato,
         BozzaRifiutata,
         CorrezioneRifiutata,
@@ -1627,6 +1635,26 @@ def elenco_modifiche(bozza: Bozza) -> str:
         if conteggio.get(tipo)
     ]
     return ", ".join(parti) or "nessuna"
+
+
+def insieme_dalla_riga(db: Session, settings, args) -> None:
+    utente = utente_attivo(db, args.da)
+    insieme = prepara_insieme(db, settings, utente)
+    t = insieme.tolti
+    print(
+        f"L'insieme per lo stile di {utente.nome}: {insieme.atti} atti "
+        f"dell'archivio, {insieme.parole} parole."
+    )
+    print(
+        f"Tolti: {t['[IMPORTO]']} importi, {t['[DATA]']} date, "
+        f"{t['[ANNO]']} anni, {t['[NUMERO]']} numeri di documento; i nomi "
+        "sono segnaposto senza numero."
+    )
+    print("Nomi rimasti: 0. Fatti rimasti: 0.")
+    print(
+        f"Scritto in {insieme.percorso.as_posix()}, impronta "
+        f"{insieme.impronta[:12]}: resta nello studio, non parte niente."
+    )
 
 
 def valuta(accetta: bool = False) -> int:

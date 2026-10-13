@@ -1,0 +1,18 @@
+: '### [esito:l28-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v1.1.2
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l28-versione]'
+: '### [esito:l28-solo-nomi]'
+python percorso/solo_nomi.py
+: '### [/esito:l28-solo-nomi]'
+: '### [esito:l28-insieme]'
+python -m app.manage addestramento --da sarti
+: '### [/esito:l28-insieme]'
+: '### [esito:l28-praticante]'
+python -m app.manage addestramento --da irene
+: '### [/esito:l28-praticante]'
+: '### [esito:l28-diagnosi]'
+python -m app.manage diagnosi
+: '### [/esito:l28-diagnosi]'

@@ -133,5 +133,7 @@ sessione() {
     sessione l26
     # Lezione 27: Minuta 1.1.1, la suite di valutazione.
     sessione l27
+    # Lezione 28: Minuta 1.1.2, l'insieme di addestramento.
+    sessione l28
     echo "== Fine"
 } >"$verbale"
