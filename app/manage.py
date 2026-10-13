@@ -41,6 +41,7 @@ from sqlalchemy.orm import Session
 from minuta import certificatori
 from minuta import documenti as motore
 from minuta.archivio import leggi_indice
+from minuta.bozza import TipoDiBozza
 from minuta.domande import RispostaIlleggibile
 from minuta.invio import SISTEMA
 from minuta.scadenze import (
@@ -59,11 +60,13 @@ from .archivio import (
     cerca_nell_archivio,
     puo_leggere,
 )
+from .bozze import BozzaRifiutata, approva_bozza, in_word, prepara_bozza
 from .config import ConfigError, leggi_file_env, load_settings
 from .db import (
     RUOLI,
     Assegnazione,
     AttoArchivio,
+    Bozza,
     Documento,
     Evento,
     Fascicolo,
@@ -450,6 +453,24 @@ def costruisci_parser() -> argparse.ArgumentParser:
     formula.add_argument("--da", required=True, help="l'avvocato")
     conferma_st = sub.add_parser("conferma-stile", help="conferma il profilo")
     conferma_st.add_argument("--da", required=True, help="l'avvocato")
+    bozza = sub.add_parser(
+        "bozza", help="la bozza di un atto o di un promemoria"
+    )
+    bozza.add_argument("codice")
+    bozza.add_argument("tipo", help="opposizione o promemoria")
+    bozza.add_argument("--da", required=True, help="chi la chiede")
+    bozza.add_argument("--word", help="salva anche il file .docx")
+    bozza.add_argument(
+        "--verbale", help="salva lo scambio in un file JSON, per il libro"
+    )
+    approva = sub.add_parser("approva-bozza", help="approva una bozza")
+    approva.add_argument("codice")
+    approva.add_argument("numero", type=int, help="il numero della bozza")
+    approva.add_argument("--file", help="il file Word corretto")
+    approva.add_argument(
+        "--forza", action="store_true", help="approva anche con dei residui"
+    )
+    approva.add_argument("--da", required=True, help="l'avvocato")
     return parser
 
 
@@ -730,9 +751,15 @@ def main(argv: list[str] | None = None) -> int:
                 formule_dalla_riga(db, args)
             elif args.comando == "conferma-stile":
                 conferma_stile_dalla_riga(db, args)
+            elif args.comando == "bozza":
+                return bozza_dalla_riga(db, settings, args)
+            elif args.comando == "approva-bozza":
+                approva_dalla_riga(db, args)
         return 0
     except (
         ArchivioRifiutato,
+        BozzaRifiutata,
+        TipoDiBozza,
         StileRifiutato,
         CommandError,
         MigrationError,
@@ -1376,6 +1403,95 @@ def conferma_stile_dalla_riga(db: Session, args) -> None:
     )
 
 
+def righe_della_bozza(paragrafi) -> list[str]:
+    """Ogni paragrafo, con sotto la provenienza e i problemi trovati."""
+    stampa = []
+    for n, p in enumerate(paragrafi, start=1):
+        # Grassetti e titoli in Markdown servono a Word, non al terminale.
+        testo = re.sub(r"\*\*|^#+\s*", "", p.testo, flags=re.MULTILINE)
+        stampa += a_capo(" ".join(testo.split()), f"{n:2}. ", "    ")
+        stampa.append(f"    · {p.fonte or 'provenienza non dichiarata'}")
+        for problema in p.problemi:
+            stampa += a_capo(problema, "    ! ", "      ")
+    return stampa
+
+
+def bozza_dalla_riga(db: Session, settings, args) -> int:
+    fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    try:
+        esito = prepara_bozza(
+            db, utente, fascicolo, args.tipo, modello_da(settings)
+        )
+    except InvioBloccato as blocco:
+        print(f"Fascicolo {fascicolo.codice} · {utente.nome}")
+        stampa_controlli(blocco.preparato, noti_del_fascicolo(db, fascicolo))
+        print(
+            "Invio BLOCCATO: niente parte finché resta qualcosa da nascondere."
+        )
+        return 1
+    print(
+        f"Fascicolo {fascicolo.codice} · {utente.nome} · bozza n. "
+        f"{esito.bozza.id}: {args.tipo}"
+    )
+    if esito.stile:
+        print(f"Nello stile di {esito.stile}, dal profilo confermato")
+    print("\n".join(a_capo(f"Controllo: {esito.voce.controllo}", "", "  ")))
+    print("--- la bozza, con la provenienza di ogni paragrafo ---")
+    stampa = righe_della_bozza(esito.paragrafi)
+    print("\n".join(stampa))
+    problemi = sum(len(p.problemi) for p in esito.paragrafi)
+    print(f"Paragrafi: {len(esito.paragrafi)}; problemi: {problemi}")
+    for nota in esito.note:
+        print("\n".join(a_capo(nota, "", "  ")))
+    print(riga_del_registro(esito.voce))
+    if args.word:
+        percorso = in_word(db, esito.bozza, Path(args.word))
+        print(f"In Word: {percorso.as_posix()}")
+    if args.verbale:
+        voce = esito.voce
+        Path(args.verbale).write_text(
+            json.dumps(
+                {
+                    "quando": voce.quando.isoformat(),
+                    "modello": voce.modello,
+                    "tipo": args.tipo,
+                    "sistema": SISTEMA,
+                    "inviato": esito.preparato.testo,
+                    "arrivata": esito.arrivata,
+                    "paragrafi": [asdict(p) for p in esito.paragrafi],
+                    "note": esito.note,
+                    "stampa": "\n".join(stampa),
+                    "token_in": voce.token_in,
+                    "token_out": voce.token_out,
+                    "costo_usd": voce.costo_usd,
+                    "controllo": voce.controllo,
+                    "categorie": voce.categorie,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            "utf-8",
+        )
+    return 0
+
+
+def approva_dalla_riga(db: Session, args) -> None:
+    fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    bozza = db.get(Bozza, args.numero)
+    if bozza is None or bozza.fascicolo_id != fascicolo.id:
+        raise CommandError(
+            f"Nel fascicolo {fascicolo.codice} non c'è la "
+            f"bozza n. {args.numero}."
+        )
+    file = Path(args.file) if args.file else None
+    residui = approva_bozza(db, utente, fascicolo, bozza, file, args.forza)
+    detto = f"Bozza n. {bozza.id} approvata da {utente.nome}"
+    if residui:
+        detto += f", con una forzatura: {'; '.join(residui)}"
+    print(detto + ".")
+
+
 # [libro:diagnosi]
 def diagnosi(settings, engine) -> int:
     """Le informazioni utili per chiedere aiuto, senza segreti."""
@@ -1417,6 +1533,7 @@ def diagnosi(settings, engine) -> int:
                 ("Risposte", RispostaFascicolo),
                 ("Archivio", AttoArchivio),
                 ("Profili", ProfiloStile),
+                ("Bozze", Bozza),
                 ("Eventi", Evento),
                 ("Voci uso AI", UsoAI),
             ):

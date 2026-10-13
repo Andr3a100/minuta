@@ -1,7 +1,7 @@
 #!/bin/bash
 # Prova della Parte III su macOS e Linux: i comandi del lettore.
 #
-# Esegue, come li scrive il lettore, i comandi delle lezioni 15-23
+# Esegue, come li scrive il lettore, i comandi delle lezioni 15-24
 # in una shell interattiva (zsh su macOS, bash su Linux), e ne scrive il
 # verbale. Il libro stampa gli output presi da questo verbale.
 #
@@ -125,5 +125,7 @@ sessione() {
     sessione l22
     # Lezione 23: Minuta 0.9, lo stile degli avvocati.
     sessione l23
+    # Lezione 24: Minuta 1.0, la bozza.
+    sessione l24
     echo "== Fine"
 } >"$verbale"

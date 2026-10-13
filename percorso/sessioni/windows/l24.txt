@@ -1,0 +1,23 @@
+### [esito:l24-versione]
+cd ~\minuta\laboratorio
+git switch --detach v1.0
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l24-versione]
+### [esito:l24-scadenza]
+.\.venv\Scripts\python.exe -m app.manage conferma-scadenza 2026-071 ricevuta-pec.pdf --da sarti
+### [/esito:l24-scadenza]
+### [esito:l24-opposizione]
+.\.venv\Scripts\python.exe -m app.manage bozza 2026-071 opposizione --da sarti --word bozza-atto.docx
+### [/esito:l24-opposizione]
+### [esito:l24-promemoria]
+.\.venv\Scripts\python.exe -m app.manage bozza 2026-071 promemoria --da irene
+### [/esito:l24-promemoria]
+### [esito:l24-approva]
+.\.venv\Scripts\python.exe -m app.manage approva-bozza 2026-071 2 --da sarti
+### [/esito:l24-approva]
+### [esito:l24-segreteria]
+.\.venv\Scripts\python.exe -m app.manage bozza 2026-071 promemoria --da rosa
+### [/esito:l24-segreteria]
+### [esito:l24-diagnosi]
+.\.venv\Scripts\python.exe -m app.manage diagnosi
+### [/esito:l24-diagnosi]

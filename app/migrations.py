@@ -415,6 +415,35 @@ def _passo_9(conn: Connection) -> None:
     meta.tables["profili"].create(conn)
 
 
+def _passo_10(conn: Connection) -> None:
+    """Le bozze (lezione 24)."""
+    meta = MetaData()
+    for nome in ("fascicoli", "uso_ai", "utenti"):
+        Table(nome, meta, Column("id", Integer, primary_key=True))
+    Table(
+        "bozze",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column(
+            "fascicolo_id",
+            ForeignKey("fascicoli.id"),
+            nullable=False,
+            index=True,
+        ),
+        Column("tipo", String(40), nullable=False),
+        Column("paragrafi", Text, nullable=False),
+        Column("note", Text, nullable=False),
+        Column("uso_ai_id", ForeignKey("uso_ai.id"), nullable=False),
+        Column("preparata_da_id", ForeignKey("utenti.id"), nullable=False),
+        Column("preparata_il", DateTime(timezone=True), nullable=False),
+        Column("approvata_da_id", ForeignKey("utenti.id"), nullable=True),
+        Column("approvata_il", DateTime(timezone=True), nullable=True),
+        Column("testo_approvato", Text, nullable=True),
+        Column("forzatura", Text, nullable=True),
+    )
+    meta.tables["bozze"].create(conn)
+
+
 # Ogni nuova migrazione si aggiunge qui con il numero successivo.
 PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     1: ("Schema iniziale", _passo_1),
@@ -426,6 +455,7 @@ PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     7: ("Le domande sul fascicolo", _passo_7),
     8: ("L'archivio dello studio", _passo_8),
     9: ("Lo stile degli avvocati", _passo_9),
+    10: ("Le bozze", _passo_10),
 }
 
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 from datetime import date, timedelta
+from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
@@ -23,6 +24,7 @@ from fastapi.responses import (
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
+from minuta.bozza import TipoDiBozza
 from minuta.domande import RispostaIlleggibile
 from minuta.scadenze import TermineSconosciuto, carica_regole, in_lettere
 from minuta.scheda import SchedaIlleggibile
@@ -30,8 +32,10 @@ from minuta.verifiche import STATI, TipoSconosciuto, carica_domande
 
 from . import __version__
 from .archivio import atti_dell_archivio, cerca_nell_archivio, puo_leggere
+from .bozze import BozzaRifiutata, in_word, paragrafi_di, prepara_bozza
 from .db import (
     Assegnazione,
+    Bozza,
     Documento,
     Evento,
     Fascicolo,
@@ -62,14 +66,6 @@ from .invio import (
 from .migrations import ultima, versione_attuale
 from .registro import RichiestaNonAmmessa
 from .risposte import domanda_all_archivio, domanda_sul_fascicolo
-from .stile import (
-    StileRifiutato,
-    calcola_profilo,
-    conferma_profilo,
-    decidi_formule,
-    letto,
-    ultimo_profilo,
-)
 from .rules import (
     APRONO,
     ValidationErrors,
@@ -95,6 +91,14 @@ from .security import (
     impronta,
     nuovo_gettone,
     verifica_passphrase,
+)
+from .stile import (
+    StileRifiutato,
+    calcola_profilo,
+    conferma_profilo,
+    decidi_formule,
+    letto,
+    ultimo_profilo,
 )
 from .verifiche import (
     VerificaRifiutata,
@@ -1102,6 +1106,87 @@ def cambia_stile(
         except StileRifiutato as exc:
             return pagina_stile(request, db, utente, str(exc), 409)
     return RedirectResponse("/stile", 303)
+
+
+# ----------------------------------------------------------------------
+# Le bozze (lezione 24)
+# ----------------------------------------------------------------------
+
+
+def pagina_bozze(request, db, utente, fascicolo, errore=None, stato=200):
+    bozze = list(
+        db.scalars(
+            select(Bozza)
+            .where(Bozza.fascicolo_id == fascicolo.id)
+            .order_by(Bozza.id.desc())
+            .limit(5)
+        )
+    )
+    nomi = {u.id: u.nome for u in db.scalars(select(Utente))}
+    contesto = {
+        "utente": utente,
+        "fascicolo": fascicolo,
+        "bozze": [(b, paragrafi_di(b), json.loads(b.note)) for b in bozze],
+        "nomi": nomi,
+        "errore": errore,
+    }
+    return pagina(request, "bozze.html", contesto, stato)
+
+
+@router.get("/fascicoli/{fascicolo_id}/bozze", response_class=HTMLResponse)
+def mostra_bozze(request: Request, fascicolo_id: int):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        fascicolo = fascicolo_visibile(db, fascicolo_id, utente)
+        return pagina_bozze(request, db, utente, fascicolo)
+
+
+@router.post("/fascicoli/{fascicolo_id}/bozze")
+def nuova_bozza(
+    request: Request,
+    fascicolo_id: int,
+    tipo: str = Form(""),
+    csrf_token: str = Form(""),
+):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        richiedi_ruolo(utente, "avvocato", "praticante")
+        controlla_modulo(request, csrf_token)
+        fascicolo = fascicolo_visibile(db, fascicolo_id, utente)
+        try:
+            prepara_bozza(
+                db, utente, fascicolo, tipo, request.app.state.modello
+            )
+        except (BozzaRifiutata, TipoDiBozza) as exc:
+            return pagina_bozze(request, db, utente, fascicolo, str(exc), 409)
+        except InvioBloccato:
+            errore = "La bozza non è partita: resta qualcosa da nascondere."
+            return pagina_bozze(request, db, utente, fascicolo, errore, 422)
+    return RedirectResponse(f"/fascicoli/{fascicolo.id}/bozze", 303)
+
+
+@router.get("/fascicoli/{fascicolo_id}/bozze/{bozza_id}/word")
+def scarica_bozza(request: Request, fascicolo_id: int, bozza_id: int):
+    """La bozza in Word, impaginata secondo l'art. 6 del DM 110/2023."""
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        fascicolo = fascicolo_visibile(db, fascicolo_id, utente)
+        bozza = db.get(Bozza, bozza_id)
+        if bozza is None or bozza.fascicolo_id != fascicolo.id:
+            raise HTTPException(404, "Bozza non trovata.")
+        cartella = settings_of(request).data_dir
+        percorso = in_word(
+            db, bozza, Path(cartella) / "bozze" / f"{bozza.id}.docx"
+        )
+    nome = f"bozza-{fascicolo.codice}-{bozza.tipo}-{bozza.id}.docx"
+    return Response(
+        percorso.read_bytes(),
+        media_type=(
+            "application/vnd.openxmlformats-officedocument."
+            "wordprocessingml.document"
+        ),
+        headers={"Content-Disposition": f"attachment; filename={nome}"},
+    )
 
 
 # ----------------------------------------------------------------------

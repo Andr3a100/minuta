@@ -321,6 +321,32 @@ class AttoArchivio(Base):
 # [/libro:atto-archivio]
 
 
+class Bozza(Base):
+    """Una bozza preparata da Minuta (lezione 24): l'atto o il promemoria,
+    i paragrafi con la provenienza e i problemi, le note per l'avvocato, la
+    voce del registro dell'uso dell'AI. E, quando c'è, l'approvazione di un
+    avvocato, con il testo approvato e l'eventuale forzatura."""
+
+    __tablename__ = "bozze"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fascicolo_id: Mapped[int] = mapped_column(
+        ForeignKey("fascicoli.id"), index=True
+    )
+    tipo: Mapped[str] = mapped_column(String(40))
+    paragrafi: Mapped[str] = mapped_column(Text)  # in JSON
+    note: Mapped[str] = mapped_column(Text)  # in JSON
+    uso_ai_id: Mapped[int] = mapped_column(ForeignKey("uso_ai.id"))
+    preparata_da_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
+    preparata_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
+    approvata_da_id: Mapped[int | None] = mapped_column(
+        ForeignKey("utenti.id")
+    )
+    approvata_il: Mapped[datetime | None] = mapped_column(OrarioUTC)
+    testo_approvato: Mapped[str | None] = mapped_column(Text)
+    forzatura: Mapped[str | None] = mapped_column(Text)  # ciò che restava
+
+
 class ProfiloStile(Base):
     """Il profilo dello stile di un avvocato (lezione 23), ricavato dai suoi
     atti dell'archivio: in JSON gli atti, l'intestazione, il titolo, le
@@ -330,9 +356,7 @@ class ProfiloStile(Base):
     __tablename__ = "profili"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    autore_id: Mapped[int] = mapped_column(
-        ForeignKey("utenti.id"), index=True
-    )
+    autore_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"), index=True)
     contenuto: Mapped[str] = mapped_column(Text)
     calcolato_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
     confermato_il: Mapped[datetime | None] = mapped_column(OrarioUTC)

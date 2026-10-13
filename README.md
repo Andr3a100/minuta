@@ -26,6 +26,7 @@ tuo computer (`.env`, il database, l'ambiente virtuale) restano dove sono.
 | 0.7 | 21 | le domande sul fascicolo: partono solo i passi che ne contengono le parole, ogni citazione si controlla sulla pagina, «non c'è» quando non c'è |
 | 0.8 | 22 | l'archivio dello studio: gli atti firmati entrano con le persone da nascondere, si cercano per parole, tipo, autore e periodo; alle domande rispondono senza mescolarsi al fascicolo, e i nomi dei loro clienti restano segnaposto |
 | 0.9 | 23 | lo stile di ogni avvocato, ricavato dai suoi atti senza modelli: formule con gli atti da cui vengono, le norme da decidere, il profilo confermato dall'avvocato |
+| 1.0 | 24 | la bozza: l'atto di opposizione nello stile confermato di chi firma e il promemoria per il cliente, ogni paragrafo con la provenienza, date e importi controllati sui documenti, in Word secondo l'art. 6 del DM 110/2023 |
 
 ## Che cosa fa
 

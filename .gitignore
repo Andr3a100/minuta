@@ -11,3 +11,5 @@ archivio/approvati/
 fascicoli/
 build/
 dati/
+# Le bozze in Word della lezione 24: si rifanno, non si conservano.
+bozza-*.docx
