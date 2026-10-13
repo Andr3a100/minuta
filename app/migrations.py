@@ -397,6 +397,24 @@ def _passo_8(conn: Connection) -> None:
     )
 
 
+def _passo_9(conn: Connection) -> None:
+    """I profili dello stile degli avvocati (lezione 23)."""
+    meta = MetaData()
+    Table("utenti", meta, Column("id", Integer, primary_key=True))
+    Table(
+        "profili",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column(
+            "autore_id", ForeignKey("utenti.id"), nullable=False, index=True
+        ),
+        Column("contenuto", Text, nullable=False),
+        Column("calcolato_il", DateTime(timezone=True), nullable=False),
+        Column("confermato_il", DateTime(timezone=True), nullable=True),
+    )
+    meta.tables["profili"].create(conn)
+
+
 # Ogni nuova migrazione si aggiunge qui con il numero successivo.
 PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     1: ("Schema iniziale", _passo_1),
@@ -407,6 +425,7 @@ PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     6: ("Le verifiche", _passo_6),
     7: ("Le domande sul fascicolo", _passo_7),
     8: ("L'archivio dello studio", _passo_8),
+    9: ("Lo stile degli avvocati", _passo_9),
 }
 
 

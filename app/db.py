@@ -321,6 +321,23 @@ class AttoArchivio(Base):
 # [/libro:atto-archivio]
 
 
+class ProfiloStile(Base):
+    """Il profilo dello stile di un avvocato (lezione 23), ricavato dai suoi
+    atti dell'archivio: in JSON gli atti, l'intestazione, il titolo, le
+    parole per frase e le formule, ciascuna con gli atti da cui viene e il
+    suo stato. Ogni calcolo è una riga nuova; lo conferma l'avvocato."""
+
+    __tablename__ = "profili"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    autore_id: Mapped[int] = mapped_column(
+        ForeignKey("utenti.id"), index=True
+    )
+    contenuto: Mapped[str] = mapped_column(Text)
+    calcolato_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
+    confermato_il: Mapped[datetime | None] = mapped_column(OrarioUTC)
+
+
 class Verifica(Base):
     """Le verifiche di un documento (lezione 20): le domande del suo tipo di
     atto, riempite da Minuta con i fatti e i controlli, e lo stato di

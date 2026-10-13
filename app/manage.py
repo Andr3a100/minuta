@@ -68,6 +68,7 @@ from .db import (
     Evento,
     Fascicolo,
     PersonaFascicolo,
+    ProfiloStile,
     RispostaFascicolo,
     Scadenza,
     Scheda,
@@ -115,6 +116,14 @@ from .schede import (
     ultima_scheda,
 )
 from .security import MIN_PASSPHRASE, hash_passphrase
+from .stile import (
+    StileRifiutato,
+    calcola_profilo,
+    conferma_profilo,
+    decidi_formule,
+    letto,
+    profilo_di,
+)
 from .verifiche import (
     VerificaRifiutata,
     decidi_domanda,
@@ -430,6 +439,17 @@ def costruisci_parser() -> argparse.ArgumentParser:
     cerca.add_argument("parole")
     filtri(cerca)
     cerca.add_argument("--da", required=True, help="chi cerca")
+    stile = sub.add_parser("stile", help="il profilo dello stile")
+    stile.add_argument("--di", help="l'avvocato di cui leggere il profilo")
+    stile.add_argument("--da", required=True, help="chi lo calcola o legge")
+    formula = sub.add_parser("formula", help="decide formule del profilo")
+    formula.add_argument("numeri", nargs="+", type=int)
+    scelta = formula.add_mutually_exclusive_group(required=True)
+    scelta.add_argument("--tieni", action="store_true", help="è stile")
+    scelta.add_argument("--togli", action="store_true", help="non è stile")
+    formula.add_argument("--da", required=True, help="l'avvocato")
+    conferma_st = sub.add_parser("conferma-stile", help="conferma il profilo")
+    conferma_st.add_argument("--da", required=True, help="l'avvocato")
     return parser
 
 
@@ -704,9 +724,16 @@ def main(argv: list[str] | None = None) -> int:
                 stampa_archivio(db, args)
             elif args.comando == "cerca":
                 cerca_dalla_riga(db, args)
+            elif args.comando == "stile":
+                stile_dalla_riga(db, args)
+            elif args.comando == "formula":
+                formule_dalla_riga(db, args)
+            elif args.comando == "conferma-stile":
+                conferma_stile_dalla_riga(db, args)
         return 0
     except (
         ArchivioRifiutato,
+        StileRifiutato,
         CommandError,
         MigrationError,
         motore.DocumentoNonLeggibile,
@@ -1261,6 +1288,94 @@ def cerca_dalla_riga(db: Session, args) -> None:
     print("La ricerca è avvenuta nello studio: non è partito niente.")
 
 
+def numeri_degli_atti(numeri: list[int]) -> str:
+    return ", ".join(f"{n:02d}" for n in numeri)
+
+
+def righe_del_profilo(dati: dict, solo_stile: bool = False) -> list[str]:
+    """Le formule del profilo, numerate, con gli atti da cui vengono; sotto,
+    che cosa Minuta vi ha notato e che cosa ha deciso l'avvocato."""
+    righe = [
+        f"Intestazione: {dati['intestazione']}",
+        f"Titolo: {dati['titolo']}",
+        f"Parole per frase, in media: {dati['parole_per_frase']:.1f}".replace(
+            ".", ","
+        ),
+        "Formule, con gli atti da cui vengono:",
+    ]
+    for n, f in enumerate(dati["formule"], start=1):
+        if solo_stile and f["stato"] != "stile":
+            continue
+        testo = f"«{f['testo']}» · {numeri_degli_atti(f['atti'])}"
+        righe += a_capo(testo, f"{n:2}. ", "    ")
+        if f["norma"]:
+            manca = f["manca"]
+            if not manca:
+                dove = "in tutti gli atti"
+            elif len(manca) == 1:
+                dove = f"manca nell'atto {numeri_degli_atti(manca)}"
+            else:
+                dove = f"manca negli atti {numeri_degli_atti(manca)}"
+            esito = {
+                "da decidere": "da decidere",
+                "stile": "tenuta nello stile",
+                "tolta": "tolta: dipende dal caso",
+            }[f["stato"]]
+            righe.append(f"    ! una norma, {dove}: {esito}")
+        elif f["stato"] == "tolta":
+            righe.append("    tolta dal profilo")
+    return righe
+
+
+def stile_dalla_riga(db: Session, args) -> None:
+    utente = utente_attivo(db, args.da)
+    if args.di and args.di != args.da:
+        autore = utente_attivo(db, args.di)
+        profilo = profilo_di(db, utente, autore)
+        stato = (
+            f"confermato il {profilo.confermato_il.date().isoformat()}"
+            if profilo.confermato_il
+            else "non ancora confermato"
+        )
+        print(f"Lo stile di {autore.nome}, {stato}:")
+        print("\n".join(righe_del_profilo(letto(profilo), solo_stile=True)))
+        return
+    profilo = calcola_profilo(db, utente)
+    dati = letto(profilo)
+    atti = numeri_degli_atti(dati["atti"])
+    print(f"Lo stile di {utente.nome}, da {len(dati['atti'])} atti: {atti}.")
+    print("\n".join(righe_del_profilo(dati)))
+    aperte = sum(f["stato"] == "da decidere" for f in dati["formule"])
+    print(
+        f"Da decidere: {aperte}. Il profilo è un conto: non è partito niente."
+    )
+
+
+def formule_dalla_riga(db: Session, args) -> None:
+    stato = "stile" if args.tieni else "tolta"
+    decise = decidi_formule(db, utente_attivo(db, args.da), args.numeri, stato)
+    elenco = ", ".join(str(n) for n in args.numeri)
+    una = len(args.numeri) == 1
+    if stato == "stile":
+        detto = "tenuta nello stile" if una else "tenute nello stile"
+    else:
+        detto = "tolta dal profilo" if una else "tolte dal profilo"
+    print(f"{'Formula' if una else 'Formule'} {elenco}: {detto}.")
+    for n, f in zip(args.numeri, decise, strict=True):
+        print("\n".join(a_capo(f"«{f['testo']}»", f"{n:2}. ", "    ")))
+
+
+def conferma_stile_dalla_riga(db: Session, args) -> None:
+    utente = utente_attivo(db, args.da)
+    dati = letto(conferma_profilo(db, utente))
+    nello_stile = sum(f["stato"] == "stile" for f in dati["formule"])
+    tolte = sum(f["stato"] == "tolta" for f in dati["formule"])
+    print(
+        f"Profilo di {utente.nome} confermato: {nello_stile} formule nello "
+        f"stile, {tolte} tolte."
+    )
+
+
 # [libro:diagnosi]
 def diagnosi(settings, engine) -> int:
     """Le informazioni utili per chiedere aiuto, senza segreti."""
@@ -1301,6 +1416,7 @@ def diagnosi(settings, engine) -> int:
                 ("Verifiche", Verifica),
                 ("Risposte", RispostaFascicolo),
                 ("Archivio", AttoArchivio),
+                ("Profili", ProfiloStile),
                 ("Eventi", Evento),
                 ("Voci uso AI", UsoAI),
             ):

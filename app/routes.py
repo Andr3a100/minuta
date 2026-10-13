@@ -62,6 +62,14 @@ from .invio import (
 from .migrations import ultima, versione_attuale
 from .registro import RichiestaNonAmmessa
 from .risposte import domanda_all_archivio, domanda_sul_fascicolo
+from .stile import (
+    StileRifiutato,
+    calcola_profilo,
+    conferma_profilo,
+    decidi_formule,
+    letto,
+    ultimo_profilo,
+)
 from .rules import (
     APRONO,
     ValidationErrors,
@@ -1036,6 +1044,64 @@ def mostra_archivio(
             },
         }
         return pagina(request, "archivio.html", contesto)
+
+
+# ----------------------------------------------------------------------
+# Lo stile degli avvocati (lezione 23)
+# ----------------------------------------------------------------------
+
+
+def pagina_stile(request, db, utente, errore=None, stato=200):
+    avvocati = list(
+        db.scalars(
+            select(Utente)
+            .where(Utente.ruolo == "avvocato", Utente.attivo.is_(True))
+            .order_by(Utente.nome)
+        )
+    )
+    profili = []
+    for avvocato in avvocati:
+        profilo = ultimo_profilo(db, avvocato)
+        profili.append(
+            (avvocato, profilo, letto(profilo) if profilo else None)
+        )
+    contesto = {"utente": utente, "profili": profili, "errore": errore}
+    return pagina(request, "stile.html", contesto, stato)
+
+
+@router.get("/stile", response_class=HTMLResponse)
+def mostra_stile(request: Request):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        if not puo_leggere(utente):  # per la segreteria non c'è
+            raise HTTPException(404, "Pagina non trovata.")
+        return pagina_stile(request, db, utente)
+
+
+@router.post("/stile")
+def cambia_stile(
+    request: Request,
+    azione: str = Form(""),
+    numeri: list[int] = Form([]),
+    csrf_token: str = Form(""),
+):
+    with apri_db(request) as db:
+        utente = richiedi_utente(request, db)
+        richiedi_ruolo(utente, "avvocato")
+        controlla_modulo(request, csrf_token)
+        try:
+            if azione == "calcola":
+                calcola_profilo(db, utente)
+            elif azione in ("tieni", "togli"):
+                stato = "stile" if azione == "tieni" else "tolta"
+                decidi_formule(db, utente, numeri, stato)
+            elif azione == "conferma":
+                conferma_profilo(db, utente)
+            else:
+                raise HTTPException(422, "Azione sconosciuta.")
+        except StileRifiutato as exc:
+            return pagina_stile(request, db, utente, str(exc), 409)
+    return RedirectResponse("/stile", 303)
 
 
 # ----------------------------------------------------------------------

@@ -1,0 +1,28 @@
+: '### [esito:l23-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v0.9
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l23-versione]'
+: '### [esito:l23-stile]'
+python -m app.manage stile --da sarti
+: '### [/esito:l23-stile]'
+: '### [esito:l23-conferma]'
+python -m app.manage conferma-stile --da sarti
+: '### [/esito:l23-conferma]'
+: '### [esito:l23-decisioni]'
+python -m app.manage formula 13 --tieni --da sarti
+python -m app.manage formula 14 15 16 17 18 19 20 --togli --da sarti
+: '### [/esito:l23-decisioni]'
+: '### [esito:l23-confermato]'
+python -m app.manage conferma-stile --da sarti
+: '### [/esito:l23-confermato]'
+: '### [esito:l23-lettura]'
+python -m app.manage stile --di sarti --da irene
+: '### [/esito:l23-lettura]'
+: '### [esito:l23-dini]'
+python -m app.manage stile --da dini
+: '### [/esito:l23-dini]'
+: '### [esito:l23-diagnosi]'
+python -m app.manage diagnosi
+: '### [/esito:l23-diagnosi]'

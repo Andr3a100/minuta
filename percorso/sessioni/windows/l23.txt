@@ -1,0 +1,27 @@
+### [esito:l23-versione]
+cd ~\minuta\laboratorio
+git switch --detach v0.9
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l23-versione]
+### [esito:l23-stile]
+.\.venv\Scripts\python.exe -m app.manage stile --da sarti
+### [/esito:l23-stile]
+### [esito:l23-conferma]
+.\.venv\Scripts\python.exe -m app.manage conferma-stile --da sarti
+### [/esito:l23-conferma]
+### [esito:l23-decisioni]
+.\.venv\Scripts\python.exe -m app.manage formula 13 --tieni --da sarti
+.\.venv\Scripts\python.exe -m app.manage formula 14 15 16 17 18 19 20 --togli --da sarti
+### [/esito:l23-decisioni]
+### [esito:l23-confermato]
+.\.venv\Scripts\python.exe -m app.manage conferma-stile --da sarti
+### [/esito:l23-confermato]
+### [esito:l23-lettura]
+.\.venv\Scripts\python.exe -m app.manage stile --di sarti --da irene
+### [/esito:l23-lettura]
+### [esito:l23-dini]
+.\.venv\Scripts\python.exe -m app.manage stile --da dini
+### [/esito:l23-dini]
+### [esito:l23-diagnosi]
+.\.venv\Scripts\python.exe -m app.manage diagnosi
+### [/esito:l23-diagnosi]

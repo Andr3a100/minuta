@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Stile{% endblock %}
+{% block content %}
+<article class="scheda">
+  <h1>Lo stile degli avvocati</h1>
+  <p class="nota">Ogni profilo viene dagli atti dell'archivio che l'avvocato ha firmato. Minuta conta, senza chiedere niente a nessun modello; i nomi sono segnaposto senza numero. Le formule con una norma restano da decidere: stile da tenere, o diritto che dipende dal caso.</p>
+  {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
+  {% if utente.ruolo == "avvocato" %}
+  <form method="post" action="/stile">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="azione" value="calcola">
+    <button type="submit">Calcola il mio profilo</button>
+  </form>
+  {% endif %}
+</article>
+{% for avvocato, profilo, dati in profili %}
+<section class="scheda">
+  <h2>{{ avvocato.nome }}</h2>
+  {% if not dati %}
+  <p class="nota">Nessun profilo calcolato.</p>
+  {% else %}
+  <p class="nota">Da {{ dati.atti|length }} atti · {% if profilo.confermato_il %}confermato il {{ profilo.confermato_il.date() }}{% else %}non ancora confermato{% endif %}</p>
+  <ul>
+    <li>Intestazione: {{ dati.intestazione }}</li>
+    <li>Titolo: {{ dati.titolo }}</li>
+    <li>Parole per frase, in media: {{ dati.parole_per_frase }}</li>
+  </ul>
+  {% set suo = utente.id == avvocato.id %}
+  {% if suo %}<form method="post" action="/stile">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endif %}
+  <ol>
+    {% for f in dati.formule %}
+    <li>{% if suo %}<input type="checkbox" name="numeri" value="{{ loop.index }}" aria-label="formula {{ loop.index }}"> {% endif %}«{{ f.testo }}» <span class="nota">· atti {% for a in f.atti %}{{ "%02d"|format(a) }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
+      {% if f.norma %}<br><span class="{{ 'errore' if f.stato == 'da decidere' else 'nota' }}">una norma, {% if f.manca %}manca negli atti {% for a in f.manca %}{{ "%02d"|format(a) }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}in tutti gli atti{% endif %}: {{ f.stato }}</span>{% elif f.stato == "tolta" %}<br><span class="nota">tolta</span>{% endif %}</li>
+    {% endfor %}
+  </ol>
+  {% if suo %}
+    <button type="submit" name="azione" value="tieni">Tieni nello stile</button>
+    <button type="submit" name="azione" value="togli">Togli dal profilo</button>
+    <button type="submit" name="azione" value="conferma">Conferma il profilo</button>
+  </form>{% endif %}
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}
