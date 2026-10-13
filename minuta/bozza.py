@@ -8,6 +8,13 @@ firmerà; mai gli atti di altri clienti. La bozza che torna Minuta la
 controlla senza fidarsi: ogni data e ogni importo devono stare nei
 documenti o nelle scadenze, ogni paragrafo dice da dove viene, i segnaposto
 rimasti si segnalano, ciò che manca resta da completare.
+
+Le citazioni si confrontano con il massimario dello studio (lezione 25):
+le norme che non ci sono restano da leggere sulla fonte; una sentenza che
+non c'è si segnala nel suo paragrafo, perché non si cita una sentenza che
+nessuno ha letto. E se la bozza parla di qualcosa che il fascicolo non ha,
+un assegno, un consumatore, una locazione, la norma che porta con sé esiste,
+ma forse non c'entra.
 """
 
 from __future__ import annotations
@@ -16,6 +23,8 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 
+from . import citations
+from .draft import ELEMENTI
 from .scadenze import in_lettere
 from .scheda import date_in, importi_in, in_euro
 
@@ -105,7 +114,7 @@ def controlla(
                 if not 1 <= pagina <= len(documenti.get(nome, [])):
                     fuori = f"la fonte non è nel fascicolo: {fonte}"
                     p.problemi.append(fuori)
-        fatti = DATA_DI_NORMA.sub("", p.testo)
+        fatti = citations.SENTENZA.sub("", DATA_DI_NORMA.sub("", p.testo))
         for giorno in sorted(date_in(fatti) - date_note):
             p.problemi.append(
                 f"data che non è nei documenti: {in_lettere(giorno)}"
@@ -120,6 +129,49 @@ def controlla(
 
 
 # [/libro:controlla-bozza]
+
+
+# [libro:citazioni-bozza]
+def citazioni(
+    paragrafi: list[Paragrafo], massimario: citations.Massimario
+) -> list[str]:
+    """Le norme e le sentenze della bozza, confrontate con il massimario
+    dello studio. Restituisce le norme da leggere sulla fonte; una sentenza
+    che il massimario non ha si segnala nel suo paragrafo."""
+    da_leggere = []
+    for p in paragrafi:
+        for c in citations.estrai(p.testo):
+            if massimario.stato(c) == "verificata":
+                continue
+            if c.tipo == "sentenza":
+                p.problemi.append(
+                    f"sentenza che il massimario non ha: «{c.testo}»; non "
+                    "si cita una sentenza che nessuno ha letto"
+                )
+            else:
+                da_leggere.append(c.chiave)
+    return list(dict.fromkeys(da_leggere))
+
+
+def pertinenza(
+    paragrafi: list[Paragrafo], documenti: dict[str, list[str]]
+) -> None:
+    """Gli elementi che cambiano la natura del caso: se la bozza ne parla e
+    i documenti no, la norma che li accompagna esiste, ma forse non
+    c'entra."""
+    tutto = "\n".join(p for pagine in documenti.values() for p in pagine)
+    for elemento, regola in ELEMENTI.items():
+        if re.search(regola, tutto, re.IGNORECASE):
+            continue
+        for p in paragrafi:
+            if re.search(regola, p.testo, re.IGNORECASE):
+                p.problemi.append(
+                    f"parla di {elemento}, che il fascicolo non ha: la norma "
+                    "esiste, ma c'entra?"
+                )
+
+
+# [/libro:citazioni-bozza]
 
 
 def da_completare(paragrafi: list[Paragrafo]) -> list[str]:

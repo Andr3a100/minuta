@@ -317,6 +317,20 @@ class ModelloFinto:
                 "[DA VERIFICARE] il giudice competente per l'opposizione. "
                 "{fonte: modello}"
             )
+            p.append(
+                "L'opposizione si propone ai sensi dell'art. 645 c.p.c. "
+                "{fonte: modello}"
+            )
+            p.append(
+                "Il decreto è provvisoriamente esecutivo ai sensi dell'art. "
+                "642, primo comma, c.p.c., perché il credito è fondato su un "
+                "assegno bancario. {fonte: modello}"
+            )
+            p.append(
+                "Come ha affermato la Cassazione (Cass. civ., sez. II, 15 "
+                "maggio 2023, n. 99999), l'opposizione sospende ogni "
+                "esecuzione. {fonte: modello}"
+            )
         else:
             p.append(
                 f"Gentile cliente, è arrivato un atto che comincia così: "

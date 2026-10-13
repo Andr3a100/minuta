@@ -13,14 +13,16 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
+from datetime import date
 from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from minuta import word
+from minuta import citations, word
 from minuta.bozza import (
     Paragrafo,
+    citazioni,
     controlla,
     da_completare,
     da_verificare,
@@ -28,6 +30,7 @@ from minuta.bozza import (
     istruzioni,
     leggi_bozza,
     manca_la_scadenza,
+    pertinenza,
 )
 from minuta.domande import Passo, a_passi
 from minuta.invio import SISTEMA, Preparato, prepara, ricomponi
@@ -48,6 +51,14 @@ from .registro import RichiestaNonAmmessa, chiedi
 from .risposte import documenti_del_fascicolo
 from .stile import letto, ultimo_profilo
 from .web import registra_evento
+
+# Il massimario dello studio: le norme e le sentenze lette sulla fonte
+# ufficiale, con la data (lezione 25). Un file leggibile, come i termini.
+MASSIMARIO = Path(__file__).resolve().parents[1] / "config" / "massimario.json"
+
+
+def massimario() -> citations.Massimario:
+    return citations.Massimario(MASSIMARIO)
 
 
 class BozzaRifiutata(Exception):
@@ -157,8 +168,11 @@ def prepara_bozza(
     db.flush()  # il numero della voce del registro
     paragrafi = leggi_bozza(ricomponi(arrivata.testo, preparato.tabella))
     controlla(paragrafi, pagine, righe_delle_scadenze(scadenze))
+    pertinenza(paragrafi, pagine)
+    da_leggere = citazioni(paragrafi, massimario())
     note = [f"Da completare: {d}" for d in da_completare(paragrafi)]
     note += [f"Da verificare: {d}" for d in da_verificare(paragrafi)]
+    note += [f"Da leggere sulla fonte: {c}" for c in da_leggere]
     if tipo == "promemoria" and not scadenze:
         note.append(
             "Nessuna scadenza confermata: il promemoria non può dire entro "
@@ -267,3 +281,64 @@ def approva_bozza(
 
 
 # [/libro:approva-bozza]
+
+
+def stato_nel_massimario(voci: dict, citazione) -> str:
+    voce = voci.get(citazione.chiave)
+    if voce and voce.get("stato") == "verificata":
+        chi = voce.get("letta_da")
+        quando = voce["verificata_il"]
+        return (
+            f"letta da {chi} il {quando}"
+            if chi
+            else f"controllata il {quando}"
+        )
+    if citazione.tipo == "sentenza":
+        return "sentenza che il massimario non ha"
+    return "da leggere sulla fonte"
+
+
+def citazioni_della_bozza(bozza: Bozza) -> list[tuple[int, str, str]]:
+    """Le citazioni di una bozza con lo stato di oggi nel massimario: dopo
+    una lettura si ricontrollano senza chiedere niente al modello."""
+    voci, viste, righe = massimario().voci, set(), []
+    for n, p in enumerate(paragrafi_di(bozza), start=1):
+        for c in citations.estrai(p.testo):
+            if c.chiave not in viste:
+                viste.add(c.chiave)
+                righe.append((n, c.chiave, stato_nel_massimario(voci, c)))
+    return righe
+
+
+# [libro:norma-letta]
+def norma_letta(db: Session, utente: Utente, chiave: str) -> dict:
+    """Una norma entra nel massimario quando un avvocato l'ha letta sulla
+    fonte ufficiale: con il suo nome e la data."""
+    if utente.ruolo != "avvocato":
+        raise BozzaRifiutata("Una norma letta la registra un avvocato.")
+    indirizzo = citations.indirizzo_normattiva(chiave)
+    if indirizzo is None:
+        raise BozzaRifiutata(
+            f"{chiave}: non so dove leggerla su Normattiva. Scrivila come "
+            "«c.p.c. art. 645»."
+        )
+    elenco = massimario()
+    if elenco.voci.get(chiave, {}).get("stato") == "verificata":
+        raise BozzaRifiutata(f"{chiave} è già nel massimario.")
+    voce = {
+        "chiave": chiave,
+        "indirizzo": indirizzo,
+        "verificata_il": date.today().isoformat(),
+        "stato": "verificata",
+        "fonte": "Normattiva, testo vigente, letto da un avvocato",
+        "tipo": "norma",
+        "letta_da": utente.nome,
+    }
+    elenco.voci[chiave] = voce
+    elenco.salva()
+    registra_evento(db, utente, None, "massimario", chiave=chiave)
+    db.commit()
+    return voce
+
+
+# [/libro:norma-letta]

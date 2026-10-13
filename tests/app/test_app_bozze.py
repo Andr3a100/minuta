@@ -19,7 +19,15 @@ from sqlalchemy import func, inspect, select
 from app import documenti as app_documenti
 from app import manage
 from app.archivio import carica_atto
-from app.bozze import BozzaRifiutata, approva_bozza, in_word, prepara_bozza
+from app import bozze as app_bozze
+from app.bozze import (
+    BozzaRifiutata,
+    approva_bozza,
+    citazioni_della_bozza,
+    in_word,
+    norma_letta,
+    prepara_bozza,
+)
 from app.db import (
     Bozza,
     Evento,
@@ -423,3 +431,53 @@ def test_approva_solo_un_avvocato_e_una_volta(app, civile):
         approva_bozza(db, utente(db, "sarti"), fascicolo, bozza, forza=True)
         with pytest.raises(BozzaRifiutata, match="già approvata"):
             approva_bozza(db, utente(db, "sarti"), fascicolo, bozza)
+
+
+@pytest.fixture
+def massimario_di_prova(monkeypatch, tmp_path):
+    """Una copia del massimario: le prove non scrivono in quello vero."""
+    copia = tmp_path / "massimario.json"
+    copia.write_text(app_bozze.MASSIMARIO.read_text("utf-8"), "utf-8")
+    monkeypatch.setattr(app_bozze, "MASSIMARIO", copia)
+    return copia
+
+
+def test_le_citazioni_della_bozza_si_controllano(app, civile):
+    with app.state.session_factory() as db:
+        esito = prepara_bozza(
+            db, utente(db, "sarti"), civile, "opposizione", ModelloFinto()
+        )
+    problemi = [m for p in esito.paragrafi for m in p.problemi]
+    assert any(
+        m.startswith("sentenza che il massimario non ha") for m in problemi
+    )
+    assert any(m.startswith("parla di assegno o cambiale") for m in problemi)
+    assert "Da leggere sulla fonte: c.p.c. art. 645" in esito.note
+
+
+def test_una_norma_letta_entra_nel_massimario(
+    app, civile, massimario_di_prova
+):
+    with app.state.session_factory() as db:
+        sarti = utente(db, "sarti")
+        bozza = prepara_bozza(
+            db, sarti, civile, "opposizione", ModelloFinto()
+        ).bozza
+        prima = dict((c, s) for _n, c, s in citazioni_della_bozza(bozza))
+        voce = norma_letta(db, sarti, "c.p.c. art. 645")
+        dopo = dict((c, s) for _n, c, s in citazioni_della_bozza(bozza))
+        with pytest.raises(BozzaRifiutata, match="già nel massimario"):
+            norma_letta(db, sarti, "c.p.c. art. 645")
+        with pytest.raises(BozzaRifiutata, match="un avvocato"):
+            norma_letta(db, utente(db, "irene"), "c.p.c. art. 646")
+        with pytest.raises(BozzaRifiutata, match="non so dove leggerla"):
+            norma_letta(db, sarti, "art. 645")
+    assert prima["c.p.c. art. 645"] == "da leggere sulla fonte"
+    assert dopo["c.p.c. art. 645"].startswith("letta da Elena Sarti il ")
+    assert voce["indirizzo"].endswith("1443:1~art645")
+    assert (
+        json.loads(massimario_di_prova.read_text("utf-8"))["c.p.c. art. 645"][
+            "letta_da"
+        ]
+        == "Elena Sarti"
+    )

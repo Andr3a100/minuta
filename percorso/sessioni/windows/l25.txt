@@ -1,0 +1,20 @@
+### [esito:l25-versione]
+cd ~\minuta\laboratorio
+git switch --detach v1.0.1
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l25-versione]
+### [esito:l25-massimario]
+.\.venv\Scripts\python.exe -m app.manage massimario
+### [/esito:l25-massimario]
+### [esito:l25-bozza]
+.\.venv\Scripts\python.exe -m app.manage bozza 2026-071 opposizione --da sarti
+### [/esito:l25-bozza]
+### [esito:l25-norma]
+.\.venv\Scripts\python.exe -m app.manage norma-letta "c.p.c. art. 645" --da sarti
+### [/esito:l25-norma]
+### [esito:l25-citazioni]
+.\.venv\Scripts\python.exe -m app.manage citazioni 2026-071 3 --da sarti
+### [/esito:l25-citazioni]
+### [esito:l25-diagnosi]
+.\.venv\Scripts\python.exe -m app.manage diagnosi
+### [/esito:l25-diagnosi]

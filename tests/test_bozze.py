@@ -3,19 +3,23 @@ importi che i documenti non hanno, i segnaposto rimasti."""
 
 from __future__ import annotations
 
+import json
 from datetime import date
 
 import pytest
 
 from minuta.bozza import (
     TipoDiBozza,
+    citazioni,
     controlla,
     da_completare,
     da_verificare,
     istruzioni,
     leggi_bozza,
     manca_la_scadenza,
+    pertinenza,
 )
+from minuta.citations import Massimario
 
 DOCUMENTI = {
     "decreto.pdf": [
@@ -133,3 +137,56 @@ def test_solo_le_bozze_che_minuta_sa_preparare():
     assert istruzioni("promemoria").startswith("BOZZA DEL PROMEMORIA:")
     with pytest.raises(TipoDiBozza):
         istruzioni("appello")
+
+
+# [libro:prova-citazioni]
+def test_la_sentenza_che_nessuno_ha_letto(tmp_path):
+    voci = {
+        "c.p.c. art. 641": {"chiave": "c.p.c. art. 641", "stato": "verificata"}
+    }
+    (tmp_path / "massimario.json").write_text(json.dumps(voci), "utf-8")
+    paragrafi = leggi_bozza(
+        "Entro il termine dell'art. 641 c.p.c. {fonte: modello}\n\n"
+        "Si propone ai sensi dell'art. 645 c.p.c. {fonte: modello}\n\n"
+        "Lo dice Cass. civ., sez. II, 15 maggio 2023, n. 99999. "
+        "{fonte: modello}"
+    )
+    da_leggere = citazioni(paragrafi, Massimario(tmp_path / "massimario.json"))
+    assert da_leggere == ["c.p.c. art. 645"]
+    assert paragrafi[2].problemi == [
+        "sentenza che il massimario non ha: «Cass. civ., sez. II, 15 maggio "
+        "2023, n. 99999»; non si cita una sentenza che nessuno ha letto"
+    ]
+
+
+def test_la_norma_che_esiste_ma_non_c_entra():
+    paragrafi = leggi_bozza(
+        "Provvisoriamente esecutivo ai sensi dell'art. 642, primo comma, "
+        "c.p.c., perché il credito è fondato su un assegno. {fonte: modello}"
+    )
+    pertinenza(paragrafi, DOCUMENTI)
+    assert paragrafi[0].problemi == [
+        "parla di assegno o cambiale, che il fascicolo non ha: la norma "
+        "esiste, ma c'entra?",
+        "parla di provvisoria esecuzione, che il fascicolo non ha: la norma "
+        "esiste, ma c'entra?",
+    ]
+
+
+# [/libro:prova-citazioni]
+
+
+def test_la_data_di_una_sentenza_non_e_un_fatto():
+    (paragrafo,) = controlla(
+        leggi_bozza("Cass. civ., 15 maggio 2023, n. 1. {fonte: modello}"),
+        DOCUMENTI,
+        SCADENZE,
+    )
+    assert paragrafo.problemi == []
+
+
+def test_cio_che_il_fascicolo_ha_non_si_segnala():
+    documenti = {"decreto.pdf": ["Decreto provvisoriamente esecutivo."]}
+    paragrafi = leggi_bozza("La provvisoria esecuzione. {fonte: modello}")
+    pertinenza(paragrafi, documenti)
+    assert paragrafi[0].problemi == []

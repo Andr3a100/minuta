@@ -60,7 +60,15 @@ from .archivio import (
     cerca_nell_archivio,
     puo_leggere,
 )
-from .bozze import BozzaRifiutata, approva_bozza, in_word, prepara_bozza
+from .bozze import (
+    BozzaRifiutata,
+    approva_bozza,
+    citazioni_della_bozza,
+    in_word,
+    massimario,
+    norma_letta,
+    prepara_bozza,
+)
 from .config import ConfigError, leggi_file_env, load_settings
 from .db import (
     RUOLI,
@@ -471,6 +479,16 @@ def costruisci_parser() -> argparse.ArgumentParser:
         "--forza", action="store_true", help="approva anche con dei residui"
     )
     approva.add_argument("--da", required=True, help="l'avvocato")
+    sub.add_parser(
+        "massimario", help="le norme e le sentenze lette dallo studio"
+    )
+    letta = sub.add_parser("norma-letta", help="registra una norma letta")
+    letta.add_argument("chiave", help="per esempio «c.p.c. art. 645»")
+    letta.add_argument("--da", required=True, help="l'avvocato che l'ha letta")
+    cit = sub.add_parser("citazioni", help="le citazioni di una bozza")
+    cit.add_argument("codice")
+    cit.add_argument("numero", type=int, help="il numero della bozza")
+    cit.add_argument("--da", required=True, help="chi controlla")
     return parser
 
 
@@ -755,6 +773,17 @@ def main(argv: list[str] | None = None) -> int:
                 return bozza_dalla_riga(db, settings, args)
             elif args.comando == "approva-bozza":
                 approva_dalla_riga(db, args)
+            elif args.comando == "massimario":
+                stampa_massimario()
+            elif args.comando == "norma-letta":
+                voce = norma_letta(db, utente_attivo(db, args.da), args.chiave)
+                print(
+                    f"Nel massimario: {voce['chiave']}, letta da "
+                    f"{voce['letta_da']} il {voce['verificata_il']}."
+                )
+                print(f"  {voce['indirizzo']}")
+            elif args.comando == "citazioni":
+                citazioni_dalla_riga(db, args)
         return 0
     except (
         ArchivioRifiutato,
@@ -1461,6 +1490,11 @@ def bozza_dalla_riga(db: Session, settings, args) -> int:
                     "paragrafi": [asdict(p) for p in esito.paragrafi],
                     "note": esito.note,
                     "stampa": "\n".join(stampa),
+                    "note_stampa": "\n".join(
+                        r
+                        for nota in esito.note
+                        for r in a_capo(nota, "", "  ")
+                    ),
                     "token_in": voce.token_in,
                     "token_out": voce.token_out,
                     "costo_usd": voce.costo_usd,
@@ -1474,6 +1508,34 @@ def bozza_dalla_riga(db: Session, settings, args) -> int:
             "utf-8",
         )
     return 0
+
+
+def stampa_massimario() -> None:
+    voci = massimario().voci
+    print(f"Il massimario dello studio: {len(voci)} voci.")
+    for chiave, voce in sorted(voci.items()):
+        chi = voce.get("letta_da")
+        quando = voce.get("verificata_il", "?")
+        stato = (
+            f"letta da {chi} il {quando}"
+            if chi
+            else f"controllata il {quando}"
+        )
+        print(f"{chiave:<26} {stato}")
+
+
+def citazioni_dalla_riga(db: Session, args) -> None:
+    fascicolo, _utente = fascicolo_e_utente(db, args.codice, args.da)
+    bozza = db.get(Bozza, args.numero)
+    if bozza is None or bozza.fascicolo_id != fascicolo.id:
+        raise CommandError(
+            f"Nel fascicolo {fascicolo.codice} non c'è la bozza n. "
+            f"{args.numero}."
+        )
+    righe = citazioni_della_bozza(bozza)
+    print(f"Bozza n. {bozza.id}: {len(righe)} citazioni.")
+    for n, chiave, stato in righe:
+        print(f"{chiave:<26} paragrafo {n:<3} {stato}")
 
 
 def approva_dalla_riga(db: Session, args) -> None:
