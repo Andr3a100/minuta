@@ -31,6 +31,7 @@ tuo computer (`.env`, il database, l'ambiente virtuale) restano dove sono.
 | 1.1 | 26 | le correzioni: approvando un atto, le modifiche dell'avvocato si contano per tipo; una correzione di stile fatta in due fascicoli diversi diventa una regola, va nella richiesta e si controlla sulla bozza; l'avvocato può respingerla; si apre un fascicolo anche dal terminale |
 | 1.1.1 | 27 | la suite di valutazione: 41 casi con la risposta nota su passi, archivio, scadenze, somme, citazioni e schede, e un riferimento che nessuna modifica può peggiorare; `valuta`, e la prova automatica che la esegue a ogni modifica |
 | 1.1.2 | 28 | l'insieme di addestramento: gli atti di un avvocato senza nomi né fatti dei clienti, in un file che resta nello studio (`addestramento`); l'addestramento soltanto in locale (docs/ADR-008.md) |
+| 1.2 | 29 | la prima modifica con un agente: il glossario del fascicolo, deciso dall'avvocato, fa partire le pagine con le parole equivalenti (il forno passa); `glossario`; il cancello di una modifica (`cancello --da`), che ferma chi cambia la misura invece di Minuta; la richiesta in docs/richieste/ |
 
 ## Che cosa fa
 

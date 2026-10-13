@@ -135,5 +135,7 @@ sessione() {
     sessione l27
     # Lezione 28: Minuta 1.1.2, l'insieme di addestramento.
     sessione l28
+    # Lezione 29: Minuta 1.2, la prima modifica con un agente.
+    sessione l29
     echo "== Fine"
 } >"$verbale"

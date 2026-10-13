@@ -477,6 +477,13 @@ def _passo_11(conn: Connection) -> None:
     conn.exec_driver_sql("ALTER TABLE bozze ADD COLUMN modifiche TEXT")
 
 
+def _passo_12(conn: Connection) -> None:
+    """Il glossario del fascicolo (lezione 29)."""
+    conn.exec_driver_sql(
+        "ALTER TABLE fascicoli ADD COLUMN glossario TEXT NOT NULL DEFAULT '{}'"
+    )
+
+
 # Ogni nuova migrazione si aggiunge qui con il numero successivo.
 PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     1: ("Schema iniziale", _passo_1),
@@ -490,6 +497,7 @@ PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     9: ("Lo stile degli avvocati", _passo_9),
     10: ("Le bozze", _passo_10),
     11: ("Le correzioni degli avvocati", _passo_11),
+    12: ("Il glossario del fascicolo", _passo_12),
 }
 
 

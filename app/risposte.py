@@ -40,8 +40,8 @@ from minuta.domande import (
     a_passi,
     controlla,
     leggi_risposta,
-    scegli_passi,
 )
+from minuta.glossario import scegli_con_glossario
 from minuta.invio import (
     SISTEMA,
     Preparato,
@@ -146,7 +146,8 @@ def domanda_sul_fascicolo(
     if utente.ruolo == "segreteria":
         raise RichiestaNonAmmessa("La segreteria non fa richieste al modello.")
     documenti, pagine = documenti_del_fascicolo(db, fascicolo)
-    passi = scegli_passi(domanda, pagine)
+    glossario = json.loads(fascicolo.glossario or "{}")
+    passi = scegli_con_glossario(domanda, pagine, glossario)
     if not passi:  # non parte niente
         risposta = salva(
             db, utente, fascicolo, domanda, [], [], NESSUN_PASSO, None

@@ -21,13 +21,15 @@ from datetime import date
 from functools import cache
 from pathlib import Path
 
-from . import archivio, citations, documenti, domande, scheda, verifiche
+from . import archivio, citations, documenti, scheda, verifiche
+from .glossario import scegli_con_glossario
 from .model import ModelloFinto
 from .scadenze import calcola, carica_regole
 
 RADICE = Path(__file__).resolve().parents[1]
 CASI = RADICE / "valutazione" / "casi.json"
 RIFERIMENTO = RADICE / "valutazione" / "riferimento.json"
+GLOSSARI = RADICE / "valutazione" / "glossari.json"
 TIPI = ("passi", "archivio", "scadenza", "somme", "citazioni", "scheda")
 
 
@@ -69,8 +71,11 @@ def atti_dell_archivio() -> tuple[archivio.AttoLetto, ...]:
 
 
 def _passi(caso: dict) -> Esito:
-    scelti = domande.scegli_passi(
-        caso["domanda"], pagine_del_fascicolo(caso["fascicolo"])
+    glossario = json.loads(GLOSSARI.read_text("utf-8")).get(
+        caso["fascicolo"], {}
+    )
+    scelti = scegli_con_glossario(
+        caso["domanda"], pagine_del_fascicolo(caso["fascicolo"]), glossario
     )
     partiti = [p.documento for p in scelti]
     attesi = caso["attesi"]
@@ -152,8 +157,8 @@ MISURE = {
 }
 
 
-def carica_casi(percorso: Path = CASI) -> list[dict]:
-    return json.loads(percorso.read_text("utf-8"))["casi"]
+def carica_casi(percorso: Path | None = None) -> list[dict]:
+    return json.loads((percorso or CASI).read_text("utf-8"))["casi"]
 
 
 def esegui(casi: list[dict]) -> list[Esito]:

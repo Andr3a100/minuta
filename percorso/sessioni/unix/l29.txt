@@ -1,0 +1,25 @@
+: '### [esito:l29-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v1.2
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l29-versione]'
+: '### [esito:l29-modifica]'
+git diff --stat v1.1.2 HEAD
+: '### [/esito:l29-modifica]'
+: '### [esito:l29-cancello]'
+python -m app.manage cancello --da v1.1.2
+: '### [/esito:l29-cancello]'
+: '### [esito:l29-errore]'
+python percorso/modifica_che_bara.py
+: '### [/esito:l29-errore]'
+: '### [esito:l29-glossario]'
+python -m app.manage glossario 2026-071 fornitura forno --da sarti
+: '### [/esito:l29-glossario]'
+: '### [esito:l29-forno]'
+d="La resistente ha contestato la fornitura?"
+python -m app.manage domanda 2026-071 "$d" --da irene
+: '### [/esito:l29-forno]'
+: '### [esito:l29-diagnosi]'
+python -m app.manage diagnosi
+: '### [/esito:l29-diagnosi]'

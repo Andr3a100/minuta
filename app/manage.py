@@ -38,7 +38,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
-from minuta import certificatori, learning, valutazione
+from minuta import cancello, certificatori, learning, valutazione
 from minuta import documenti as motore
 from minuta.archivio import leggi_indice
 from minuta.bozza import TipoDiBozza
@@ -108,6 +108,7 @@ from .documenti import (
     lettura_di,
     stato_elenco,
 )
+from .glossario import GlossarioRifiutato, decidi_voce, glossario_di
 from .invio import (
     InvioBloccato,
     PersonaRifiutata,
@@ -119,9 +120,9 @@ from .invio import (
     prepara_domanda,
 )
 from .migrations import MigrationError, migra, ultima, versione_attuale
-from .rules import APRONO, ValidationErrors, campi_fascicolo
 from .registro import RichiestaNonAmmessa
 from .risposte import domanda_all_archivio, domanda_sul_fascicolo
+from .rules import APRONO, ValidationErrors, campi_fascicolo
 from .scadenze import (
     ScadenzaRifiutata,
     calcola_scadenza,
@@ -508,6 +509,21 @@ def costruisci_parser() -> argparse.ArgumentParser:
         "addestramento", help="l'insieme di addestramento, senza nomi né fatti"
     )
     add.add_argument("--da", required=True, help="l'avvocato")
+    glo = sub.add_parser(
+        "glossario", help="le parole equivalenti del fascicolo"
+    )
+    glo.add_argument("codice")
+    glo.add_argument("parola", nargs="?", help="la parola della voce")
+    glo.add_argument(
+        "equivalenti", nargs="*", help="niente: la voce si toglie"
+    )
+    glo.add_argument("--da", required=True)
+    canc = sub.add_parser("cancello", help="il cancello di una modifica")
+    canc.add_argument(
+        "--da",
+        required=True,
+        help="la versione di partenza, per esempio v1.1.2",
+    )
     val = sub.add_parser("valuta", help="la suite di valutazione")
     val.add_argument(
         "--accetta",
@@ -824,6 +840,12 @@ def main(argv: list[str] | None = None) -> int:
                 citazioni_dalla_riga(db, args)
             elif args.comando == "addestramento":
                 insieme_dalla_riga(db, settings, args)
+            elif args.comando == "glossario":
+                glossario_dalla_riga(db, args)
+            elif args.comando == "cancello":
+                esame = cancello.esamina(args.da)
+                print("\n".join(cancello.resoconto(esame)))
+                return 0 if esame.passa else 1
             elif args.comando == "valuta":
                 return valuta(args.accetta)
             elif args.comando == "correzioni":
@@ -838,6 +860,7 @@ def main(argv: list[str] | None = None) -> int:
     except (
         AddestramentoRifiutato,
         ArchivioRifiutato,
+        GlossarioRifiutato,
         BozzaRifiutata,
         CorrezioneRifiutata,
         TipoDiBozza,
@@ -1655,6 +1678,20 @@ def insieme_dalla_riga(db: Session, settings, args) -> None:
         f"Scritto in {insieme.percorso.as_posix()}, impronta "
         f"{insieme.impronta[:12]}: resta nello studio, non parte niente."
     )
+
+
+def glossario_dalla_riga(db: Session, args) -> None:
+    fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    if args.parola:
+        glossario = decidi_voce(
+            db, utente, fascicolo, args.parola, args.equivalenti
+        )
+    else:
+        glossario = glossario_di(fascicolo)
+    voci = learning.quanti(len(glossario), "voce", "voci")
+    print(f"Il glossario di {fascicolo.codice}: {voci}.")
+    for parola, equivalenti in sorted(glossario.items()):
+        print(f"  {parola}: {', '.join(equivalenti)}")
 
 
 def valuta(accetta: bool = False) -> int:

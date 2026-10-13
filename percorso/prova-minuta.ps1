@@ -175,6 +175,8 @@ Sessione 'l26'
 Sessione 'l27'
 # Lezione 28: Minuta 1.1.2, l'insieme di addestramento.
 Sessione 'l28'
+# Lezione 29: Minuta 1.2, la prima modifica con un agente.
+Sessione 'l29'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)

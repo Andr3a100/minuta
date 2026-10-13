@@ -1,5 +1,5 @@
 {
-  "passi-forno": false,
+  "passi-forno": true,
   "passi-notifica": true,
   "passi-somma": true,
   "passi-acconto": true,

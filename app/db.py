@@ -103,6 +103,8 @@ class Fascicolo(Base):
     avvocato_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
     stato: Mapped[str] = mapped_column(String(20), default="aperto")
     versione: Mapped[int] = mapped_column(Integer, default=1)
+    # Le parole equivalenti del fascicolo, decise dall'avvocato (lezione 29).
+    glossario: Mapped[str] = mapped_column(Text, server_default="{}")
     creato_da_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
     creato_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
     aggiornato_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)

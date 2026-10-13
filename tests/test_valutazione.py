@@ -90,15 +90,26 @@ def test_le_radici_corte_non_entrano_in_uso(monkeypatch, capsys):
     # la ricerca nell'archivio usa la stessa funzione: vale anche lì
     assert archivio.parole is domande.parole is script.parole_corte
     uscita = capsys.readouterr().out
-    assert "Rispetto al riferimento, migliorati: 1.\n  passi-forno" in uscita
+    assert (
+        "Rispetto al riferimento, peggiorati: 3.\n  passi-esecuzione" in uscita
+    )
     assert "  passi-consulente-civile\nLa modifica non entra in uso." in uscita
 
 
 def test_il_comando_e_il_riferimento(monkeypatch, tmp_path, capsys):
+    """Un caso che passava e ora no ferma la modifica; accettarlo è una
+    decisione, e il riferimento la conserva."""
+    dati = json.loads(valutazione.CASI.read_text("utf-8"))
+    for caso in dati["casi"]:
+        if caso["id"] == "passi-forno":
+            caso["attesi"] = ["decreto.pdf"]  # una risposta che non torna
+    casi = tmp_path / "casi.json"
+    casi.write_text(json.dumps(dati), "utf-8")
     riferimento = tmp_path / "riferimento.json"
-    riferimento.write_text(json.dumps({"passi-forno": True}), "utf-8")
+    riferimento.write_text(valutazione.RIFERIMENTO.read_text("utf-8"), "utf-8")
+    monkeypatch.setattr(valutazione, "CASI", casi)
     monkeypatch.setattr(valutazione, "RIFERIMENTO", riferimento)
-    assert manage.valuta() == 1  # il forno «passava»: ora è peggiorato
+    assert manage.valuta() == 1
     assert "La modifica non entra in uso." in capsys.readouterr().out
     assert manage.valuta(accetta=True) == 0
     assert "Riferimento aggiornato: 40 casi su 41 passano." in (
