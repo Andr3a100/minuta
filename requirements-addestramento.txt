@@ -1,0 +1,8 @@
+# Le dipendenze dell'addestramento in locale (lezione 30): soltanto sul
+# server dello studio, mai sul computer di tutti i giorni. Versioni esatte;
+# torch nella sua versione per il processore, senza scheda grafica.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+transformers==5.18.0
+peft==0.21.1
+accelerate==1.15.0

@@ -1,0 +1,25 @@
+: '### [esito:l30-installa]'
+cd ~/minuta/laboratorio
+git switch --detach v1.2.1
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -q -r requirements.txt -r requirements-addestramento.txt
+python strumenti/configura_locale.py
+python -m app.manage migra
+: '### [/esito:l30-installa]'
+: '### [esito:l30-produzione]'
+export APP_ENV=production
+export APP_ORIGIN=https://minuta.studio-meridiana.esempio.it
+export ALLOWED_HOSTS=minuta.studio-meridiana.esempio.it
+python -m app.manage diagnosi
+: '### [/esito:l30-produzione]'
+: '### [esito:l30-insieme]'
+sha256sum dati/addestramento/sarti.jsonl
+: '### [/esito:l30-insieme]'
+: '### [esito:l30-addestra]'
+f=dati/addestramento/sarti.jsonl
+python -m minuta.addestra "$f" --fuori archivio-10 --verbale addestramento.json
+: '### [/esito:l30-addestra]'
+: '### [esito:l30-adattatore]'
+ls dati/modelli/sarti
+: '### [/esito:l30-adattatore]'

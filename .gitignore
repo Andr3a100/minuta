@@ -15,3 +15,5 @@ dati/
 bozza-*.docx
 # Gli atti corretti della lezione 26: si rifanno, non si conservano.
 atto-*.docx
+# Il verbale dell'addestramento della lezione 30: si rifà, non si conserva.
+addestramento.json

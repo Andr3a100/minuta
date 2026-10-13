@@ -126,3 +126,28 @@ jobs:
         with:
           name: verbale-minuta-${{ matrix.os }}
           path: verbale-minuta.txt
+
+  server:
+    name: Il server dello studio · ubuntu-24.04
+    runs-on: ubuntu-24.04
+    steps:
+      # Tutta la storia, con le etichette delle versioni di Minuta.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Prova dei comandi sul server
+        run: |
+          bash percorso/prova-server.sh "$RUNNER_TEMP/verbale-server.txt"
+          cp "$RUNNER_TEMP/verbale-server.txt" verbale-server.txt
+          cp "$RUNNER_TEMP/addestramento.json" addestramento.json || true
+      - name: Verbale
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verbale-server-ubuntu-24.04
+          path: |
+            verbale-server.txt
+            addestramento.json

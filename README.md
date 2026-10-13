@@ -32,6 +32,7 @@ tuo computer (`.env`, il database, l'ambiente virtuale) restano dove sono.
 | 1.1.1 | 27 | la suite di valutazione: 41 casi con la risposta nota su passi, archivio, scadenze, somme, citazioni e schede, e un riferimento che nessuna modifica può peggiorare; `valuta`, e la prova automatica che la esegue a ogni modifica |
 | 1.1.2 | 28 | l'insieme di addestramento: gli atti di un avvocato senza nomi né fatti dei clienti, in un file che resta nello studio (`addestramento`); l'addestramento soltanto in locale (docs/ADR-008.md) |
 | 1.2 | 29 | la prima modifica con un agente: il glossario del fascicolo, deciso dall'avvocato, fa partire le pagine con le parole equivalenti (il forno passa); `glossario`; il cancello di una modifica (`cancello --da`), che ferma chi cambia la misura invece di Minuta; la richiesta in docs/richieste/ |
+| 1.2.1 | 30 | l'addestramento in locale, sul server dello studio: un adattatore LoRA su Qwen2.5-0.5B (Apache 2.0, revisione fissata) con l'insieme della lezione 28, misurato su un atto tenuto fuori (`python -m minuta.addestra`, dipendenze in requirements-addestramento.txt); la prova del server, percorso/prova-server.sh |
 
 ## Che cosa fa
 
