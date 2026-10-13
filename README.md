@@ -29,6 +29,7 @@ tuo computer (`.env`, il database, l'ambiente virtuale) restano dove sono.
 | 1.0 | 24 | la bozza: l'atto di opposizione nello stile confermato di chi firma e il promemoria per il cliente, ogni paragrafo con la provenienza, date e importi controllati sui documenti, in Word secondo l'art. 6 del DM 110/2023 |
 | 1.0.1 | 25 | le citazioni: ogni norma e ogni sentenza della bozza si confronta con il massimario dello studio, quelle assenti restano da leggere, le sentenze non lette si segnalano, come gli elementi che il fascicolo non ha; le norme lette entrano nel massimario con nome e data |
 | 1.1 | 26 | le correzioni: approvando un atto, le modifiche dell'avvocato si contano per tipo; una correzione di stile fatta in due fascicoli diversi diventa una regola, va nella richiesta e si controlla sulla bozza; l'avvocato può respingerla; si apre un fascicolo anche dal terminale |
+| 1.1.1 | 27 | la suite di valutazione: 41 casi con la risposta nota su passi, archivio, scadenze, somme, citazioni e schede, e un riferimento che nessuna modifica può peggiorare; `valuta`, e la prova automatica che la esegue a ogni modifica |
 
 ## Che cosa fa
 

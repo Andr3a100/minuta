@@ -1,0 +1,338 @@
+{
+  "_come_si_legge": "I casi con la risposta nota della suite di valutazione (lezione 27). Ogni caso dice che cosa Minuta deve fare; la risposta l'ha decisa una persona, non l'ha copiata dall'uscita di Minuta. Il riferimento dice quali casi passano oggi.",
+  "casi": [
+    {
+      "id": "passi-forno",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "La resistente ha contestato la fornitura?",
+      "attesi": [
+        "promemoria.docx"
+      ],
+      "nota": "lezione 21: il promemoria parla del forno, la domanda della fornitura"
+    },
+    {
+      "id": "passi-notifica",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "Quando è stato notificato il decreto?",
+      "attesi": [
+        "ricevuta-pec.pdf"
+      ]
+    },
+    {
+      "id": "passi-somma",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "Quale somma ingiunge il decreto?",
+      "attesi": [
+        "decreto.pdf"
+      ]
+    },
+    {
+      "id": "passi-acconto",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "Qual è l'importo della fattura del primo acconto?",
+      "attesi": [
+        "fattura-112.xml.p7m"
+      ]
+    },
+    {
+      "id": "passi-bonifico",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "Che cosa dice il cliente del bonifico di luglio?",
+      "attesi": [
+        "promemoria.docx"
+      ]
+    },
+    {
+      "id": "passi-produzioni",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "Quali documenti produce la ricorrente?",
+      "attesi": [
+        "ricorso.pdf"
+      ]
+    },
+    {
+      "id": "passi-termine",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "Entro quanti giorni si può fare opposizione?",
+      "attesi": [
+        "decreto.pdf"
+      ]
+    },
+    {
+      "id": "passi-saldo",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "Quando scade la fattura del saldo?",
+      "attesi": [
+        "fattura-168.xml.p7m"
+      ]
+    },
+    {
+      "id": "passi-esecuzione",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "La ricorrente ha chiesto la provvisoria esecuzione?",
+      "attesi": [
+        "ricorso.pdf"
+      ],
+      "esclusi": [
+        "ricevuta-pec.pdf"
+      ]
+    },
+    {
+      "id": "passi-pec",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "A quale indirizzo PEC è stato consegnato il decreto?",
+      "attesi": [
+        "ricevuta-pec.pdf"
+      ]
+    },
+    {
+      "id": "passi-contabile",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "Che cosa contiene la contabile?",
+      "attesi": [
+        "promemoria.docx"
+      ],
+      "esclusi": [
+        "decreto.pdf",
+        "ricorso.pdf"
+      ],
+      "nota": "della contabile parla soltanto il promemoria"
+    },
+    {
+      "id": "passi-consulente-civile",
+      "tipo": "passi",
+      "fascicolo": "2026-071",
+      "domanda": "Che cosa dice il consulente tecnico?",
+      "attesi": [],
+      "nota": "nel fascicolo civile non c'è nessun consulente"
+    },
+    {
+      "id": "passi-indagato",
+      "tipo": "passi",
+      "fascicolo": "2026-073",
+      "domanda": "Che cosa ha diritto di fare l'indagato dopo l'avviso?",
+      "attesi": [
+        "avviso-415-bis.pdf.p7m"
+      ]
+    },
+    {
+      "id": "passi-consulente",
+      "tipo": "passi",
+      "fascicolo": "2026-073",
+      "domanda": "Che cosa dice il consulente tecnico?",
+      "attesi": [],
+      "nota": "lezione 21: nessun documento ne parla, e non deve partire niente"
+    },
+    {
+      "id": "passi-cartella",
+      "tipo": "passi",
+      "fascicolo": "2026-072",
+      "domanda": "Per quali imposte è la cartella?",
+      "attesi": [
+        "cartella-scansione-300.pdf"
+      ]
+    },
+    {
+      "id": "passi-ingiunta",
+      "tipo": "passi",
+      "fascicolo": "2026-074",
+      "domanda": "Quale somma ingiunge il decreto?",
+      "attesi": [
+        "decreto.pdf"
+      ]
+    },
+    {
+      "id": "passi-testimoni",
+      "tipo": "passi",
+      "fascicolo": "2026-074",
+      "domanda": "Chi sono i testimoni dell'incidente?",
+      "attesi": [],
+      "nota": "nessun documento ne parla"
+    },
+    {
+      "id": "archivio-01",
+      "tipo": "archivio",
+      "domanda": "provvisoria esecuzione per assegno bancario protestato",
+      "atteso": "10"
+    },
+    {
+      "id": "archivio-02",
+      "tipo": "archivio",
+      "domanda": "riconoscimento del debito con piano di rientro non rispettato",
+      "atteso": "05"
+    },
+    {
+      "id": "archivio-03",
+      "tipo": "archivio",
+      "domanda": "canoni di locazione non pagati dal conduttore",
+      "atteso": "04"
+    },
+    {
+      "id": "archivio-04",
+      "tipo": "archivio",
+      "domanda": "consumatore, riparazione impianto di riscaldamento, interessi legali",
+      "atteso": "02"
+    },
+    {
+      "id": "archivio-05",
+      "tipo": "archivio",
+      "domanda": "manutenzione degli automezzi di una flotta",
+      "atteso": "03"
+    },
+    {
+      "id": "archivio-06",
+      "tipo": "archivio",
+      "domanda": "impianto di climatizzazione collaudato, saldo dell'appalto",
+      "atteso": "08"
+    },
+    {
+      "id": "archivio-07",
+      "tipo": "archivio",
+      "domanda": "stampa di materiale promozionale per manifestazioni",
+      "atteso": "07"
+    },
+    {
+      "id": "archivio-08",
+      "tipo": "archivio",
+      "domanda": "fornitura di imballaggi in cartone a un supermercato",
+      "atteso": "01"
+    },
+    {
+      "id": "archivio-09",
+      "tipo": "archivio",
+      "domanda": "canone di assistenza informatica non pagato",
+      "atteso": "06"
+    },
+    {
+      "id": "archivio-10",
+      "tipo": "archivio",
+      "domanda": "lettera di diffida e messa in mora con termine di quindici giorni",
+      "atteso": "09"
+    },
+    {
+      "id": "scadenza-opposizione",
+      "tipo": "scadenza",
+      "termine": "opposizione al decreto ingiuntivo",
+      "partenza": "2026-09-21",
+      "attesa": "2026-11-02",
+      "nota": "lezione 19"
+    },
+    {
+      "id": "scadenza-agosto",
+      "tipo": "scadenza",
+      "termine": "opposizione al decreto ingiuntivo",
+      "partenza": "2026-07-10",
+      "attesa": "2026-09-21",
+      "nota": "agosto sospeso; il 19 settembre è sabato e si va a lunedì"
+    },
+    {
+      "id": "scadenza-avviso",
+      "tipo": "scadenza",
+      "termine": "facoltà dopo l'avviso di conclusione delle indagini",
+      "partenza": "2026-10-07",
+      "attesa": "2026-10-27"
+    },
+    {
+      "id": "scadenza-cartella",
+      "tipo": "scadenza",
+      "termine": "ricorso contro la cartella di pagamento",
+      "partenza": "2026-09-18",
+      "attesa": "2026-11-17"
+    },
+    {
+      "id": "scadenza-cartella-agosto",
+      "tipo": "scadenza",
+      "termine": "ricorso contro la cartella di pagamento",
+      "partenza": "2026-07-10",
+      "attesa": "da decidere",
+      "nota": "la sospensione feriale nel tributario è da verificare"
+    },
+    {
+      "id": "scadenza-cartella-2027",
+      "tipo": "scadenza",
+      "termine": "ricorso contro la cartella di pagamento",
+      "partenza": "2027-01-15",
+      "attesa": "da decidere",
+      "nota": "il rinvio del testo unico al codice di procedura civile è da verificare"
+    },
+    {
+      "id": "somme-100",
+      "tipo": "somme",
+      "fascicolo": "2026-072",
+      "documento": "cartella-scansione.pdf",
+      "attese": [
+        false
+      ],
+      "nota": "lezione 16: a 100 punti per pollice la lettura ottica sbaglia una cifra"
+    },
+    {
+      "id": "somme-300",
+      "tipo": "somme",
+      "fascicolo": "2026-072",
+      "documento": "cartella-scansione-300.pdf",
+      "attese": [
+        true
+      ]
+    },
+    {
+      "id": "citazioni-bozza",
+      "tipo": "citazioni",
+      "testo": "ai sensi dell'art. 645 c.p.c. e dell'art. 2697 c.c.; Cass. civ., sez. II, 15 maggio 2023, n. 99999",
+      "attese": [
+        "c.p.c. art. 645",
+        "c.c. art. 2697",
+        "cass. 99999/2023"
+      ]
+    },
+    {
+      "id": "citazioni-comma",
+      "tipo": "citazioni",
+      "testo": "provvisoriamente esecutivo ai sensi dell'art. 642, primo comma, c.p.c.",
+      "attese": [
+        "c.p.c. art. 642"
+      ]
+    },
+    {
+      "id": "citazioni-nessuna",
+      "tipo": "citazioni",
+      "testo": "La cliente ha pagato con bonifico del 15 luglio 2026.",
+      "attese": []
+    },
+    {
+      "id": "scheda-decreto",
+      "tipo": "scheda",
+      "fascicolo": "2026-071",
+      "documento": "decreto.pdf",
+      "segnalate": [
+        "importi"
+      ]
+    },
+    {
+      "id": "scheda-avviso",
+      "tipo": "scheda",
+      "fascicolo": "2026-073",
+      "documento": "avviso-415-bis.pdf.p7m",
+      "segnalate": []
+    },
+    {
+      "id": "scheda-cartella",
+      "tipo": "scheda",
+      "fascicolo": "2026-072",
+      "documento": "cartella-scansione-300.pdf",
+      "segnalate": [
+        "importi"
+      ]
+    }
+  ]
+}

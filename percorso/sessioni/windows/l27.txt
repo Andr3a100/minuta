@@ -1,0 +1,14 @@
+### [esito:l27-versione]
+cd ~\minuta\laboratorio
+git switch --detach v1.1.1
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l27-versione]
+### [esito:l27-valuta]
+.\.venv\Scripts\python.exe -m app.manage valuta
+### [/esito:l27-valuta]
+### [esito:l27-radici]
+.\.venv\Scripts\python.exe percorso\radici_corte.py
+### [/esito:l27-radici]
+### [esito:l27-diagnosi]
+.\.venv\Scripts\python.exe -m app.manage diagnosi
+### [/esito:l27-diagnosi]

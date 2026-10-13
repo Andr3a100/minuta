@@ -48,6 +48,6 @@ costruisce, accanto compare il file della prova.
 | REQ-18 | Il promemoria per il cliente dice in parole semplici che cosa è arrivato, che cosa rischia, che cosa si può fare ed entro quando. | `test_app_bozze.py`; lezione 24 |
 | REQ-19 | Ogni norma citata nella bozza si confronta con il massimario dello studio, fatto di testi letti sulla fonte ufficiale con la data di lettura. Una norma assente o non pertinente al caso è segnalata. | `test_bozze.py`, `test_app_bozze.py`, `test_citazioni.py` (pilota); lezione 25 |
 | REQ-20 | Una correzione di stile diventa una regola solo dopo due atti diversi. Le regole vanno nella richiesta al modello e si controllano sulla bozza. Fra gli esempi resta sempre almeno un atto scritto senza Minuta. | `test_apprendimento.py`, `test_app_correzioni.py`; lezione 26 |
-| REQ-21 | Una suite di casi con risposta nota misura schede, scadenze, verifiche e citazioni. Ogni modifica di Minuta la deve superare prima di entrare in uso. | lezione 27 |
+| REQ-21 | Una suite di casi con risposta nota misura schede, scadenze, verifiche e citazioni. Ogni modifica di Minuta la deve superare prima di entrare in uso. | `test_valutazione.py`; lezione 27 |
 | REQ-22 | La chiave del fornitore sta in un file fuori dal repository. Non compare nel registro, nelle pagine, nei messaggi d'errore. | lezione 15 |
 | REQ-23 | Fornitore e modello si scelgono nella configurazione. Ogni chiamata registra il modello, i token e il costo. | lezioni 15 e 31 |

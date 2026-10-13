@@ -38,7 +38,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
-from minuta import certificatori, learning
+from minuta import certificatori, learning, valutazione
 from minuta import documenti as motore
 from minuta.archivio import leggi_indice
 from minuta.bozza import TipoDiBozza
@@ -503,6 +503,12 @@ def costruisci_parser() -> argparse.ArgumentParser:
     letta = sub.add_parser("norma-letta", help="registra una norma letta")
     letta.add_argument("chiave", help="per esempio «c.p.c. art. 645»")
     letta.add_argument("--da", required=True, help="l'avvocato che l'ha letta")
+    val = sub.add_parser("valuta", help="la suite di valutazione")
+    val.add_argument(
+        "--accetta",
+        action="store_true",
+        help="i risultati di oggi diventano il riferimento",
+    )
     corr = sub.add_parser("correzioni", help="le correzioni di un avvocato")
     corr.add_argument("--da", required=True, help="l'avvocato")
     resp = sub.add_parser(
@@ -811,6 +817,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {voce['indirizzo']}")
             elif args.comando == "citazioni":
                 citazioni_dalla_riga(db, args)
+            elif args.comando == "valuta":
+                return valuta(args.accetta)
             elif args.comando == "correzioni":
                 correzioni_dalla_riga(db, args)
             elif args.comando == "respingi-correzione":
@@ -1619,6 +1627,22 @@ def elenco_modifiche(bozza: Bozza) -> str:
         if conteggio.get(tipo)
     ]
     return ", ".join(parti) or "nessuna"
+
+
+def valuta(accetta: bool = False) -> int:
+    """La suite di valutazione: nessun modello, nessun dato del database,
+    solo i casi con la risposta nota (lezione 27)."""
+    esiti = valutazione.esegui(valutazione.carica_casi())
+    righe, ok = valutazione.resoconto(esiti, valutazione.carica_riferimento())
+    print("\n".join(righe))
+    if accetta:
+        valutazione.accetta(esiti)
+        passati = sum(e.superato for e in esiti)
+        print(
+            f"Riferimento aggiornato: {passati} casi su {len(esiti)} passano."
+        )
+        return 0
+    return 0 if ok else 1
 
 
 def correzioni_dalla_riga(db: Session, args) -> None:

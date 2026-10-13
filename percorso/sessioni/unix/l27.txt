@@ -1,0 +1,15 @@
+: '### [esito:l27-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v1.1.1
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l27-versione]'
+: '### [esito:l27-valuta]'
+python -m app.manage valuta
+: '### [/esito:l27-valuta]'
+: '### [esito:l27-radici]'
+python percorso/radici_corte.py
+: '### [/esito:l27-radici]'
+: '### [esito:l27-diagnosi]'
+python -m app.manage diagnosi
+: '### [/esito:l27-diagnosi]'
