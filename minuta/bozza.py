@@ -55,10 +55,12 @@ REGOLE = (
 )
 # [/libro:istruzioni-bozza]
 FONTE = re.compile(r"\s*\{fonte:\s*([^}]*)\}")
-# La data di una norma non è un fatto del caso: «D.P.R. 30 maggio 2002».
+# La data di una norma, «D.P.R. 30 maggio 2002», o di una sentenza citata
+# non è un fatto del caso.
 DATA_DI_NORMA = re.compile(
     r"(?:D\.\s?P\.\s?R\.|D\.\s?Lgs\.|R\.\s?D\.|[Ll]egge|L\.|[Dd]ecreto"
     r"(?: legislativo| ministeriale)?)\s+\d{1,2}°?\s+[a-z]+\s+\d{4}"
+    rf"|(?i:{citations.SENTENZA.pattern})"
 )
 DOCUMENTO = re.compile(r"^(.+?),\s*pagina\s+(\d+)$")
 SEGNAPOSTO = re.compile(r"\[[A-Z]+(?:_[A-Z]+)*(?:_\d+)?\]")
@@ -114,7 +116,7 @@ def controlla(
                 if not 1 <= pagina <= len(documenti.get(nome, [])):
                     fuori = f"la fonte non è nel fascicolo: {fonte}"
                     p.problemi.append(fuori)
-        fatti = citations.SENTENZA.sub("", DATA_DI_NORMA.sub("", p.testo))
+        fatti = DATA_DI_NORMA.sub("", p.testo)
         for giorno in sorted(date_in(fatti) - date_note):
             p.problemi.append(
                 f"data che non è nei documenti: {in_lettere(giorno)}"
