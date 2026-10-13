@@ -1,0 +1,20 @@
+### [esito:l31-versione]
+cd ~\minuta\laboratorio
+git switch --detach v1.2.2
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l31-versione]
+### [esito:l31-costi]
+.\.venv\Scripts\python.exe -m app.manage costi --da sarti
+### [/esito:l31-costi]
+### [esito:l31-tetto]
+$env:MINUTA_TETTO_MENSILE = "0"
+$d = "La resistente ha contestato la fornitura?"
+.\.venv\Scripts\python.exe -m app.manage domanda 2026-071 "$d" --da irene
+### [/esito:l31-tetto]
+### [esito:l31-cambio]
+$env:MINUTA_TETTO_MENSILE = "50"
+$env:MINUTA_MODELLO = "anthropic"
+$env:MINUTA_MODELLO_NOME = "claude-sonnet-5-5"
+.\.venv\Scripts\python.exe -m app.manage domanda 2026-071 "$d" --da irene
+Remove-Item Env:MINUTA_TETTO_MENSILE, Env:MINUTA_MODELLO, Env:MINUTA_MODELLO_NOME
+### [/esito:l31-cambio]

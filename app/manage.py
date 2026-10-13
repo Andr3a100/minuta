@@ -79,6 +79,7 @@ from .correzioni import (
     stato_di,
     voci_di,
 )
+from .costi import in_dollari, riepilogo
 from .db import (
     RUOLI,
     Assegnazione,
@@ -97,6 +98,7 @@ from .db import (
     UsoAI,
     Utente,
     Verifica,
+    adesso,
     make_engine,
     make_session_factory,
 )
@@ -120,7 +122,7 @@ from .invio import (
     prepara_domanda,
 )
 from .migrations import MigrationError, migra, ultima, versione_attuale
-from .registro import RichiestaNonAmmessa
+from .registro import CONTRATTO, RichiestaNonAmmessa
 from .risposte import domanda_all_archivio, domanda_sul_fascicolo
 from .rules import APRONO, ValidationErrors, campi_fascicolo
 from .scadenze import (
@@ -310,6 +312,17 @@ def leggi_passphrase(da_stdin: bool) -> str:
 def indirizzo_mascherato(url: str) -> str:
     """L'indirizzo del database senza la password: si può mostrare."""
     return make_url(url).render_as_string(hide_password=True)
+
+
+def permessi_env(file_env: Path = Path(".env")) -> str | None:
+    """Sui sistemi Unix, chi può leggere il file con il segreto e la
+    chiave: soltanto chi fa girare Minuta (lezione 31)."""
+    if os.name != "posix" or not file_env.exists():
+        return None
+    modo = file_env.stat().st_mode & 0o777
+    if modo & 0o077:
+        return f"permessi {modo:o}: lo leggono anche altri utenti (chmod 600)"
+    return f"permessi {modo:o}: lo legge soltanto il suo proprietario"
 
 
 def chiave_presente(file_env: Path = Path(".env")) -> str | None:
@@ -518,6 +531,9 @@ def costruisci_parser() -> argparse.ArgumentParser:
         "equivalenti", nargs="*", help="niente: la voce si toglie"
     )
     glo.add_argument("--da", required=True)
+    cos = sub.add_parser("costi", help="la spesa del fornitore, mese per mese")
+    cos.add_argument("--mese", help="AAAA-MM; senza, il mese in corso")
+    cos.add_argument("--da", required=True, help="l'avvocato")
     canc = sub.add_parser("cancello", help="il cancello di una modifica")
     canc.add_argument(
         "--da",
@@ -842,6 +858,8 @@ def main(argv: list[str] | None = None) -> int:
                 insieme_dalla_riga(db, settings, args)
             elif args.comando == "glossario":
                 glossario_dalla_riga(db, args)
+            elif args.comando == "costi":
+                costi_dalla_riga(db, args)
             elif args.comando == "cancello":
                 esame = cancello.esamina(args.da)
                 print("\n".join(cancello.resoconto(esame)))
@@ -1694,6 +1712,22 @@ def glossario_dalla_riga(db: Session, args) -> None:
         print(f"  {parola}: {', '.join(equivalenti)}")
 
 
+def costi_dalla_riga(db: Session, args) -> None:
+    if utente_attivo(db, args.da).ruolo != "avvocato":
+        raise CommandError("I costi dello studio li legge un avvocato.")
+    mese = args.mese or adesso().strftime("%Y-%m")
+    r = riepilogo(db, mese)
+    print(f"La spesa del fornitore, {mese}: {in_dollari(r['totale'])}.")
+    print(
+        f"Voci del registro: {r['voci']}; senza un costo stimato: {r['senza_stima']}."
+    )
+    for titolo in ("persona", "fascicolo", "modello"):
+        if r[titolo]:
+            print(f"Per {titolo}:")
+        for nome, cifra in r[titolo].items():
+            print(f"  {nome:<28} {in_dollari(cifra):>16}")
+
+
 def valuta(accetta: bool = False) -> int:
     """La suite di valutazione: nessun modello, nessun dato del database,
     solo i casi con la risposta nota (lezione 27)."""
@@ -1791,6 +1825,15 @@ def diagnosi(settings, engine) -> int:
     print(f"Chiave modello   {stato}")
     nome = f" ({settings.modello_nome})" if settings.modello_nome else ""
     print(f"Modello          {settings.modello}{nome}")
+    regione = json.loads(CONTRATTO.read_text("utf-8"))["regione"]
+    print(f"Regione          {regione} (config/contratto.json)")
+    if settings.tetto_mensile is None:
+        print("Tetto del mese   nessuno")
+    else:
+        print(f"Tetto del mese   {in_dollari(settings.tetto_mensile)}")
+    permessi = permessi_env()
+    if permessi:
+        print(f"File .env        {permessi}")
     try:
         with engine.connect() as conn:
             versione = versione_attuale(conn)

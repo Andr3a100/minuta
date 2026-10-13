@@ -1,0 +1,21 @@
+: '### [esito:l31-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v1.2.2
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l31-versione]'
+: '### [esito:l31-costi]'
+python -m app.manage costi --da sarti
+: '### [/esito:l31-costi]'
+: '### [esito:l31-tetto]'
+export MINUTA_TETTO_MENSILE=0
+d="La resistente ha contestato la fornitura?"
+python -m app.manage domanda 2026-071 "$d" --da irene
+: '### [/esito:l31-tetto]'
+: '### [esito:l31-cambio]'
+export MINUTA_TETTO_MENSILE=50
+export MINUTA_MODELLO=anthropic
+export MINUTA_MODELLO_NOME=claude-sonnet-5-5
+python -m app.manage domanda 2026-071 "$d" --da irene
+unset MINUTA_TETTO_MENSILE MINUTA_MODELLO MINUTA_MODELLO_NOME
+: '### [/esito:l31-cambio]'

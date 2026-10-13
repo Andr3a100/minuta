@@ -80,6 +80,8 @@ sessione() {
     echo
     # Lezione 30: dove gira Minuta, e l'addestramento in locale.
     sessione l30
+    # Lezione 31: la chiave e il tetto sul server.
+    sessione l31
     echo "== Fine"
 } >"$verbale"
 cp ~/minuta/laboratorio/addestramento.json "$(dirname "$verbale")/" || true

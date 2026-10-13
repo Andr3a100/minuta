@@ -59,6 +59,9 @@ class Settings:
     # che non manda niente a nessuno.
     modello: str = "finto"
     modello_nome: str = ""
+    # Il tetto della spesa del mese, in dollari (lezione 31): nessuno, se
+    # non è impostato; zero ferma ogni richiesta.
+    tetto_mensile: float | None = None
 
     @property
     def production(self) -> bool:
@@ -84,6 +87,8 @@ class Settings:
             raise ConfigError(f"MINUTA_MODELLO deve essere: {elenco}")
         if self.modello != "finto" and not self.modello_nome:
             raise ConfigError("MINUTA_MODELLO_NOME mancante")
+        if self.tetto_mensile is not None and self.tetto_mensile < 0:
+            raise ConfigError("MINUTA_TETTO_MENSILE non può essere negativo")
         if not 1 <= self.session_hours <= 24:
             raise ConfigError("SESSION_HOURS deve essere tra 1 e 24")
         if self.production and not self.app_origin.startswith("https://"):
@@ -108,6 +113,13 @@ def load_settings(file_env: str | os.PathLike[str] = ".env") -> Settings:
         raise ConfigError(
             "SESSION_HOURS deve essere un numero intero"
         ) from None
+    grezzo = valori.get("MINUTA_TETTO_MENSILE", "").strip()
+    try:
+        tetto = float(grezzo.replace(",", ".")) if grezzo else None
+    except ValueError:
+        raise ConfigError(
+            "MINUTA_TETTO_MENSILE deve essere un importo in dollari"
+        ) from None
     return Settings(
         app_env=valori.get("APP_ENV", "development"),
         secret_key=valori.get("SECRET_KEY", ""),
@@ -118,4 +130,5 @@ def load_settings(file_env: str | os.PathLike[str] = ".env") -> Settings:
         data_dir=valori.get("DATA_DIR", "dati"),
         modello=valori.get("MINUTA_MODELLO", "finto"),
         modello_nome=valori.get("MINUTA_MODELLO_NOME", ""),
+        tetto_mensile=tetto,
     ).validate()

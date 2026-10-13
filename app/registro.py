@@ -20,6 +20,7 @@ from minuta.model import Modello, Risposta
 from .db import UsoAI
 
 PREZZI = Path(__file__).resolve().parent.parent / "config" / "prezzi.json"
+CONTRATTO = PREZZI.with_name("contratto.json")
 
 
 class RichiestaNonAmmessa(Exception):
@@ -27,17 +28,23 @@ class RichiestaNonAmmessa(Exception):
 
 
 def costo_stimato(modello: str, token_in, token_out) -> float | None:
-    """Il costo a prezzi standard, dalla scheda del fornitore in config/.
-
-    Non comprende le maggiorazioni del contratto, per esempio quella per la
-    residenza dei dati in Europa: i conti veri sono nella lezione 31.
-    """
+    """Il costo, dalla scheda del fornitore in config/prezzi.json, con la
+    maggiorazione che il contratto comporta (lezione 31): per la regione
+    europea, quella che il listino indica per il modello."""
     prezzi = json.loads(PREZZI.read_text("utf-8")).get(modello)
     if prezzi is None or token_in is None or token_out is None:
         return None
     # I prezzi della scheda sono in dollari per milione di token.
     dollari = token_in * prezzi["ingresso"] + token_out * prezzi["uscita"]
+    if json.loads(CONTRATTO.read_text("utf-8"))["regione"] == "europea":
+        if "maggiorazione_regione" not in prezzi:
+            return None  # meglio non stimato che stimato male
+        dollari *= 1 + prezzi["maggiorazione_regione"]
     return round(dollari / 1_000_000, 6)
+
+
+def ha_prezzo(modello: str) -> bool:
+    return modello in json.loads(PREZZI.read_text("utf-8"))
 
 
 # [libro:chiedi]

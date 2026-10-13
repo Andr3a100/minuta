@@ -177,6 +177,8 @@ Sessione 'l27'
 Sessione 'l28'
 # Lezione 29: Minuta 1.2, la prima modifica con un agente.
 Sessione 'l29'
+# Lezione 31: Minuta 1.2.2, chiavi, limiti e costi.
+Sessione 'l31'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)
