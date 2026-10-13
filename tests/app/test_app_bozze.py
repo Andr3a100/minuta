@@ -481,3 +481,18 @@ def test_una_norma_letta_entra_nel_massimario(
         ]
         == "Elena Sarti"
     )
+
+
+def test_una_sentenza_non_letta_non_entra_nell_atto(app, civile, tmp_path):
+    with app.state.session_factory() as db:
+        sarti, fascicolo = utente(db, "sarti"), db.get(Fascicolo, civile.id)
+        bozza = prepara_bozza(
+            db, sarti, fascicolo, "opposizione", ModelloFinto()
+        ).bozza
+        corretto = Document()
+        corretto.add_paragraph("Lo dice Cass. civ., 15 maggio 2023, n. 99999.")
+        corretto.save(str(tmp_path / "corretto.docx"))
+        with pytest.raises(BozzaRifiutata, match="sentenza che il massimario"):
+            approva_bozza(
+                db, sarti, fascicolo, bozza, tmp_path / "corretto.docx"
+            )

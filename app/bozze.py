@@ -258,6 +258,13 @@ def approva_bozza(
     else:
         testo = "\n\n".join(p.testo for p in paragrafi_di(bozza))
         residui = word.residui_nel_testo(testo)
+    # Una sentenza che nessuno ha letto non entra in un atto (lezione 25).
+    elenco = massimario()
+    residui += [
+        f"una sentenza che il massimario non ha: {c.testo}"
+        for c in citations.estrai(testo)
+        if c.tipo == "sentenza" and elenco.stato(c) != "verificata"
+    ]
     if residui and not forza:
         raise BozzaRifiutata(
             f"Restano parti della bozza: {'; '.join(residui)}. Correggila e "
