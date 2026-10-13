@@ -29,7 +29,9 @@ for versione in $(cat "$percorso"/sessioni/server/*.txt |
         "refs/tags/$versione" >/dev/null ||
         git -C ~/minuta/laboratorio tag "$versione" HEAD
 done
-echo "passphrase di prova per sarti" >~/.materiale/sarti.txt
+for nome in sarti dini; do
+    echo "passphrase di prova per $nome" >~/.materiale/"$nome".txt
+done
 
 # L'insieme di addestramento lo prepara il computer dello studio (lezione
 # 28) e arriva sul server: qui lo prepara la prova, con gli stessi comandi,
@@ -45,11 +47,14 @@ git clone -q "$lab" "$studio/laboratorio"
     .venv/bin/python -m app.manage migra
     .venv/bin/python -m app.manage crea-utente sarti --ruolo avvocato \
         --nome "Elena Sarti" --passphrase-stdin <~/.materiale/sarti.txt
+    .venv/bin/python -m app.manage crea-utente dini --ruolo avvocato \
+        --nome "Marco Dini" --passphrase-stdin <~/.materiale/dini.txt
     .venv/bin/python -m app.manage carica-archivio archivio/pdf --da sarti
     .venv/bin/python -m app.manage addestramento --da sarti
+    .venv/bin/python -m app.manage addestramento --da dini
 ) >/dev/null
 mkdir -p ~/minuta/laboratorio/dati/addestramento
-cp "$studio/laboratorio/dati/addestramento/sarti.jsonl" \
+cp "$studio/laboratorio/dati/addestramento/"*.jsonl \
     ~/minuta/laboratorio/dati/addestramento/
 
 export COLUMNS=79 PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_COLOR=1

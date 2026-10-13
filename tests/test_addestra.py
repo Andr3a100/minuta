@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import math
+from pathlib import Path
 
 import pytest
 
@@ -89,3 +90,29 @@ def test_il_comando(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(addestra, "addestra", rifiuta)
     assert addestra.main(["sarti.jsonl", "--fuori", "archivio-99"]) == 1
     assert "archivio-99" in capsys.readouterr().err
+
+
+def test_il_confronto_su_un_altro_insieme(monkeypatch, tmp_path, capsys):
+    chiamate = []
+
+    def finto(insieme, fuori, cartella, confronto=None):
+        chiamate.append(confronto)
+        return dict(
+            ESITO,
+            confronto=f"{confronto[0].as_posix()}:{confronto[1]}",
+            perplessita_confronto=[26.1, 20.0],
+        )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(addestra, "addestra", finto)
+    argomenti = ["dini.jsonl", "--fuori", "archivio-09"]
+    assert (
+        addestra.main([*argomenti, "--confronto", "a/sarti.jsonl:archivio-10"])
+        == 0
+    )
+    assert chiamate == [(Path("a/sarti.jsonl"), "archivio-10")]
+    righe = capsys.readouterr().out.splitlines()
+    assert righe[7:9] == [
+        "  su a/sarti.jsonl:archivio-10",
+        "                                   26.1 →   20.0",
+    ]

@@ -9,7 +9,10 @@ misura vera si fa su quello: misurare sugli atti con cui si è addestrato
 direbbe soltanto che il modello li ha imparati a memoria.
 
 La misura è la perplessità: quanto il testo sorprende il modello. Più è
-bassa, più gli sembra un testo che avrebbe potuto scrivere lui.
+bassa, più gli sembra un testo che avrebbe potuto scrivere lui. Un numero
+che scende, però, non dice che cosa il modello abbia imparato: con
+--confronto si misura anche su un atto di un altro insieme, per esempio
+quello di un altro avvocato.
 
     python -m minuta.addestra dati/addestramento/sarti.jsonl \
         --fuori archivio-10
@@ -90,7 +93,12 @@ def _misura(modello, tokenizer, testi: list[str]) -> float:
     return perplessita(perdite)
 
 
-def addestra(insieme: Path, fuori: str, cartella: Path) -> dict:
+def addestra(
+    insieme: Path,
+    fuori: str,
+    cartella: Path,
+    confronto: tuple[Path, str] | None = None,
+) -> dict:
     import torch
     from peft import LoraConfig, get_peft_model
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -103,9 +111,15 @@ def addestra(insieme: Path, fuori: str, cartella: Path) -> dict:
     modello = AutoModelForCausalLM.from_pretrained(
         MODELLO, revision=REVISIONE, dtype=torch.float32
     )
+    altro = (
+        dividi(leggi_insieme(confronto[0]), confronto[1])[1]
+        if confronto
+        else []
+    )
     prima = (
         _misura(modello, tokenizer, dentro),
         _misura(modello, tokenizer, tenuto),
+        _misura(modello, tokenizer, altro) if altro else None,
     )
     lora = LoraConfig(
         r=8,
@@ -133,6 +147,7 @@ def addestra(insieme: Path, fuori: str, cartella: Path) -> dict:
     dopo = (
         _misura(modello, tokenizer, dentro),
         _misura(modello, tokenizer, tenuto),
+        _misura(modello, tokenizer, altro) if altro else None,
     )
     cartella.mkdir(parents=True, exist_ok=True)
     modello.save_pretrained(cartella)
@@ -153,6 +168,12 @@ def addestra(insieme: Path, fuori: str, cartella: Path) -> dict:
             "addestramento": [round(prima[0], 1), round(dopo[0], 1)],
             "fuori": [round(prima[1], 1), round(dopo[1], 1)],
         },
+        "confronto": (
+            f"{confronto[0].as_posix()}:{confronto[1]}" if confronto else None
+        ),
+        "perplessita_confronto": (
+            [round(prima[2], 1), round(dopo[2], 1)] if confronto else None
+        ),
         "adattatore": cartella.as_posix(),
         "byte_adattatore": peso,
     }
@@ -166,6 +187,13 @@ def resoconto(esito: dict) -> list[str]:
     modello = f"Il modello: {esito['modello']}, revisione"
     pezzi_ = f"{esito['pezzi']} pezzi da {LUNGHEZZA} token"
     mega = esito["byte_adattatore"] / 1_000_000
+    altro = []
+    if esito.get("confronto"):
+        prima, dopo = esito["perplessita_confronto"]
+        altro = [
+            f"  su {esito['confronto']}",
+            f"{'':<32} {prima:>6} → {dopo:>6}",
+        ]
     return [
         f"{insieme}; tenuto fuori: {esito['fuori']}.",
         f"{modello} {esito['revisione'][:12]}, su questa macchina.",
@@ -183,6 +211,7 @@ def resoconto(esito: dict) -> list[str]:
             f"  sull'atto tenuto fuori         {p['fuori'][0]:>6} → "
             f"{p['fuori'][1]:>6}"
         ),
+        *altro,
         (
             f"Salvato in {esito['adattatore']}/, {mega:.1f} MB; il modello "
             "di base resta com'era."
@@ -194,11 +223,19 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m minuta.addestra")
     parser.add_argument("insieme", type=Path)
     parser.add_argument("--fuori", required=True, help="l'atto per misurare")
+    parser.add_argument(
+        "--confronto",
+        help="un atto di un altro insieme, INSIEME:ATTO, su cui misurare",
+    )
     parser.add_argument("--verbale", type=Path, help="il verbale, in JSON")
     args = parser.parse_args(argv)
     cartella = Path("dati/modelli") / args.insieme.stem
     try:
-        esito = addestra(args.insieme, args.fuori, cartella)
+        confronto = None
+        if args.confronto:
+            file, _, atto = args.confronto.rpartition(":")
+            confronto = (Path(file), atto)
+        esito = addestra(args.insieme, args.fuori, cartella, confronto)
     except InsiemeNonValido as errore:
         print(errore, file=sys.stderr)
         return 1

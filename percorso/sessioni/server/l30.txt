@@ -23,3 +23,7 @@ python -m minuta.addestra "$f" --fuori archivio-10 --verbale addestramento.json
 : '### [esito:l30-adattatore]'
 ls dati/modelli/sarti
 : '### [/esito:l30-adattatore]'
+: '### [esito:l30-controllo]'
+g=dati/addestramento/dini.jsonl
+python -m minuta.addestra "$g" --fuori archivio-09 --confronto "$f:archivio-10"
+: '### [/esito:l30-controllo]'
