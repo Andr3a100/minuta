@@ -129,5 +129,7 @@ sessione() {
     sessione l24
     # Lezione 25: Minuta 1.0.1, le citazioni.
     sessione l25
+    # Lezione 26: Minuta 1.1, le correzioni.
+    sessione l26
     echo "== Fine"
 } >"$verbale"

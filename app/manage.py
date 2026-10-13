@@ -38,7 +38,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
-from minuta import certificatori
+from minuta import certificatori, learning
 from minuta import documenti as motore
 from minuta.archivio import leggi_indice
 from minuta.bozza import TipoDiBozza
@@ -70,11 +70,20 @@ from .bozze import (
     prepara_bozza,
 )
 from .config import ConfigError, leggi_file_env, load_settings
+from .correzioni import (
+    CorrezioneRifiutata,
+    come_si_legge,
+    regole_di,
+    respingi,
+    stato_di,
+    voci_di,
+)
 from .db import (
     RUOLI,
     Assegnazione,
     AttoArchivio,
     Bozza,
+    Correzione,
     Documento,
     Evento,
     Fascicolo,
@@ -109,6 +118,7 @@ from .invio import (
     prepara_domanda,
 )
 from .migrations import MigrationError, migra, ultima, versione_attuale
+from .rules import APRONO, ValidationErrors, campi_fascicolo
 from .registro import RichiestaNonAmmessa
 from .risposte import domanda_all_archivio, domanda_sul_fascicolo
 from .scadenze import (
@@ -330,6 +340,14 @@ def costruisci_parser() -> argparse.ArgumentParser:
         comando.add_argument("nome_utente")
     sub.add_parser("utenti", help="elenca gli account")
     sub.add_parser("prova", help="crea i tre fascicoli di prova del libro")
+    apri = sub.add_parser("apri", help="apre un fascicolo")
+    apri.add_argument("codice", help="anno-numero, per esempio 2026-074")
+    apri.add_argument("cliente")
+    apri.add_argument("materia", help="civile, tributario o penale")
+    apri.add_argument("oggetto")
+    apri.add_argument("--avvocato", required=True, help="il nome utente")
+    apri.add_argument("--praticante", help="il nome utente, se c'è")
+    apri.add_argument("--da", required=True, help="chi apre")
     sub.add_parser("diagnosi", help="mostra la configurazione senza segreti")
     sub.add_parser(
         "certificatori", help="scarica l'elenco dei certificatori di AgID"
@@ -485,6 +503,13 @@ def costruisci_parser() -> argparse.ArgumentParser:
     letta = sub.add_parser("norma-letta", help="registra una norma letta")
     letta.add_argument("chiave", help="per esempio «c.p.c. art. 645»")
     letta.add_argument("--da", required=True, help="l'avvocato che l'ha letta")
+    corr = sub.add_parser("correzioni", help="le correzioni di un avvocato")
+    corr.add_argument("--da", required=True, help="l'avvocato")
+    resp = sub.add_parser(
+        "respingi-correzione", help="una correzione che non diventa regola"
+    )
+    resp.add_argument("numero", type=int, help="il numero della correzione")
+    resp.add_argument("--da", required=True, help="l'avvocato")
     cit = sub.add_parser("citazioni", help="le citazioni di una bozza")
     cit.add_argument("codice")
     cit.add_argument("numero", type=int, help="il numero della bozza")
@@ -720,6 +745,8 @@ def main(argv: list[str] | None = None) -> int:
             elif args.comando == "prova":
                 quanti = crea_prova(db, settings.production)
                 print(f"Creati {quanti} fascicoli di prova.")
+            elif args.comando == "apri":
+                apri_dalla_riga(db, args)
             elif args.comando == "carica":
                 return carica_file(db, settings, args)
             elif args.comando == "testo":
@@ -784,10 +811,19 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {voce['indirizzo']}")
             elif args.comando == "citazioni":
                 citazioni_dalla_riga(db, args)
+            elif args.comando == "correzioni":
+                correzioni_dalla_riga(db, args)
+            elif args.comando == "respingi-correzione":
+                voce = respingi(db, utente_attivo(db, args.da), args.numero)
+                print(
+                    f"Correzione n. {args.numero} respinta: "
+                    f"{come_si_legge(voce)} non diventerà una regola."
+                )
         return 0
     except (
         ArchivioRifiutato,
         BozzaRifiutata,
+        CorrezioneRifiutata,
         TipoDiBozza,
         StileRifiutato,
         CommandError,
@@ -1552,6 +1588,103 @@ def approva_dalla_riga(db: Session, args) -> None:
     if residui:
         detto += f", con una forzatura: {'; '.join(residui)}"
     print(detto + ".")
+    print(f"Modifiche dell'avvocato: {elenco_modifiche(bozza)}.")
+    fatte = {
+        (c.prima, c.dopo)
+        for c in db.scalars(
+            select(Correzione).where(Correzione.bozza_id == bozza.id)
+        )
+    }
+    voci = [v for v in voci_di(db, utente) if (v["prima"], v["dopo"]) in fatte]
+    if voci:
+        print("Correzioni di stile:")
+    for voce in voci:
+        atti = learning.quanti(len(voce["fascicoli"]), "atto", "atti")
+        print(f"  {come_si_legge(voce)}: in {atti}, {stato_di(voce)}")
+
+
+MODIFICHE = (
+    ("stile", "correzione di stile", "correzioni di stile"),
+    ("completamento", "completamento", "completamenti"),
+    ("dati", "dato cambiato", "dati cambiati"),
+    ("riscrittura", "riscrittura", "riscritture"),
+)
+
+
+def elenco_modifiche(bozza: Bozza) -> str:
+    conteggio = json.loads(bozza.modifiche or "{}")
+    parti = [
+        learning.quanti(conteggio[tipo], uno, molti)
+        for tipo, uno, molti in MODIFICHE
+        if conteggio.get(tipo)
+    ]
+    return ", ".join(parti) or "nessuna"
+
+
+def correzioni_dalla_riga(db: Session, args) -> None:
+    utente = utente_attivo(db, args.da)
+    if utente.ruolo != "avvocato":
+        raise CommandError("Le correzioni sono di un avvocato.")
+    voci = voci_di(db, utente)
+    print(f"Le correzioni di {utente.nome}: {len(voci)}.")
+    for n, voce in enumerate(voci, start=1):
+        atti = learning.quanti(len(voce["fascicoli"]), "atto", "atti")
+        dove = ", ".join(voce["fascicoli"])
+        print(f"{n:>2}. {come_si_legge(voce)}")
+        print(f"    in {atti} ({dove}): {stato_di(voce)}")
+    regole = regole_di(db, utente)
+    if regole:
+        print("Nella richiesta delle sue bozze, d'ora in poi:")
+    for voce in regole:
+        print("\n".join(a_capo(learning.come_regola(voce), "- ", "  ")))
+
+
+def apri_dalla_riga(db: Session, args) -> None:
+    """Apre un fascicolo dal terminale, con le regole della pagina del
+    browser: chi apre, i campi controllati, le persone assegnate, il
+    cliente nell'elenco, la riga del registro."""
+    utente = utente_attivo(db, args.da)
+    if utente.ruolo not in APRONO:
+        raise CommandError("Un fascicolo lo apre un avvocato o la segreteria.")
+    avvocato = utente_attivo(db, args.avvocato)
+    praticante = (
+        utente_attivo(db, args.praticante) if args.praticante else None
+    )
+    grezzi = {
+        "codice": args.codice,
+        "cliente": args.cliente,
+        "materia": args.materia,
+        "oggetto": args.oggetto,
+        "avvocato_id": str(avvocato.id),
+        "praticante_id": str(praticante.id) if praticante else "",
+    }
+    attivi = list(db.scalars(select(Utente).where(Utente.attivo.is_(True))))
+    try:
+        campi = campi_fascicolo(
+            grezzi,
+            {u.id for u in attivi if u.ruolo == "avvocato"},
+            {u.id for u in attivi if u.ruolo == "praticante"},
+        )
+    except ValidationErrors as exc:
+        raise CommandError(" ".join(exc.errori.values())) from None
+    if db.scalar(select(Fascicolo).where(Fascicolo.codice == args.codice)):
+        raise CommandError(f"Esiste già il fascicolo {args.codice}.")
+    campi.pop("praticante_id")
+    fascicolo = Fascicolo(**campi, creato_da_id=utente.id)
+    db.add(fascicolo)
+    db.flush()
+    persone = {utente.id, avvocato.id} | (
+        {praticante.id} if praticante else set()
+    )
+    for persona in sorted(persone):
+        db.add(Assegnazione(fascicolo_id=fascicolo.id, utente_id=persona))
+    cliente_in_elenco(db, fascicolo)
+    registra_evento(db, utente, fascicolo, "apertura", persone=sorted(persone))
+    db.commit()
+    print(
+        f"Aperto il fascicolo {fascicolo.codice}: {fascicolo.cliente}, "
+        f"{fascicolo.materia}, avvocato {avvocato.nome}."
+    )
 
 
 # [libro:diagnosi]
@@ -1596,6 +1729,7 @@ def diagnosi(settings, engine) -> int:
                 ("Archivio", AttoArchivio),
                 ("Profili", ProfiloStile),
                 ("Bozze", Bozza),
+                ("Correzioni", Correzione),
                 ("Eventi", Evento),
                 ("Voci uso AI", UsoAI),
             ):

@@ -1,0 +1,36 @@
+: '### [esito:l26-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v1.1
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l26-versione]'
+: '### [esito:l26-bozza]'
+python -m app.manage bozza 2026-071 opposizione --da sarti --word bozza-071.docx
+: '### [/esito:l26-bozza]'
+: '### [esito:l26-approva]'
+python percorso/correggi_in_word.py bozza-071.docx atto-071.docx
+python -m app.manage approva-bozza 2026-071 4 --file atto-071.docx --da sarti
+: '### [/esito:l26-approva]'
+: '### [esito:l26-apri]'
+c="Lavanderia Sassolese S.r.l."
+o="Decreto ingiuntivo chiesto da Scoltenna Forniture S.r.l."
+python -m app.manage apri 2026-074 "$c" civile "$o" --avvocato sarti --da rosa
+python -m app.manage carica 2026-074 documenti-di-prova/2026-074 --da sarti
+: '### [/esito:l26-apri]'
+: '### [esito:l26-secondo]'
+python -m app.manage bozza 2026-074 opposizione --da sarti --word bozza-074.docx
+python percorso/correggi_in_word.py bozza-074.docx atto-074.docx
+python -m app.manage approva-bozza 2026-074 5 --file atto-074.docx --da sarti
+: '### [/esito:l26-secondo]'
+: '### [esito:l26-regola]'
+python -m app.manage correzioni --da sarti
+: '### [/esito:l26-regola]'
+: '### [esito:l26-respingi]'
+python -m app.manage respingi-correzione 1 --da sarti
+: '### [/esito:l26-respingi]'
+: '### [esito:l26-errore]'
+python -m app.manage bozza 2026-071 opposizione --da sarti
+: '### [/esito:l26-errore]'
+: '### [esito:l26-diagnosi]'
+python -m app.manage diagnosi
+: '### [/esito:l26-diagnosi]'

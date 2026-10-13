@@ -284,3 +284,21 @@ def test_la_bozza_si_ripulisce_prima_del_confronto():
 def test_i_numeri_di_pagina_non_sono_correzioni():
     assert learning.testo_firmato(["Primo paragrafo.", "Pagina 1 di 2", "2", "Secondo."]) == (
         "Primo paragrafo.\n\nSecondo.")
+
+
+def test_un_dubbio_risolto_non_e_una_correzione_di_stile():
+    """Lezione 26: un [DA VERIFICARE] risolto dall'avvocato è un
+    completamento, come un [DA COMPLETARE] riempito."""
+    modifiche = learning.confronta(
+        "[DA VERIFICARE] il giudice competente per l'opposizione.",
+        "Il Tribunale di Modena è competente per l'opposizione.",
+    )
+    assert [m["tipo"] for m in modifiche] == ["completamento"]
+
+
+def test_un_segnaposto_riempito_e_un_completamento():
+    modifiche = learning.confronta(
+        "con studio in [INDIRIZZO], presso il quale elegge domicilio",
+        "con studio in via Ganaceto 41, presso il quale elegge domicilio",
+    )
+    assert [m["tipo"] for m in modifiche] == ["completamento"]

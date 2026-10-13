@@ -12,7 +12,13 @@ Scrive in documenti-di-prova/ una cartella per fascicolo:
 - 2026-072, Ivo Marchetti (tributario): la cartella di pagamento, come la
   scansiona uno scanner da ufficio, a 100 e a 300 punti per pollice;
 - 2026-073, Alessandro Riva (penale): l'avviso di conclusione delle indagini,
-  un PDF con il testo dentro una busta firmata con un certificato di prova.
+  un PDF con il testo dentro una busta firmata con un certificato di prova;
+- 2026-074, Lavanderia Sassolese (civile): il decreto ingiuntivo del secondo
+  fascicolo di Elena Sarti, da cui nasce la prima regola (lezione 26).
+
+Con dei codici, scrive soltanto quelle cartelle:
+
+    .venv/bin/python strumenti/genera_documenti_di_prova.py 2026-074
 
 I certificati di prova si creano al momento e non si conservano. Persone,
 società, partite IVA, numeri e fatti sono inventati.
@@ -50,6 +56,26 @@ nello stesso termine può essere fatta opposizione e che, in mancanza di
 opposizione, si procederà a esecuzione forzata.
 
 Modena, 15 settembre 2026
+Il giudice"""
+
+# Il secondo fascicolo civile di Elena Sarti (lezione 26).
+DECRETO_074 = """TRIBUNALE DI MODENA
+Decreto ingiuntivo n. 2014/2026
+
+Il giudice, letto il ricorso depositato il 9 settembre 2026 da
+Scoltenna Forniture S.r.l. contro Lavanderia Sassolese S.r.l., ritenuto
+che il credito è fondato su prova scritta, visti gli articoli 633 e
+seguenti del codice di procedura civile,
+
+INGIUNGE
+
+a Lavanderia Sassolese S.r.l. di pagare alla ricorrente, entro quaranta
+giorni dalla notificazione di questo decreto, la somma di euro 6.740,00,
+oltre agli interessi e alle spese del procedimento, con l'avvertimento che
+nello stesso termine può essere fatta opposizione e che, in mancanza di
+opposizione, si procederà a esecuzione forzata.
+
+Modena, 24 settembre 2026
 Il giudice"""
 
 # La ricevuta di avvenuta consegna della notifica via PEC (lezione 19): per
@@ -300,6 +326,10 @@ def ricevuta(cartella: Path) -> None:
     )
 
 
+def secondo_civile(cartella: Path) -> None:
+    pdf_con_testo(cartella / "decreto.pdf", DECRETO_074, "Decreto ingiuntivo")
+
+
 def tributario(cartella: Path) -> None:
     scansione(cartella / "cartella-scansione.pdf", CARTELLA, 100)
     scansione(cartella / "cartella-scansione-300.pdf", CARTELLA, 300)
@@ -322,11 +352,15 @@ def penale(cartella: Path) -> None:
 
 
 if __name__ == "__main__":
+    scelti = sys.argv[1:]
     for codice, prepara in (
         ("2026-071", civile),
         ("2026-072", tributario),
         ("2026-073", penale),
+        ("2026-074", secondo_civile),
     ):
+        if scelti and codice not in scelti:
+            continue
         cartella = QUI / codice
         cartella.mkdir(parents=True, exist_ok=True)
         prepara(cartella)

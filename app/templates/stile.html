@@ -42,4 +42,21 @@
   {% endif %}
 </section>
 {% endfor %}
+{% if utente.ruolo == "avvocato" %}
+<section class="scheda">
+  <h2>Le mie correzioni</h2>
+  <p class="nota">Le correzioni di stile che hai fatto approvando i tuoi atti, senza dati né nomi. Fatta in due atti di fascicoli diversi, una correzione diventa una regola: va nella richiesta delle tue bozze, e Minuta controlla che la bozza la segua. Una correzione respinta non diventa mai una regola.</p>
+  {% if not correzioni %}<p class="nota">Nessuna correzione, per ora.</p>{% endif %}
+  <ol>
+    {% for voce, riga, stato in correzioni %}
+    <li>{{ riga }} <span class="nota">· in {{ voce.fascicoli|length }} {{ "atto" if voce.fascicoli|length == 1 else "atti" }} ({{ voce.fascicoli|join(", ") }}) · {{ stato }}</span>
+      {% if not voce.respinta %}<form method="post" action="/stile">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="numeri" value="{{ loop.index }}">
+        <button type="submit" name="azione" value="respingi">Respingi</button>
+      </form>{% endif %}</li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
 {% endblock %}

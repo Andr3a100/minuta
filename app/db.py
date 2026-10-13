@@ -345,6 +345,39 @@ class Bozza(Base):
     approvata_il: Mapped[datetime | None] = mapped_column(OrarioUTC)
     testo_approvato: Mapped[str | None] = mapped_column(Text)
     forzatura: Mapped[str | None] = mapped_column(Text)  # ciò che restava
+    # Quante modifiche di ogni tipo ha fatto l'avvocato (lezione 26), in JSON.
+    modifiche: Mapped[str | None] = mapped_column(Text)
+
+
+class Correzione(Base):
+    """Una correzione di stile che un avvocato ha fatto approvando un atto
+    (lezione 26): ciò che la bozza diceva e ciò che l'atto dice, con i
+    dati e i nomi già tolti, e le parole che la precedevano."""
+
+    __tablename__ = "correzioni"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    avvocato_id: Mapped[int] = mapped_column(
+        ForeignKey("utenti.id"), index=True
+    )
+    bozza_id: Mapped[int] = mapped_column(ForeignKey("bozze.id"))
+    fascicolo_id: Mapped[int] = mapped_column(ForeignKey("fascicoli.id"))
+    prima: Mapped[str] = mapped_column(Text)
+    dopo: Mapped[str] = mapped_column(Text)
+    contesto: Mapped[str] = mapped_column(Text)
+
+
+class CorrezioneRespinta(Base):
+    """Una correzione che l'avvocato non vuole generalizzare: resta fra le
+    correzioni, ma non diventa mai una regola (lezione 26)."""
+
+    __tablename__ = "correzioni_respinte"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    avvocato_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
+    prima: Mapped[str] = mapped_column(Text)
+    dopo: Mapped[str] = mapped_column(Text)
+    respinta_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
 
 
 class ProfiloStile(Base):

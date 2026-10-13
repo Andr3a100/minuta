@@ -19,8 +19,9 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from minuta import citations, word
+from minuta import citations, learning, word
 from minuta.bozza import (
+    SEGNAPOSTO,
     Paragrafo,
     citazioni,
     controlla,
@@ -31,12 +32,14 @@ from minuta.bozza import (
     leggi_bozza,
     manca_la_scadenza,
     pertinenza,
+    regole_seguite,
 )
 from minuta.domande import Passo, a_passi
 from minuta.invio import SISTEMA, Preparato, prepara, ricomponi
 from minuta.model import Modello
 from minuta.scadenze import in_lettere
 
+from .correzioni import registra_correzioni, regole_di
 from .db import Bozza, Fascicolo, Scadenza, UsoAI, Utente, adesso
 from .invio import (
     InvioBloccato,
@@ -133,6 +136,8 @@ def prepara_bozza(
     avvocato, stile = (
         stile_di(db, fascicolo) if tipo == "opposizione" else (None, "")
     )
+    # Le regole apprese dalle correzioni di chi firmerà (lezione 26).
+    apprese = regole_di(db, avvocato) if avvocato else []
     documenti, pagine = documenti_del_fascicolo(db, fascicolo)
     scadenze = scadenze_confermate(db, fascicolo)
     passi = [
@@ -143,6 +148,13 @@ def prepara_bozza(
     testo = (
         f"{regole}\n\nCHI CHIEDE: {chi_chiede(utente, fascicolo)}\n\n"
         + (f"STILE:\n{stile}\n\n" if stile else "")
+        + (
+            "REGOLE APPRESE DALLE CORREZIONI:\n"
+            + "\n".join(f"- {learning.come_regola(v)}" for v in apprese)
+            + "\n\n"
+            if apprese
+            else ""
+        )
         + f"SCADENZE:\n{righe_delle_scadenze(scadenze) or 'nessuna'}\n\n"
         + a_passi(passi)
     )
@@ -169,6 +181,7 @@ def prepara_bozza(
     paragrafi = leggi_bozza(ricomponi(arrivata.testo, preparato.tabella))
     controlla(paragrafi, pagine, righe_delle_scadenze(scadenze))
     pertinenza(paragrafi, pagine)
+    regole_seguite(paragrafi, apprese, noti)
     da_leggere = citazioni(paragrafi, massimario())
     note = [f"Da completare: {d}" for d in da_completare(paragrafi)]
     note += [f"Da verificare: {d}" for d in da_verificare(paragrafi)]
@@ -258,6 +271,17 @@ def approva_bozza(
     else:
         testo = "\n\n".join(p.testo for p in paragrafi_di(bozza))
         residui = word.residui_nel_testo(testo)
+    # Né un segnaposto o un dubbio rimasti (lezione 26).
+    residui += [
+        f"segnaposto rimasto: {s}"
+        for s in dict.fromkeys(SEGNAPOSTO.findall(testo))
+    ]
+    if dubbi := testo.count("[DA VERIFICARE]"):
+        residui.append(
+            learning.quanti(
+                dubbi, "dubbio da verificare", "dubbi da verificare"
+            )
+        )
     # Una sentenza che nessuno ha letto non entra in un atto (lezione 25).
     elenco = massimario()
     residui += [
@@ -275,6 +299,12 @@ def approva_bozza(
     bozza.forzatura = (
         json.dumps(residui, ensure_ascii=False) if residui else None
     )
+    # Da ciò che l'avvocato ha cambiato, Minuta impara (lezione 26).
+    prima = "\n\n".join(p.testo for p in paragrafi_di(bozza))
+    conteggio = learning.conta(
+        registra_correzioni(db, utente, fascicolo, bozza, prima)
+    )
+    bozza.modifiche = json.dumps(conteggio)
     registra_evento(
         db,
         utente,
@@ -282,6 +312,7 @@ def approva_bozza(
         "approvazione",
         bozza=bozza.id,
         forzatura=residui,
+        modifiche=conteggio,
     )
     db.commit()
     return residui

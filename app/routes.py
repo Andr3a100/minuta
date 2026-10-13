@@ -33,6 +33,13 @@ from minuta.verifiche import STATI, TipoSconosciuto, carica_domande
 from . import __version__
 from .archivio import atti_dell_archivio, cerca_nell_archivio, puo_leggere
 from .bozze import BozzaRifiutata, in_word, paragrafi_di, prepara_bozza
+from .correzioni import (
+    CorrezioneRifiutata,
+    come_si_legge,
+    respingi,
+    stato_di,
+    voci_di,
+)
 from .db import (
     Assegnazione,
     Bozza,
@@ -1069,7 +1076,17 @@ def pagina_stile(request, db, utente, errore=None, stato=200):
         profili.append(
             (avvocato, profilo, letto(profilo) if profilo else None)
         )
-    contesto = {"utente": utente, "profili": profili, "errore": errore}
+    # Le correzioni sono dell'avvocato che le ha fatte (lezione 26).
+    correzioni = [
+        (v, come_si_legge(v), stato_di(v))
+        for v in (voci_di(db, utente) if utente.ruolo == "avvocato" else [])
+    ]
+    contesto = {
+        "utente": utente,
+        "profili": profili,
+        "correzioni": correzioni,
+        "errore": errore,
+    }
     return pagina(request, "stile.html", contesto, stato)
 
 
@@ -1101,9 +1118,11 @@ def cambia_stile(
                 decidi_formule(db, utente, numeri, stato)
             elif azione == "conferma":
                 conferma_profilo(db, utente)
+            elif azione == "respingi" and len(numeri) == 1:
+                respingi(db, utente, numeri[0])
             else:
                 raise HTTPException(422, "Azione sconosciuta.")
-        except StileRifiutato as exc:
+        except (StileRifiutato, CorrezioneRifiutata) as exc:
             return pagina_stile(request, db, utente, str(exc), 409)
     return RedirectResponse("/stile", 303)
 

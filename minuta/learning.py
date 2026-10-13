@@ -29,6 +29,11 @@ PAGINA = re.compile(r"(?:pag(?:ina|\.)?\s*)?\d+(?:\s*(?:di|/)\s*\d+)?", re.I)
 # Una regola nasce da correzioni uguali in atti diversi: in un atto solo può
 # essere un caso; e una correzione lunga è una riscrittura, non una regola.
 QUANTE_PER_REGOLA = 2
+# Ciò che l'avvocato riempie: un dato da completare, un dubbio da
+# verificare, un segnaposto rimasto nella bozza (lezione 26).
+DA_RIEMPIRE = re.compile(
+    r"\[DA COMPLETARE|\[DA VERIFICARE|\[[A-Z]+(?:_[A-Z]+)*(?:_\d+)?\]$"
+)
 PAROLE_PER_REGOLA = 12
 TIPI = ("completamento", "dati", "stile", "riscrittura")
 
@@ -122,7 +127,9 @@ def _operazioni(a: list[str], b: list[str]) -> list[list]:
 def confronta(bozza: str, finale: str, noti: dict[str, str] | None = None) -> list[dict]:
     """Le modifiche dell'avvocato, ciascuna con il suo tipo.
 
-    - completamento: un [DA COMPLETARE] riempito;
+    - completamento: un [DA COMPLETARE] riempito, un [DA VERIFICARE]
+      risolto, un segnaposto sostituito con il dato del caso: l'avvocato
+      ha completato o deciso, non ha corretto lo stile;
     - dati: cambiano solo numeri, date, segnaposto o punteggiatura (i fatti, non
       lo stile: una virgola spostata due volte non deve diventare una regola);
     - stile: cambiano le parole. È ciò da cui Minuta impara;
@@ -135,7 +142,7 @@ def confronta(bozza: str, finale: str, noti: dict[str, str] | None = None) -> li
         if operazione == "equal":
             continue
         prima, dopo = a[i1:i2], b[j1:j2]
-        altre = [p for p in prima if not p.startswith("[DA COMPLETARE")]
+        altre = [p for p in prima if not DA_RIEMPIRE.match(p)]
         # Un dato completato è un completamento; ma se insieme al dato sparisce
         # mezza frase, l'avvocato deve vederlo: è una riscrittura.
         if len(altre) < len(prima) and len(altre) <= PAROLE_PER_REGOLA:
@@ -225,17 +232,22 @@ def _schema(frase: str) -> str:
     return schema
 
 
+def non_seguite(testo: str, voci: list[dict], noti: dict[str, str] | None = None) -> list[dict]:
+    """Le voci delle regole che il testo non segue: scrive ancora ciò che
+    l'avvocato ha corretto. Le regole che aggiungono si dicono soltanto."""
+    generico = Pseudonimizzatore(generico=True, noti=dict(noti or {})).nascondi(testo)
+    return [v for v in voci if v["prima"] and re.search(_schema(v["prima"]), generico, re.I)]
+
+
 def non_rispettate(testo: str, voci: list[dict], noti: dict[str, str] | None = None) -> list[str]:
     """Le regole apprese che la bozza non segue. Il modello le ha lette, ma
     leggere non è seguire: come le regole dello studio, si controllano dopo."""
-    generico = Pseudonimizzatore(generico=True, noti=dict(noti or {})).nascondi(testo)
     avvisi = []
-    for voce in voci:
-        if voce["prima"] and re.search(_schema(voce["prima"]), generico, re.I):
-            correzione = (f"corretto in «{voce['dopo']}»" if voce["dopo"] else "tolto")
-            avvisi.append(f"REGOLA APPRESA NON SEGUITA: la bozza scrive ancora «{voce['prima']}», "
-                          f"che l'avvocato ha {correzione} in "
-                          f"{quanti(len(voce['fascicoli']), 'atto', 'atti')}.")
+    for voce in non_seguite(testo, voci, noti):
+        correzione = (f"corretto in «{voce['dopo']}»" if voce["dopo"] else "tolto")
+        avvisi.append(f"REGOLA APPRESA NON SEGUITA: la bozza scrive ancora «{voce['prima']}», "
+                      f"che l'avvocato ha {correzione} in "
+                      f"{quanti(len(voce['fascicoli']), 'atto', 'atti')}.")
     return avvisi
 
 

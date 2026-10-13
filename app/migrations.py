@@ -444,6 +444,39 @@ def _passo_10(conn: Connection) -> None:
     meta.tables["bozze"].create(conn)
 
 
+def _passo_11(conn: Connection) -> None:
+    """Le correzioni degli avvocati (lezione 26)."""
+    meta = MetaData()
+    for nome in ("bozze", "fascicoli", "utenti"):
+        Table(nome, meta, Column("id", Integer, primary_key=True))
+    Table(
+        "correzioni",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column(
+            "avvocato_id", ForeignKey("utenti.id"), nullable=False, index=True
+        ),
+        Column("bozza_id", ForeignKey("bozze.id"), nullable=False),
+        Column("fascicolo_id", ForeignKey("fascicoli.id"), nullable=False),
+        Column("prima", Text, nullable=False),
+        Column("dopo", Text, nullable=False),
+        Column("contesto", Text, nullable=False),
+    )
+    Table(
+        "correzioni_respinte",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column("avvocato_id", ForeignKey("utenti.id"), nullable=False),
+        Column("prima", Text, nullable=False),
+        Column("dopo", Text, nullable=False),
+        Column("respinta_il", DateTime(timezone=True), nullable=False),
+    )
+    meta.tables["correzioni"].create(conn)
+    meta.tables["correzioni_respinte"].create(conn)
+    # Le bozze approvate prima non contavano le modifiche dell'avvocato.
+    conn.exec_driver_sql("ALTER TABLE bozze ADD COLUMN modifiche TEXT")
+
+
 # Ogni nuova migrazione si aggiunge qui con il numero successivo.
 PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     1: ("Schema iniziale", _passo_1),
@@ -456,6 +489,7 @@ PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     8: ("L'archivio dello studio", _passo_8),
     9: ("Lo stile degli avvocati", _passo_9),
     10: ("Le bozze", _passo_10),
+    11: ("Le correzioni degli avvocati", _passo_11),
 }
 
 

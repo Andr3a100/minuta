@@ -1,0 +1,35 @@
+### [esito:l26-versione]
+cd ~\minuta\laboratorio
+git switch --detach v1.1
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l26-versione]
+### [esito:l26-bozza]
+.\.venv\Scripts\python.exe -m app.manage bozza 2026-071 opposizione --da sarti --word bozza-071.docx
+### [/esito:l26-bozza]
+### [esito:l26-approva]
+.\.venv\Scripts\python.exe percorso\correggi_in_word.py bozza-071.docx atto-071.docx
+.\.venv\Scripts\python.exe -m app.manage approva-bozza 2026-071 4 --file atto-071.docx --da sarti
+### [/esito:l26-approva]
+### [esito:l26-apri]
+$c = "Lavanderia Sassolese S.r.l."
+$o = "Decreto ingiuntivo chiesto da Scoltenna Forniture S.r.l."
+.\.venv\Scripts\python.exe -m app.manage apri 2026-074 "$c" civile "$o" --avvocato sarti --da rosa
+.\.venv\Scripts\python.exe -m app.manage carica 2026-074 documenti-di-prova\2026-074 --da sarti
+### [/esito:l26-apri]
+### [esito:l26-secondo]
+.\.venv\Scripts\python.exe -m app.manage bozza 2026-074 opposizione --da sarti --word bozza-074.docx
+.\.venv\Scripts\python.exe percorso\correggi_in_word.py bozza-074.docx atto-074.docx
+.\.venv\Scripts\python.exe -m app.manage approva-bozza 2026-074 5 --file atto-074.docx --da sarti
+### [/esito:l26-secondo]
+### [esito:l26-regola]
+.\.venv\Scripts\python.exe -m app.manage correzioni --da sarti
+### [/esito:l26-regola]
+### [esito:l26-respingi]
+.\.venv\Scripts\python.exe -m app.manage respingi-correzione 1 --da sarti
+### [/esito:l26-respingi]
+### [esito:l26-errore]
+.\.venv\Scripts\python.exe -m app.manage bozza 2026-071 opposizione --da sarti
+### [/esito:l26-errore]
+### [esito:l26-diagnosi]
+.\.venv\Scripts\python.exe -m app.manage diagnosi
+### [/esito:l26-diagnosi]

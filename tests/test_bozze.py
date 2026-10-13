@@ -18,8 +18,10 @@ from minuta.bozza import (
     leggi_bozza,
     manca_la_scadenza,
     pertinenza,
+    regole_seguite,
 )
 from minuta.citations import Massimario
+from minuta.model import ModelloFinto
 
 DOCUMENTI = {
     "decreto.pdf": [
@@ -190,3 +192,59 @@ def test_cio_che_il_fascicolo_ha_non_si_segnala():
     paragrafi = leggi_bozza("La provvisoria esecuzione. {fonte: modello}")
     pertinenza(paragrafi, documenti)
     assert paragrafi[0].problemi == []
+
+
+REGOLE = [
+    {"prima": "somma", "dopo": "sorte capitale", "fascicoli": ["a", "b"]},
+    {"prima": "si rappresenta che", "dopo": "", "fascicoli": ["a", "b"]},
+    {"prima": "", "dopo": "con osservanza", "fascicoli": ["a", "b"]},
+]
+
+
+def test_una_regola_appresa_si_controlla_sulla_bozza():
+    paragrafi = leggi_bozza(
+        "Il decreto ingiunge la somma di euro 6.740,00. {fonte: modello}\n\n"
+        "Si rappresenta che il credito è contestato. {fonte: modello}\n\n"
+        "La sorte capitale di euro 6.740,00, sommata agli interessi. "
+        "{fonte: modello}"
+    )
+    regole_seguite(paragrafi, REGOLE)
+    assert paragrafi[0].problemi == [
+        "regola appresa non seguita: scrive «somma», che l'avvocato ha "
+        "corretto in «sorte capitale» in 2 atti"
+    ]
+    assert paragrafi[1].problemi == [
+        "regola appresa non seguita: scrive «si rappresenta che», che "
+        "l'avvocato ha tolto in 2 atti"
+    ]
+    assert paragrafi[2].problemi == []  # «sommata» non è «somma»
+
+
+def test_i_nomi_non_ingannano_le_regole():
+    regola = [
+        {
+            "prima": "[PERSONA] chiede",
+            "dopo": "[PERSONA] domanda",
+            "fascicoli": ["a", "b"],
+        }
+    ]
+    paragrafi = leggi_bozza("Bruno Ferretti chiede. {fonte: x}")
+    regole_seguite(paragrafi, regola, {"Bruno Ferretti": "PERSONA"})
+    assert (
+        paragrafi[0]
+        .problemi[0]
+        .startswith("regola appresa non seguita: scrive «[PERSONA] chiede»")
+    )
+
+
+def test_il_modello_finto_scrive_la_somma_del_primo_decreto():
+    richiesta = (
+        "BOZZA DELL'ATTO: x\n\n"
+        "DOCUMENTO: uno.pdf · PAGINA 1\nINGIUNGE la somma di euro 1,00\n\n"
+        "DOCUMENTO: due.pdf · PAGINA 1\nINGIUNGE la somma di euro 2,00"
+    )
+    testo = ModelloFinto().scrivi("", richiesta).testo
+    assert (
+        "il pagamento della somma di euro 1,00. {fonte: uno.pdf, pagina 1}"
+        in testo
+    )

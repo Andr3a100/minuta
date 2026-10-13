@@ -13,3 +13,5 @@ build/
 dati/
 # Le bozze in Word della lezione 24: si rifanno, non si conservano.
 bozza-*.docx
+# Gli atti corretti della lezione 26: si rifanno, non si conservano.
+atto-*.docx

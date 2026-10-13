@@ -15,6 +15,9 @@ non c'è si segnala nel suo paragrafo, perché non si cita una sentenza che
 nessuno ha letto. E se la bozza parla di qualcosa che il fascicolo non ha,
 un assegno, un consumatore, una locazione, la norma che porta con sé esiste,
 ma forse non c'entra.
+
+Le regole apprese dalle correzioni dell'avvocato (lezione 26) vanno nella
+richiesta, e poi si controllano sulla bozza: leggere non è seguire.
 """
 
 from __future__ import annotations
@@ -23,7 +26,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 
-from . import citations
+from . import citations, learning
 from .draft import ELEMENTI
 from .scadenze import in_lettere
 from .scheda import date_in, importi_in, in_euro
@@ -174,6 +177,30 @@ def pertinenza(
 
 
 # [/libro:citazioni-bozza]
+
+
+# [libro:regole-bozza]
+def regole_seguite(
+    paragrafi: list[Paragrafo],
+    regole: list[dict],
+    noti: dict[str, str] | None = None,
+) -> None:
+    """Le regole apprese dalle correzioni dell'avvocato: il modello le ha
+    lette nella richiesta, ma leggere non è seguire. Un paragrafo che
+    scrive ancora ciò che l'avvocato ha corretto si segnala."""
+    for p in paragrafi:
+        for voce in learning.non_seguite(p.testo, regole, noti):
+            corretta = (
+                f"corretto in «{voce['dopo']}»" if voce["dopo"] else "tolto"
+            )
+            atti = learning.quanti(len(voce["fascicoli"]), "atto", "atti")
+            p.problemi.append(
+                f"regola appresa non seguita: scrive «{voce['prima']}», "
+                f"che l'avvocato ha {corretta} in {atti}"
+            )
+
+
+# [/libro:regole-bozza]
 
 
 def da_completare(paragrafi: list[Paragrafo]) -> list[str]:

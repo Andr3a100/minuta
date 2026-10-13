@@ -169,6 +169,8 @@ Sessione 'l23'
 Sessione 'l24'
 # Lezione 25: Minuta 1.0.1, le citazioni.
 Sessione 'l25'
+# Lezione 26: Minuta 1.1, le correzioni.
+Sessione 'l26'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)

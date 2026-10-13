@@ -281,7 +281,9 @@ class ModelloFinto:
     def _bozza(self, sistema: str, richiesta: str) -> Risposta:
         """Non scrive un atto: mette in fila ciò che ha ricevuto, con la
         provenienza, e sbaglia apposta come può sbagliare un modello vero:
-        un pagamento con importo e data che i documenti non hanno (L24)."""
+        un pagamento con importo e data che i documenti non hanno (L24).
+        Scrive «la somma» ingiunta anche se l'avvocato l'ha corretta: non
+        legge le regole apprese (L26)."""
         documenti = re.findall(
             r"^DOCUMENTO: (.+?) · PAGINA (\d+)\n(.+)$", richiesta, re.M
         )
@@ -292,6 +294,17 @@ class ModelloFinto:
         scadenza = re.search(r"^- [^:]+: (.+?) \(", richiesta, re.M)
         primo = documenti[0] if documenti else ("nessun documento", "1", "")
         ultimo = documenti[-1] if documenti else primo
+        ingiunta = None  # dove il decreto dice la somma, e quale
+        for nome, pagina, testo in re.findall(
+            r"^DOCUMENTO: (.+?) · PAGINA (\d+)\n(.*?)(?=^DOCUMENTO: |\Z)",
+            richiesta,
+            re.M | re.S,
+        ):
+            somma = re.search(
+                r"INGIUNGE.*?somma di euro ([\d.]+,\d{2})", testo, re.S
+            )
+            if somma and ingiunta is None:
+                ingiunta = (nome, pagina, somma.group(1))
         p = []
         if richiesta.startswith("BOZZA DELL'ATTO"):
             if stile:
@@ -303,6 +316,12 @@ class ModelloFinto:
                 f"L'atto da opporre comincia così: «{primo[2].strip()}». "
                 f"{{fonte: {primo[0]}, pagina {primo[1]}}}"
             )
+            if ingiunta:
+                p.append(
+                    "Il decreto ingiunge il pagamento della somma di euro "
+                    f"{ingiunta[2]}. {{fonte: {ingiunta[0]}, pagina "
+                    f"{ingiunta[1]}}}"
+                )
             p.append(
                 "La cliente ha già pagato euro 5.000,00 con bonifico del "
                 f"15 luglio 2026. {{fonte: {ultimo[0]}, pagina {ultimo[1]}}}"
