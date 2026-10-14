@@ -183,6 +183,8 @@ Sessione 'l31'
 Sessione 'l32'
 # Lezione 33: Minuta 1.2.4, copie, conservazione, cancellazione.
 Sessione 'l33'
+# Lezione 34: Minuta 1.2.5, l'informativa e il segno dei testi generati.
+Sessione 'l34'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)

@@ -491,6 +491,16 @@ def _passo_13(conn: Connection) -> None:
     )
 
 
+def _passo_14(conn: Connection) -> None:
+    """La consegna dell'informativa sull'IA al cliente (lezione 34)."""
+    for colonna in (
+        "informativa_il DATE",
+        "informativa_impronta VARCHAR(64)",
+        "informativa_modo VARCHAR(80)",
+    ):
+        conn.exec_driver_sql(f"ALTER TABLE fascicoli ADD COLUMN {colonna}")
+
+
 # Ogni nuova migrazione si aggiunge qui con il numero successivo.
 PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     1: ("Schema iniziale", _passo_1),
@@ -506,6 +516,7 @@ PASSI: dict[int, tuple[str, Callable[[Connection], None]]] = {
     11: ("Le correzioni degli avvocati", _passo_11),
     12: ("Il glossario del fascicolo", _passo_12),
     13: ("Le materie delle persone", _passo_13),
+    14: ("L'informativa sull'IA", _passo_14),
 }
 
 

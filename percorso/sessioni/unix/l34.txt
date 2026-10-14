@@ -1,0 +1,23 @@
+: '### [esito:l34-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v1.2.5
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l34-versione]'
+: '### [esito:l34-rifiutata]'
+python -m app.manage informativa
+d="La resistente ha contestato la fornitura?"
+python -m app.manage domanda 2026-071 "$d" --da irene
+: '### [/esito:l34-rifiutata]'
+: '### [esito:l34-consegna]'
+m="PEC al cliente"
+python -m app.manage informativa 2026-071 --consegnata 2026-10-14 --modo "$m" --da rosa
+python -m app.manage domanda 2026-071 "$d" --da irene
+: '### [/esito:l34-consegna]'
+: '### [esito:l34-segno]'
+python -m app.manage bozza 2026-071 promemoria --da irene --word promemoria-071.docx
+python -m app.manage segno-ia promemoria-071.docx
+: '### [/esito:l34-segno]'
+: '### [esito:l34-errore]'
+python percorso/informativa_cambiata.py 2026-071
+: '### [/esito:l34-errore]'

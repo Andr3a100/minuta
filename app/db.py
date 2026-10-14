@@ -107,6 +107,11 @@ class Fascicolo(Base):
     versione: Mapped[int] = mapped_column(Integer, default=1)
     # Le parole equivalenti del fascicolo, decise dall'avvocato (lezione 29).
     glossario: Mapped[str] = mapped_column(Text, server_default="{}")
+    # L'informativa sull'IA consegnata al cliente (lezione 34): quando, come,
+    # e l'impronta del testo consegnato.
+    informativa_il: Mapped[date | None] = mapped_column(Date)
+    informativa_impronta: Mapped[str | None] = mapped_column(String(64))
+    informativa_modo: Mapped[str | None] = mapped_column(String(80))
     creato_da_id: Mapped[int] = mapped_column(ForeignKey("utenti.id"))
     creato_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
     aggiornato_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)

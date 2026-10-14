@@ -116,9 +116,10 @@ def test_il_tetto_si_imposta_nell_ambiente(monkeypatch, tmp_path):
         with pytest.raises(ConfigError, match="MINUTA_TETTO_MENSILE"):
             load_settings(env)
     monkeypatch.setenv("MINUTA_TETTO_MENSILE", "3")
-    assert isinstance(modello_da(load_settings(env)), ModelloConTetto)
+    # Davanti a tutto c'è il controllo dell'informativa (lezione 34).
+    assert isinstance(modello_da(load_settings(env)).modello, ModelloConTetto)
     monkeypatch.delenv("MINUTA_TETTO_MENSILE")
-    assert isinstance(modello_da(load_settings(env)), ModelloFinto)
+    assert isinstance(modello_da(load_settings(env)).modello, ModelloFinto)
 
 
 def test_i_costi_del_mese(app, capsys):

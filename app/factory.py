@@ -16,6 +16,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .config import Settings, load_settings
 from .db import make_engine, make_session_factory
 from .documenti import MASSIMO_DOCUMENTO
+from .informativa import per_il_fascicolo
 from .invio import modello_da
 from .routes import router
 from .web import LoginRequired, pagina_errore
@@ -25,6 +26,9 @@ MASSIMO_CORPO = 16_384  # i moduli sono piccoli
 # Il caricamento di un documento: il file e il modulo che lo porta.
 MASSIMO_CARICAMENTO = MASSIMO_DOCUMENTO + 65_536
 CARICAMENTO = re.compile(r"/fascicoli/\d+/documenti")
+# Le pagine di un fascicolo: le richieste al modello che partono da lì sono
+# per quel fascicolo, e passano dal controllo dell'informativa (lezione 34).
+DEL_FASCICOLO = re.compile(r"/fascicoli/(\d+)(?:/|$)")
 
 # [libro:intestazioni]
 INTESTAZIONI_SICUREZZA = {
@@ -59,6 +63,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.modello = modello_da(settings)
     app.mount("/static", StaticFiles(directory=str(QUI / "static")), "static")
     app.include_router(router)
+
+    @app.middleware("http")
+    async def fascicolo_della_pagina(request: Request, call_next):
+        trovato = DEL_FASCICOLO.match(request.url.path)
+        with per_il_fascicolo(int(trovato.group(1)) if trovato else None):
+            return await call_next(request)
 
     @app.middleware("http")
     async def limiti_e_intestazioni(request: Request, call_next):

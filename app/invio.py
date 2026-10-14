@@ -52,7 +52,8 @@ from .web import registra_evento
 def modello_da(settings) -> Modello:
     """Il modello della configurazione. Solo per un fornitore vero si legge
     la sua chiave dal file .env, e non si mostra mai. Con un tetto alla
-    spesa del mese, il modello lo ha davanti (lezione 31)."""
+    spesa del mese, il modello lo ha davanti (lezione 31); e prima ancora
+    il controllo dell'informativa al cliente (lezione 34)."""
     if settings.modello == "finto":
         modello = ModelloFinto()
     else:
@@ -62,13 +63,15 @@ def modello_da(settings) -> Modello:
             if settings.modello == "openai"
             else ModelloAnthropic(settings.modello_nome)
         )
-    if settings.tetto_mensile is None:
-        return modello
     from .costi import ModelloConTetto  # evita l'import circolare
+    from .informativa import ModelloConInformativa
 
-    return ModelloConTetto(
-        modello, settings.tetto_mensile, settings.database_url
-    )
+    if settings.tetto_mensile is not None:
+        modello = ModelloConTetto(
+            modello, settings.tetto_mensile, settings.database_url
+        )
+    # Davanti a tutto, l'informativa al cliente (lezione 34).
+    return ModelloConInformativa(modello, settings.database_url)
 
 
 class PersonaRifiutata(Exception):

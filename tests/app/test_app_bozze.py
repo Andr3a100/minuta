@@ -16,10 +16,10 @@ from docx.enum.text import WD_COLOR_INDEX
 from docx.shared import Cm, Pt
 from sqlalchemy import func, inspect, select
 
+from app import bozze as app_bozze
 from app import documenti as app_documenti
 from app import manage
 from app.archivio import carica_atto
-from app import bozze as app_bozze
 from app.bozze import (
     BozzaRifiutata,
     approva_bozza,
@@ -30,8 +30,8 @@ from app.bozze import (
 )
 from app.db import (
     Bozza,
-    Evento,
     Documento,
+    Evento,
     Fascicolo,
     Scadenza,
     Scheda,
@@ -39,6 +39,7 @@ from app.db import (
     Utente,
     make_engine,
 )
+from app.informativa import registra_consegna
 from app.invio import InvioBloccato, aggiungi_persona
 from app.migrations import PASSI, migra
 from app.registro import RichiestaNonAmmessa
@@ -151,6 +152,8 @@ def civile(app, impostazioni):
         decidi_formule(db, sarti, aperte, "tolta")
         conferma_profilo(db, sarti)
         con_scadenza(db, dentro, sarti)
+        # Il cliente ha ricevuto l'informativa sull'IA (lezione 34).
+        registra_consegna(db, sarti, dentro, date(2026, 10, 1), "a mano")
     return fascicolo
 
 

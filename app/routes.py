@@ -51,6 +51,7 @@ from .db import (
     Scadenza,
     SessioneAccesso,
     TentativoFallito,
+    UsoAI,
     Utente,
     adesso,
 )
@@ -100,6 +101,7 @@ from .security import (
     nuovo_gettone,
     verifica_passphrase,
 )
+from .segno import segna
 from .stile import (
     StileRifiutato,
     calcola_profilo,
@@ -1014,6 +1016,10 @@ def nuova_domanda(
             return pagina_domande(
                 request, db, utente, fascicolo, errore, stato=502
             )
+        except RichiestaNonAmmessa as exc:  # l'informativa (lezione 34)
+            return pagina_domande(
+                request, db, utente, fascicolo, str(exc), stato=409
+            )
     return RedirectResponse(f"/fascicoli/{fascicolo.id}/domande", 303)
 
 
@@ -1190,7 +1196,7 @@ def nuova_bozza(
             prepara_bozza(
                 db, utente, fascicolo, tipo, request.app.state.modello
             )
-        except (BozzaRifiutata, TipoDiBozza) as exc:
+        except (BozzaRifiutata, TipoDiBozza, RichiestaNonAmmessa) as exc:
             return pagina_bozze(request, db, utente, fascicolo, str(exc), 409)
         except InvioBloccato:
             errore = "La bozza non è partita: resta qualcosa da nascondere."
@@ -1211,6 +1217,7 @@ def scarica_bozza(request: Request, fascicolo_id: int, bozza_id: int):
         percorso = in_word(
             db, bozza, Path(cartella) / "bozze" / f"{bozza.id}.docx"
         )
+        segna(percorso, db.get(UsoAI, bozza.uso_ai_id).modello)
     nome = f"bozza-{fascicolo.codice}-{bozza.tipo}-{bozza.id}.docx"
     return Response(
         percorso.read_bytes(),

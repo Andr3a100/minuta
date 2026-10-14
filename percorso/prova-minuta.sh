@@ -143,5 +143,7 @@ sessione() {
     sessione l32
     # Lezione 33: Minuta 1.2.4, copie, conservazione, cancellazione.
     sessione l33
+    # Lezione 34: Minuta 1.2.5, l'informativa e il segno dei testi generati.
+    sessione l34
     echo "== Fine"
 } >"$verbale"

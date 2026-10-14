@@ -129,6 +129,11 @@ from .documenti import (
     stato_elenco,
 )
 from .glossario import GlossarioRifiutato, decidi_voce, glossario_di
+from .informativa import (
+    ModelloDelFascicolo,
+    impronta_attuale,
+    registra_consegna,
+)
 from .invio import (
     InvioBloccato,
     PersonaRifiutata,
@@ -166,6 +171,7 @@ from .schede import (
     ultima_scheda,
 )
 from .security import MIN_PASSPHRASE, hash_passphrase
+from .segno import leggi_segno, segna
 from .stile import (
     StileRifiutato,
     calcola_profilo,
@@ -592,6 +598,15 @@ def costruisci_parser() -> argparse.ArgumentParser:
     )
     resp.add_argument("numero", type=int, help="il numero della correzione")
     resp.add_argument("--da", required=True, help="l'avvocato")
+    inf = sub.add_parser(
+        "informativa", help="l'informativa sull'IA consegnata ai clienti"
+    )
+    inf.add_argument("codice", nargs="?", help="senza: tutti i fascicoli")
+    inf.add_argument("--consegnata", help="AAAA-MM-GG: registra la consegna")
+    inf.add_argument("--modo", default="", help="come è stata consegnata")
+    inf.add_argument("--da", help="chi registra la consegna")
+    seg = sub.add_parser("segno-ia", help="il segno di un file generato")
+    seg.add_argument("file")
     sub.add_parser("copia", help="la copia di sicurezza di oggi")
     ver = sub.add_parser("verifica-copia", help="una copia si ripristina?")
     ver.add_argument("copia", nargs="?", help="il file della copia")
@@ -785,6 +800,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.comando == "riletture":
         stampa_riletture(args.mesi)
         return 0
+    if args.comando == "segno-ia":
+        righe = leggi_segno(Path(args.file))
+        for riga in righe or [f"{args.file}: nessun segno."]:
+            print("\n".join(a_capo(riga, "", "  ")))
+        return 0
     if args.comando == "calcola-termine":
         try:
             calcolo = calcola(args.termine, args.partenza, carica_regole())
@@ -874,6 +894,8 @@ def main(argv: list[str] | None = None) -> int:
                 cancella_dalla_riga(db, settings, args)
             elif args.comando == "residui":
                 stampa_residui(db, settings)
+            elif args.comando == "informativa":
+                informativa_dalla_riga(db, args)
             elif args.comando == "carica":
                 return carica_file(db, settings, args)
             elif args.comando == "testo":
@@ -1028,7 +1050,7 @@ def chiedi_al_modello(db: Session, settings, args) -> int:
             fascicolo,
             documento,
             args.domanda,
-            modello_da(settings),
+            ModelloDelFascicolo(modello_da(settings), fascicolo.id),
         )
     except InvioBloccato as blocco:
         stampa_controlli(blocco.preparato, noti_del_fascicolo(db, fascicolo))
@@ -1116,7 +1138,11 @@ def scheda_dell_atto(db: Session, settings, args) -> int:
     print(f"Fascicolo {fascicolo.codice} · {documento.nome} · {utente.nome}")
     try:
         esito = prepara_scheda(
-            db, utente, fascicolo, documento, modello_da(settings)
+            db,
+            utente,
+            fascicolo,
+            documento,
+            ModelloDelFascicolo(modello_da(settings), fascicolo.id),
         )
     except InvioBloccato as blocco:
         stampa_controlli(blocco.preparato, noti_del_fascicolo(db, fascicolo))
@@ -1361,7 +1387,7 @@ def domanda_al_fascicolo(db: Session, settings, args) -> int:
                 utente,
                 fascicolo,
                 args.domanda,
-                modello_da(settings),
+                ModelloDelFascicolo(modello_da(settings), fascicolo.id),
                 args.tipo,
                 args.autore,
                 args.dal,
@@ -1369,7 +1395,11 @@ def domanda_al_fascicolo(db: Session, settings, args) -> int:
             )
         else:
             esito = domanda_sul_fascicolo(
-                db, utente, fascicolo, args.domanda, modello_da(settings)
+                db,
+                utente,
+                fascicolo,
+                args.domanda,
+                ModelloDelFascicolo(modello_da(settings), fascicolo.id),
             )
     except InvioBloccato as blocco:
         print(f"Fascicolo {fascicolo.codice} · {utente.nome}")
@@ -1635,7 +1665,11 @@ def bozza_dalla_riga(db: Session, settings, args) -> int:
     fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
     try:
         esito = prepara_bozza(
-            db, utente, fascicolo, args.tipo, modello_da(settings)
+            db,
+            utente,
+            fascicolo,
+            args.tipo,
+            ModelloDelFascicolo(modello_da(settings), fascicolo.id),
         )
     except InvioBloccato as blocco:
         print(f"Fascicolo {fascicolo.codice} · {utente.nome}")
@@ -1661,6 +1695,7 @@ def bozza_dalla_riga(db: Session, settings, args) -> int:
     print(riga_del_registro(esito.voce))
     if args.word:
         percorso = in_word(db, esito.bozza, Path(args.word))
+        segna(percorso, esito.voce.modello)  # art. 50 (lezione 34)
         print(f"In Word: {percorso.as_posix()}")
     if args.verbale:
         voce = esito.voce
@@ -1977,6 +2012,31 @@ def copie_dalla_riga(settings, args) -> int:
     )
     print("Ora lo schema: python -m app.manage migra")
     return 0
+
+
+def informativa_dalla_riga(db: Session, args) -> None:
+    if args.consegnata:
+        if not args.codice or not args.da:
+            raise CommandError("La consegna vuole il fascicolo e --da.")
+        fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+        try:
+            giorno = date.fromisoformat(args.consegnata)
+        except ValueError:
+            raise CommandError("La data si scrive AAAA-MM-GG.") from None
+        registra_consegna(db, utente, fascicolo, giorno, args.modo)
+    oggi = impronta_attuale()
+    print(f"L'informativa di oggi: docs/informativa.md, impronta {oggi[:12]}.")
+    query = select(Fascicolo).order_by(Fascicolo.codice)
+    if args.codice:
+        query = query.where(Fascicolo.codice == args.codice)
+    for f in db.scalars(query):
+        if f.informativa_il is None:
+            stato = "non consegnata"
+        else:
+            giorno = data_in_lettere(f.informativa_il)
+            vecchia = "" if f.informativa_impronta == oggi else ", superata"
+            stato = f"consegnata il {giorno} ({f.informativa_modo}){vecchia}"
+        print(f"{f.codice}  {stato}")
 
 
 def quante_copie(n: int) -> str:

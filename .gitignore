@@ -21,3 +21,5 @@ addestramento.json
 copie/
 # Le uscite delle attività pianificate della lezione 33.
 log/
+# Il promemoria in Word della lezione 34: si rifà, non si conserva.
+promemoria-*.docx
