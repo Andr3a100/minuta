@@ -83,10 +83,13 @@ def cancella_con_minuta(settings, codice: str) -> None:
 
 
 def righe_rimaste(database: Path, codice: str) -> int:
-    with sqlite3.connect(database) as conn:
+    conn = sqlite3.connect(database)
+    try:
         return conn.execute(
             "SELECT count(*) FROM fascicoli WHERE codice = ?", (codice,)
         ).fetchone()[0]
+    finally:
+        conn.close()  # su Windows un file aperto non si cancella
 
 
 def resoconto(settings, codice: str) -> list[str]:

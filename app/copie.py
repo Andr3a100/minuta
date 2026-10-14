@@ -30,6 +30,7 @@ import sqlite3
 import tarfile
 import tempfile
 import zlib
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
@@ -98,14 +99,13 @@ def file_dei_dati(settings: Settings) -> list[Path]:
 def leggi_database(percorso: Path) -> tuple[list[str], int, str]:
     """I codici dei fascicoli, le persone dello studio, il controllo di
     integrità di SQLite: «ok» se il database è sano."""
-    with sqlite3.connect(percorso) as conn:
+    with closing(sqlite3.connect(percorso)) as conn:
         controllo = conn.execute("PRAGMA integrity_check").fetchone()[0]
         codici = [
             r[0]
             for r in conn.execute("SELECT codice FROM fascicoli ORDER BY 1")
         ]
         persone = conn.execute("SELECT count(*) FROM utenti").fetchone()[0]
-    conn.close()
     return codici, persone, controllo
 
 
@@ -137,11 +137,9 @@ def fai_copia(settings: Settings, giorni: int, oggi: date) -> Copia:
     cartella.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         database = Path(tmp) / DATABASE
-        with sqlite3.connect(percorso_database(settings)) as origine:
-            with sqlite3.connect(database) as copia:
+        with closing(sqlite3.connect(percorso_database(settings))) as origine:
+            with closing(sqlite3.connect(database)) as copia:
                 origine.backup(copia)  # tutto il database, in un momento
-            copia.close()
-        origine.close()
         codici, _persone, _controllo = leggi_database(database)
         dati = file_dei_dati(settings)
         base = Path(settings.data_dir)
@@ -235,7 +233,7 @@ def verifica_copia(percorso: Path) -> Verifica:
 def database_vuoto(percorso: Path) -> bool:
     if not percorso.is_file():
         return True
-    with sqlite3.connect(percorso) as conn:
+    with closing(sqlite3.connect(percorso)) as conn:
         tabelle = {
             r[0]
             for r in conn.execute(
@@ -247,7 +245,6 @@ def database_vuoto(percorso: Path) -> bool:
             for t in ("utenti", "fascicoli")
             if t in tabelle
         )
-    conn.close()
     return righe == 0
 
 
@@ -282,11 +279,9 @@ def ripristina(settings: Settings, percorso: Path) -> Verifica:
                 continue
             da_copiare.append((cartella / nome, arrivo))
         destinazione.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(cartella / DATABASE) as origine:
-            with sqlite3.connect(destinazione) as arrivo:
+        with closing(sqlite3.connect(cartella / DATABASE)) as origine:
+            with closing(sqlite3.connect(destinazione)) as arrivo:
                 origine.backup(arrivo)
-            arrivo.close()
-        origine.close()
         for sorgente, arrivo in da_copiare:
             arrivo.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(sorgente, arrivo)
