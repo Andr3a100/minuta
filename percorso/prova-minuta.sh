@@ -147,5 +147,7 @@ sessione() {
     sessione l34
     # Lezione 35: Minuta 1.2.6, la valutazione d'impatto controllata.
     sessione l35
+    # Lezione 36: Minuta 1.2.7, il conto dello studio.
+    sessione l36
     echo "== Fine"
 } >"$verbale"

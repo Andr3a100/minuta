@@ -1,0 +1,105 @@
+{
+  "chiamate_vere": [
+    {
+      "scopo": "scheda dell'atto in arrivo",
+      "dollari": 0.009814,
+      "verbale": "L18-scheda-2026-10-07"
+    },
+    {
+      "scopo": "domanda su un documento del fascicolo",
+      "dollari": 0.005016,
+      "verbale": "L17-prima-domanda-2026-10-07"
+    },
+    {
+      "scopo": "domanda su un documento del fascicolo",
+      "dollari": 0.008596,
+      "verbale": "L17-domanda-2026-10-07"
+    },
+    {
+      "scopo": "domanda sul fascicolo",
+      "dollari": 0.00197,
+      "verbale": "L21-notifica-2026-10-08"
+    },
+    {
+      "scopo": "domanda sul fascicolo",
+      "dollari": 0.002988,
+      "verbale": "L21-fornitura-2026-10-08"
+    },
+    {
+      "scopo": "domanda sul fascicolo",
+      "dollari": 0.005064,
+      "verbale": "L29-fornitura-2026-10-13"
+    },
+    {
+      "scopo": "domanda all'archivio",
+      "dollari": 0.005532,
+      "verbale": "L22-prima-domanda-2026-10-08"
+    },
+    {
+      "scopo": "domanda all'archivio",
+      "dollari": 0.0058,
+      "verbale": "L22-seconda-domanda-2026-10-08"
+    },
+    {
+      "scopo": "domanda all'archivio",
+      "dollari": 0.005252,
+      "verbale": "L22-fornitura-2026-10-08"
+    },
+    {
+      "scopo": "domanda all'archivio",
+      "dollari": 0.010028,
+      "verbale": "L22-precedente-2026-10-08"
+    },
+    {
+      "scopo": "bozza: opposizione",
+      "dollari": 0.036448,
+      "verbale": "L24-prima-bozza-2026-10-13"
+    },
+    {
+      "scopo": "bozza: opposizione",
+      "dollari": 0.03471,
+      "verbale": "L24-opposizione-2026-10-13"
+    },
+    {
+      "scopo": "bozza: opposizione",
+      "dollari": 0.03429,
+      "verbale": "L25-opposizione-2026-10-13"
+    },
+    {
+      "scopo": "bozza: opposizione",
+      "dollari": 0.035392,
+      "verbale": "L26-opposizione-2026-10-13"
+    },
+    {
+      "scopo": "bozza: promemoria",
+      "dollari": 0.014168,
+      "verbale": "L24-promemoria-2026-10-13"
+    }
+  ],
+  "ipotesi": {
+    "fascicoli al mese": {
+      "valore": 30,
+      "fonte": "simulato (lezione 2)"
+    },
+    "minuti risparmiati": {
+      "valore": 30,
+      "fonte": "simulato (lezione 3)"
+    },
+    "minuti di rilettura": {
+      "valore": 10,
+      "fonte": "simulato; si misura nella lezione 38"
+    },
+    "costo orario": {
+      "valore": 60,
+      "fonte": "simulato (lezione 3)"
+    },
+    "avvio": {
+      "valore": 8000,
+      "fonte": "simulato (lezione 3)"
+    },
+    "gestione annua": {
+      "valore": 1200,
+      "fonte": "simulato (lezione 3)"
+    }
+  }
+}

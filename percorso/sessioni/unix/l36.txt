@@ -1,0 +1,12 @@
+: '### [esito:l36-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v1.2.7
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l36-versione]'
+: '### [esito:l36-zero]'
+python -m app.manage costi --da sarti
+: '### [/esito:l36-zero]'
+: '### [esito:l36-conto]'
+python -m app.manage conto
+: '### [/esito:l36-conto]'

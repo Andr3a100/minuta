@@ -54,7 +54,7 @@ from minuta.scadenze import (
 from minuta.scheda import Riga, SchedaIlleggibile
 from minuta.verifiche import TipoSconosciuto, carica_domande
 
-from . import impatto
+from . import conto, impatto
 from .addestramento import AddestramentoRifiutato, prepara_insieme
 from .archivio import (
     ArchivioRifiutato,
@@ -607,6 +607,7 @@ def costruisci_parser() -> argparse.ArgumentParser:
     inf.add_argument("--modo", default="", help="come è stata consegnata")
     inf.add_argument("--da", help="chi registra la consegna")
     sub.add_parser("impatto", help="le misure della valutazione d'impatto")
+    sub.add_parser("conto", help="il conto dello studio, con le misure")
     seg = sub.add_parser("segno-ia", help="il segno di un file generato")
     seg.add_argument("file")
     sub.add_parser("copia", help="la copia di sicurezza di oggi")
@@ -900,6 +901,8 @@ def main(argv: list[str] | None = None) -> int:
                 informativa_dalla_riga(db, args)
             elif args.comando == "impatto":
                 return impatto_dalla_riga(db, settings)
+            elif args.comando == "conto":
+                return conto_dalla_riga(db)
             elif args.comando == "carica":
                 return carica_file(db, settings, args)
             elif args.comando == "testo":
@@ -2041,6 +2044,43 @@ def informativa_dalla_riga(db: Session, args) -> None:
             vecchia = "" if f.informativa_impronta == oggi else ", superata"
             stato = f"consegnata il {giorno} ({f.informativa_modo}){vecchia}"
         print(f"{f.codice}  {stato}")
+
+
+def dollari(cifra: float, cifre: int = 4) -> str:
+    return f"{cifra:.{cifre}f}".replace(".", ",") + " dollari"
+
+
+def conto_dalla_riga(db: Session) -> int:
+    dati = conto.carica_conto()
+    prezzi = conto.prezzi_misurati(dati)
+    print("Prezzi misurati: chiamate vere a gpt-6.1-sol, mediana per tipo.")
+    for scopo, (prezzo, n) in prezzi.items():
+        volte = "1 chiamata" if n == 1 else f"{n} chiamate"
+        print(f"  {scopo:<39} {dollari(prezzo)} ({volte})")
+    stime = conto.stima_per_fascicolo(db, prezzi)
+    print("Le richieste del registro, a quei prezzi:")
+    for s in stime:
+        parola = "richiesta " if s.richieste == 1 else "richieste"
+        print(f"  {s.codice}  {s.richieste:>3} {parola}  {dollari(s.dollari)}")
+        if s.senza_prezzo:
+            print(f"    senza prezzo misurato: {', '.join(s.senza_prezzo)}")
+    con_richieste = [s for s in stime if s.richieste]
+    media = sum(s.dollari for s in con_richieste) / max(len(con_richieste), 1)
+    print(f"In media, per un fascicolo con richieste: {dollari(media)}.")
+    print("Le ipotesi, con la loro fonte:")
+    for nome, voce in dati["ipotesi"].items():
+        print(f"  {nome:<20} {voce['valore']:>6}  {voce['fonte']}")
+    al_mese = dati["ipotesi"]["fascicoli al mese"]["valore"]
+    print(
+        f"Il modello, per {al_mese} fascicoli al mese: "
+        f"{dollari(media * al_mese * 12, 2)} l'anno."
+    )
+    elenco, anno = conto.ritorno(dati["ipotesi"])
+    saldi = ", ".join(f"{x:,.0f}".replace(",", ".") for x in elenco)
+    print(f"Il ritorno prudente (lezione 3), saldi in euro: {saldi}.")
+    print(f"Pareggio: anno {anno}." if anno else "Pareggio: mai, in 5 anni.")
+    mancano = sorted({x for s in stime for x in s.senza_prezzo})
+    return 1 if mancano else 0
 
 
 def impatto_dalla_riga(db: Session, settings) -> int:

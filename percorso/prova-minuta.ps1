@@ -187,6 +187,8 @@ Sessione 'l33'
 Sessione 'l34'
 # Lezione 35: Minuta 1.2.6, la valutazione d'impatto controllata.
 Sessione 'l35'
+# Lezione 36: Minuta 1.2.7, il conto dello studio.
+Sessione 'l36'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)

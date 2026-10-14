@@ -1,0 +1,11 @@
+### [esito:l36-versione]
+cd ~\minuta\laboratorio
+git switch --detach v1.2.7
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l36-versione]
+### [esito:l36-zero]
+.\.venv\Scripts\python.exe -m app.manage costi --da sarti
+### [/esito:l36-zero]
+### [esito:l36-conto]
+.\.venv\Scripts\python.exe -m app.manage conto
+### [/esito:l36-conto]
