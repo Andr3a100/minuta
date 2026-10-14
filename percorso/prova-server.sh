@@ -11,6 +11,10 @@ set -euo pipefail
 if [ -z "${CI:-}" ]; then
     HOME="$(mktemp -d)"
     export HOME
+    # Sul computer di chi scrive la casa provvisoria si toglie alla fine:
+    # ogni prova ne lascerebbe una da duecento megabyte.
+    casa_provvisoria="$HOME"
+    trap 'rm -rf "${casa_provvisoria:?}"' EXIT
 fi
 unset CI BUILD_NUMBER
 umask 022

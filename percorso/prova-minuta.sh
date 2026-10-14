@@ -14,6 +14,10 @@ set -euo pipefail
 if [ -z "${CI:-}" ]; then
     HOME="$(mktemp -d)"
     export HOME
+    # Sul computer di chi scrive la casa provvisoria si toglie alla fine:
+    # ogni prova ne lascerebbe una da duecento megabyte.
+    casa_provvisoria="$HOME"
+    trap 'rm -rf "${casa_provvisoria:?}"' EXIT
 fi
 # Le sessioni girano senza le variabili con cui la CI si annuncia: pytest,
 # quando le trova, non accorcia i messaggi, e sul computer del lettore li
@@ -155,5 +159,7 @@ sessione() {
     sessione l38
     # Lezione 39: Minuta 1.3.1, che cosa non si consegna a un altro studio.
     sessione l39
+    # Lezione 40: Minuta 1.4, un tipo di atto nuovo senza toccare il codice.
+    sessione l40
     echo "== Fine"
 } >"$verbale"

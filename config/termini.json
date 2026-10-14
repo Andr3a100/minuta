@@ -14,6 +14,18 @@
       "nota": "Il giudice può ridurre o aumentare il termine: vale quello scritto nel decreto."
     },
     {
+      "nome": "opposizione agli atti esecutivi",
+      "materia": "civile",
+      "giorni": 20,
+      "da": "notificazione",
+      "norma": "art. 617, primo comma, c.p.c.",
+      "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443:1~art617",
+      "letta_il": "2026-10-14",
+      "computo": "civile",
+      "sospensione_feriale": "da verificare",
+      "nota": "Contro la regolarità formale del precetto, prima che l'esecuzione cominci. La sospensione non si applica ai procedimenti dell'art. 92 dell'ordinamento giudiziario, fra cui l'opposizione all'esecuzione (art. 3, legge 742/1969): se valga anche qui lo decide l'avvocato."
+    },
+    {
       "nome": "ricorso contro la cartella di pagamento",
       "materia": "tributario",
       "giorni": 60,

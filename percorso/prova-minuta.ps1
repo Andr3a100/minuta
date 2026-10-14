@@ -195,6 +195,8 @@ Sessione 'l37'
 Sessione 'l38'
 # Lezione 39: Minuta 1.3.1, che cosa non si consegna a un altro studio.
 Sessione 'l39'
+# Lezione 40: Minuta 1.4, un tipo di atto nuovo senza toccare il codice.
+Sessione 'l40'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)

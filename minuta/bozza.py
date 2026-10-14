@@ -22,9 +22,11 @@ richiesta, e poi si controllano sulla bozza: leggere non è seguire.
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from datetime import date
+from pathlib import Path
 
 from . import citations, learning
 from .draft import ELEMENTI
@@ -32,19 +34,10 @@ from .scadenze import in_lettere
 from .scheda import date_in, importi_in, in_euro
 
 # [libro:istruzioni-bozza]
-TIPI = {
-    "opposizione": (
-        "BOZZA DELL'ATTO: scrivi la bozza dell'atto di opposizione al "
-        "decreto ingiuntivo, per il cliente dello studio, nello STILE "
-        "indicato."
-    ),
-    "promemoria": (
-        "BOZZA DEL PROMEMORIA: scrivi al cliente dello studio una lettera in "
-        "parole semplici, senza termini tecnici non spiegati, che dica che "
-        "cosa è arrivato, che cosa rischia, che cosa si può fare ed entro "
-        "quando. Non promettere esiti."
-    ),
-}
+# Le istruzioni di ogni bozza stanno in config/bozze.json (lezione 40): una
+# bozza nuova si aggiunge lì, senza toccare il codice.
+BOZZE = Path(__file__).resolve().parents[1] / "config" / "bozze.json"
+TIPI = json.loads(BOZZE.read_text(encoding="utf-8"))["bozze"]
 REGOLE = (
     "Usa soltanto i fatti dei DOCUMENTI e delle SCADENZE: ogni dato che "
     "manca va scritto [DA COMPLETARE: che cosa manca], senza dedurre e senza "

@@ -1,0 +1,8 @@
+{
+  "_come_si_legge": "Le bozze che Minuta sa preparare (lezioni 24 e 40): per ogni bozza, l'istruzione per il modello. Le regole comuni a tutte stanno nel codice, in minuta/bozza.py. Una bozza nuova si aggiunge qui, con un tipo di atto in config/tipi/.",
+  "bozze": {
+    "opposizione": "BOZZA DELL'ATTO: scrivi la bozza dell'atto di opposizione al decreto ingiuntivo, per il cliente dello studio, nello STILE indicato.",
+    "promemoria": "BOZZA DEL PROMEMORIA: scrivi al cliente dello studio una lettera in parole semplici, senza termini tecnici non spiegati, che dica che cosa è arrivato, che cosa rischia, che cosa si può fare ed entro quando. Non promettere esiti.",
+    "opposizione agli atti esecutivi": "BOZZA DELL'ATTO: scrivi la bozza dell'atto di citazione in opposizione agli atti esecutivi contro il precetto (art. 617 c.p.c.), per il cliente dello studio, limitata ai vizi di forma del precetto che risultano dai DOCUMENTI."
+  }
+}

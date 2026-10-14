@@ -41,6 +41,7 @@ from sqlalchemy.orm import Session
 from minuta import cancello, certificatori, learning, valutazione
 from minuta import documenti as motore
 from minuta.archivio import leggi_indice
+from minuta.bozza import TIPI as TIPI_DI_BOZZA
 from minuta.bozza import TipoDiBozza
 from minuta.domande import RispostaIlleggibile
 from minuta.invio import SISTEMA
@@ -53,6 +54,8 @@ from minuta.scadenze import (
     in_lettere,
 )
 from minuta.scheda import Riga, SchedaIlleggibile
+from minuta.tipi import carica_tipi
+from minuta.tipi import esamina as esame_del_tipo
 from minuta.verifiche import TipoSconosciuto, carica_domande
 
 from . import consegna, conto, impatto, misura
@@ -621,6 +624,7 @@ def costruisci_parser() -> argparse.ArgumentParser:
     tem.add_argument("minuti", type=int)
     tem.add_argument("--da", required=True, help="chi ha lavorato")
     sub.add_parser("misura", help="la misura di oggi e quella di partenza")
+    sub.add_parser("tipi-di-atto", help="i tipi di atto e se sono completi")
     sub.add_parser(
         "per-un-altro-studio",
         help="che cosa non si consegna a un altro studio",
@@ -820,6 +824,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.comando == "riletture":
         stampa_riletture(args.mesi)
         return 0
+    if args.comando == "tipi-di-atto":
+        return stampa_tipi()
     if args.comando == "segno-ia":
         righe = leggi_segno(Path(args.file))
         for riga in righe or [f"{args.file}: nessun segno."]:
@@ -2078,6 +2084,24 @@ def informativa_dalla_riga(db: Session, args) -> None:
             vecchia = "" if f.informativa_impronta == oggi else ", superata"
             stato = f"consegnata il {giorno} ({f.informativa_modo}){vecchia}"
         print(f"{f.codice}  {stato}")
+
+
+def stampa_tipi() -> int:
+    domande, regole = carica_domande(), carica_regole()
+    esami = [
+        esame_del_tipo(t, domande, regole, TIPI_DI_BOZZA)
+        for t in carica_tipi()
+    ]
+    print("I tipi di atto, in config/tipi:")
+    for esame in esami:
+        stato = "completo" if esame.completo else "incompleto"
+        print(f"{esame.nome}: {stato}")
+        for voce, ok, dettaglio in esame.righe:
+            segno = " " if ok else "!"
+            print(
+                "\n".join(a_capo(dettaglio, f" {segno} {voce:<8}", " " * 12))
+            )
+    return 0 if all(e.completo for e in esami) else 1
 
 
 def consegna_dalla_riga(db: Session, settings) -> int:

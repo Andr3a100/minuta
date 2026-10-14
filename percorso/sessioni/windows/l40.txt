@@ -1,0 +1,23 @@
+### [esito:l40-versione]
+cd ~\minuta\laboratorio
+git switch --detach v1.4
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l40-versione]
+### [esito:l40-tipi]
+.\.venv\Scripts\python.exe -m app.manage tipi-di-atto
+### [/esito:l40-tipi]
+### [esito:l40-precetto]
+.\.venv\Scripts\python.exe -m app.manage carica 2026-071 documenti-di-prova\precetto --da sarti
+.\.venv\Scripts\python.exe -m app.manage scheda 2026-071 precetto.pdf --da irene
+.\.venv\Scripts\python.exe -m app.manage togli-riga 2026-071 precetto.pdf 1 --da irene
+.\.venv\Scripts\python.exe -m app.manage togli-riga 2026-071 precetto.pdf 2 --da irene
+.\.venv\Scripts\python.exe -m app.manage conferma-scheda 2026-071 precetto.pdf --da sarti
+.\.venv\Scripts\python.exe -m app.manage verifiche 2026-071 precetto.pdf --tipo atto --da irene
+### [/esito:l40-precetto]
+### [esito:l40-termine]
+.\.venv\Scripts\python.exe -m app.manage calcola-termine "opposizione agli atti" 2027-10-04
+.\.venv\Scripts\python.exe -m app.manage calcola-termine "opposizione agli atti" 2027-07-20
+### [/esito:l40-termine]
+### [esito:l40-errore]
+.\.venv\Scripts\python.exe percorso\regola_copiata.py
+### [/esito:l40-errore]

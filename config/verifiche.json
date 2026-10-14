@@ -43,6 +43,43 @@
         "dove": "la scadenza calcolata e confermata (lezione 19)",
         "controllo": "scadenze"
       }
+    ],
+    "atto di precetto": [
+      {
+        "domanda": "Il termine per adempiere è di almeno dieci giorni?",
+        "dove": "il termine intimato nel precetto",
+        "voci": ["richieste"],
+        "norma": "art. 480, primo comma, c.p.c.",
+        "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443:1~art480",
+        "letta_il": "2026-10-14"
+      },
+      {
+        "domanda": "Il precetto indica le parti e la data di notificazione del titolo esecutivo?",
+        "dove": "le parti e le date della scheda",
+        "voci": ["parti", "date"],
+        "norma": "art. 480, secondo comma, c.p.c.",
+        "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443:1~art480",
+        "letta_il": "2026-10-14",
+        "nota": "a pena di nullità"
+      },
+      {
+        "domanda": "C'è l'avvertimento sulla composizione della crisi da sovraindebitamento?",
+        "dove": "il testo del precetto",
+        "voci": ["norme"],
+        "norma": "art. 480, secondo comma, c.p.c.",
+        "fonte": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443:1~art480",
+        "letta_il": "2026-10-14"
+      },
+      {
+        "domanda": "La somma intimata torna con il titolo esecutivo?",
+        "dove": "gli importi del precetto e del decreto",
+        "voci": ["importi"]
+      },
+      {
+        "domanda": "L'opposizione si può ancora proporre?",
+        "dove": "la scadenza calcolata e confermata (lezione 19)",
+        "controllo": "scadenze"
+      }
     ]
   }
 }

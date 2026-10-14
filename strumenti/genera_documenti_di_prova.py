@@ -14,7 +14,9 @@ Scrive in documenti-di-prova/ una cartella per fascicolo:
 - 2026-073, Alessandro Riva (penale): l'avviso di conclusione delle indagini,
   un PDF con il testo dentro una busta firmata con un certificato di prova;
 - 2026-074, Lavanderia Sassolese (civile): il decreto ingiuntivo del secondo
-  fascicolo di Elena Sarti, da cui nasce la prima regola (lezione 26).
+  fascicolo di Elena Sarti, da cui nasce la prima regola (lezione 26);
+- precetto: l'atto di precetto di Termocucine Secchia contro Ristorazione
+  Collinare, il documento di prova del tipo di atto della lezione 40.
 
 Con dei codici, scrive soltanto quelle cartelle:
 
@@ -57,6 +59,35 @@ opposizione, si procederà a esecuzione forzata.
 
 Modena, 15 settembre 2026
 Il giudice"""
+
+# Il documento di prova del tipo di atto nuovo (lezione 40): nella storia
+# del libro arriverebbe dopo il decreto, quando la provvisoria esecuzione
+# è concessa.
+PRECETTO = """ATTO DI PRECETTO
+
+Termocucine Secchia S.r.l., in forza del decreto ingiuntivo n. 1873/2026
+del Tribunale di Modena, notificato il 21 settembre 2026 e dichiarato
+provvisoriamente esecutivo con ordinanza del 15 marzo 2027,
+
+INTIMA
+
+a Ristorazione Collinare S.r.l. di pagare, entro dieci giorni dalla
+notificazione di questo atto, la somma di euro 14.280,00 per capitale,
+euro 412,50 per interessi ed euro 1.180,00 per spese, per un totale di
+euro 15.872,50, con l'avvertimento che, in mancanza, si procederà a
+esecuzione forzata.
+
+Avverte il debitore che può, con l'ausilio di un organismo di
+composizione della crisi o di un professionista nominato dal giudice,
+porre rimedio alla situazione di sovraindebitamento concludendo con i
+creditori un accordo di composizione della crisi o proponendo agli stessi
+un piano del consumatore.
+
+Giudice competente per l'esecuzione: Tribunale di Modena.
+
+Modena, 12 luglio 2027
+
+Relata: notificato via PEC il 20 luglio 2027."""
 
 # Il secondo fascicolo civile di Elena Sarti (lezione 26).
 DECRETO_074 = """TRIBUNALE DI MODENA
@@ -330,6 +361,10 @@ def secondo_civile(cartella: Path) -> None:
     pdf_con_testo(cartella / "decreto.pdf", DECRETO_074, "Decreto ingiuntivo")
 
 
+def precetto(cartella: Path) -> None:
+    pdf_con_testo(cartella / "precetto.pdf", PRECETTO, "Atto di precetto")
+
+
 def tributario(cartella: Path) -> None:
     scansione(cartella / "cartella-scansione.pdf", CARTELLA, 100)
     scansione(cartella / "cartella-scansione-300.pdf", CARTELLA, 300)
@@ -358,6 +393,7 @@ if __name__ == "__main__":
         ("2026-072", tributario),
         ("2026-073", penale),
         ("2026-074", secondo_civile),
+        ("precetto", precetto),
     ):
         if scelti and codice not in scelti:
             continue
