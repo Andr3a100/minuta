@@ -149,5 +149,7 @@ sessione() {
     sessione l35
     # Lezione 36: Minuta 1.2.7, il conto dello studio.
     sessione l36
+    # Lezione 37: la storia del laboratorio come documentazione.
+    sessione l37
     echo "== Fine"
 } >"$verbale"

@@ -189,6 +189,8 @@ Sessione 'l34'
 Sessione 'l35'
 # Lezione 36: Minuta 1.2.7, il conto dello studio.
 Sessione 'l36'
+# Lezione 37: la storia del laboratorio come documentazione.
+Sessione 'l37'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)

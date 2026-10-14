@@ -1,0 +1,8 @@
+### [esito:l37-storia]
+cd ~\minuta\laboratorio
+git tag --list "v*" --sort=creatordate --format="%(creatordate:short) %(refname:short)"
+git rev-list --count v1.2.7
+### [/esito:l37-storia]
+### [esito:l37-lezione]
+git log --format="%ad %s" --date=short v1.2.6..v1.2.7
+### [/esito:l37-lezione]
