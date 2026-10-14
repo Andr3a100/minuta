@@ -23,6 +23,10 @@ fi
 # quando le trova, non accorcia i messaggi, e sul computer del lettore li
 # accorcia.
 unset CI BUILD_NUMBER
+# Git avvisa del «detached HEAD» quando un clone nuovo lascia il ramo
+# (lezione 39), anche con -q, e non sempre allo stesso modo: l'avviso non
+# fa parte di ciò che il lettore deve leggere.
+export GIT_CONFIG_PARAMETERS="'advice.detachedHead=false'"
 umask 022
 
 percorso="$(cd "$(dirname "$0")" && pwd)"
