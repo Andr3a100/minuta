@@ -185,6 +185,8 @@ Sessione 'l32'
 Sessione 'l33'
 # Lezione 34: Minuta 1.2.5, l'informativa e il segno dei testi generati.
 Sessione 'l34'
+# Lezione 35: Minuta 1.2.6, la valutazione d'impatto controllata.
+Sessione 'l35'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)

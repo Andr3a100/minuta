@@ -1,0 +1,12 @@
+### [esito:l35-versione]
+cd ~\minuta\laboratorio
+git switch --detach v1.2.6
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l35-versione]
+### [esito:l35-impatto]
+.\.venv\Scripts\python.exe -m app.manage impatto
+### [/esito:l35-impatto]
+### [esito:l35-correzione]
+.\.venv\Scripts\python.exe -m app.manage materie rosa civile tributario penale --da valli
+.\.venv\Scripts\python.exe -m app.manage impatto
+### [/esito:l35-correzione]

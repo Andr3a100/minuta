@@ -54,6 +54,7 @@ from minuta.scadenze import (
 from minuta.scheda import Riga, SchedaIlleggibile
 from minuta.verifiche import TipoSconosciuto, carica_domande
 
+from . import impatto
 from .addestramento import AddestramentoRifiutato, prepara_insieme
 from .archivio import (
     ArchivioRifiutato,
@@ -605,6 +606,7 @@ def costruisci_parser() -> argparse.ArgumentParser:
     inf.add_argument("--consegnata", help="AAAA-MM-GG: registra la consegna")
     inf.add_argument("--modo", default="", help="come è stata consegnata")
     inf.add_argument("--da", help="chi registra la consegna")
+    sub.add_parser("impatto", help="le misure della valutazione d'impatto")
     seg = sub.add_parser("segno-ia", help="il segno di un file generato")
     seg.add_argument("file")
     sub.add_parser("copia", help="la copia di sicurezza di oggi")
@@ -896,6 +898,8 @@ def main(argv: list[str] | None = None) -> int:
                 stampa_residui(db, settings)
             elif args.comando == "informativa":
                 informativa_dalla_riga(db, args)
+            elif args.comando == "impatto":
+                return impatto_dalla_riga(db, settings)
             elif args.comando == "carica":
                 return carica_file(db, settings, args)
             elif args.comando == "testo":
@@ -2037,6 +2041,23 @@ def informativa_dalla_riga(db: Session, args) -> None:
             vecchia = "" if f.informativa_impronta == oggi else ", superata"
             stato = f"consegnata il {giorno} ({f.informativa_modo}){vecchia}"
         print(f"{f.codice}  {stato}")
+
+
+def impatto_dalla_riga(db: Session, settings) -> int:
+    esiti = impatto.esamina(db, settings)
+    print("Le misure di docs/valutazione-impatto.md:")
+    for e in esiti:
+        print(f"{e.misura} {e.titolo}: {e.stato}")
+        print("\n".join(a_capo(e.dettaglio, "   ", "   ")))
+    smentite = [e.misura for e in esiti if e.stato == impatto.SMENTITA]
+    if smentite:
+        print(
+            f"La valutazione non vale: smentite {', '.join(smentite)}. "
+            "Si corregge la misura, o la valutazione."
+        )
+        return 1
+    print("Nessuna misura smentita; le altre si controllano a mano.")
+    return 0
 
 
 def quante_copie(n: int) -> str:

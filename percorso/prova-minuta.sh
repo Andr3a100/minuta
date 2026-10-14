@@ -145,5 +145,7 @@ sessione() {
     sessione l33
     # Lezione 34: Minuta 1.2.5, l'informativa e il segno dei testi generati.
     sessione l34
+    # Lezione 35: Minuta 1.2.6, la valutazione d'impatto controllata.
+    sessione l35
     echo "== Fine"
 } >"$verbale"
