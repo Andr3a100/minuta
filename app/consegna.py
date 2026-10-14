@@ -58,7 +58,12 @@ def file_dello_studio(
     """I file del codice che nominano lo studio o le sue persone."""
     trovati = []
     for cartella in CARTELLE:
-        for percorso in sorted((radice / cartella).rglob("*")):
+        # In ordine di testo: su Windows i percorsi si confrontano senza
+        # distinguere le maiuscole, e l'elenco cambierebbe da un sistema
+        # all'altro.
+        for percorso in sorted(
+            (radice / cartella).rglob("*"), key=lambda p: p.as_posix()
+        ):
             if not percorso.is_file():
                 continue
             testo = percorso.read_text("utf-8", errors="ignore")
