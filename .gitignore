@@ -17,3 +17,7 @@ bozza-*.docx
 atto-*.docx
 # Il verbale dell'addestramento della lezione 30: si rifà, non si conserva.
 addestramento.json
+# Le copie di sicurezza della lezione 33: contengono tutto lo studio.
+copie/
+# Le uscite delle attività pianificate della lezione 33.
+log/

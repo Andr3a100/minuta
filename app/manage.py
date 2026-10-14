@@ -44,6 +44,7 @@ from minuta.archivio import leggi_indice
 from minuta.bozza import TipoDiBozza
 from minuta.domande import RispostaIlleggibile
 from minuta.invio import SISTEMA
+from minuta.riletture import della_cartella
 from minuta.scadenze import (
     TermineSconosciuto,
     calcola,
@@ -71,6 +72,23 @@ from .bozze import (
     prepara_bozza,
 )
 from .config import ConfigError, leggi_file_env, load_settings
+from .conservazione import (
+    ConservazioneRifiutata,
+    cancella_fascicolo,
+    carica_regola,
+    data_in_lettere,
+    fascicoli_chiusi,
+    passa_di_stato,
+    residui,
+)
+from .copie import (
+    CopiaRifiutata,
+    copie_della_cartella,
+    fai_copia,
+    fascicoli_nelle_copie,
+    ripristina,
+    verifica_copia,
+)
 from .correzioni import (
     CorrezioneRifiutata,
     come_si_legge,
@@ -131,7 +149,7 @@ from .muri import (
 )
 from .registro import CONTRATTO, RichiestaNonAmmessa
 from .risposte import domanda_all_archivio, domanda_sul_fascicolo
-from .rules import APRONO, ValidationErrors, campi_fascicolo
+from .rules import APRONO, ETICHETTE_STATI, ValidationErrors, campi_fascicolo
 from .scadenze import (
     ScadenzaRifiutata,
     calcola_scadenza,
@@ -574,6 +592,29 @@ def costruisci_parser() -> argparse.ArgumentParser:
     )
     resp.add_argument("numero", type=int, help="il numero della correzione")
     resp.add_argument("--da", required=True, help="l'avvocato")
+    sub.add_parser("copia", help="la copia di sicurezza di oggi")
+    ver = sub.add_parser("verifica-copia", help="una copia si ripristina?")
+    ver.add_argument("copia", nargs="?", help="il file della copia")
+    ver.add_argument(
+        "--ultima", action="store_true", help="l'ultima della cartella"
+    )
+    rip = sub.add_parser(
+        "ripristina", help="riporta una copia in un Minuta vuoto"
+    )
+    rip.add_argument("copia", help="il file della copia")
+    sta = sub.add_parser("stato", help="il passaggio di stato di un fascicolo")
+    sta.add_argument("codice")
+    sta.add_argument(
+        "nuovo", choices=["in_studio", "deciso", "chiuso", "aperto"]
+    )
+    sta.add_argument("--da", required=True)
+    sub.add_parser("conservazione", help="i fascicoli chiusi e la regola")
+    can = sub.add_parser("cancella", help="cancella un fascicolo chiuso")
+    can.add_argument("codice")
+    can.add_argument("--da", required=True, help="il suo avvocato")
+    sub.add_parser("residui", help="ciò che resta fuori posto")
+    ril = sub.add_parser("riletture", help="che cosa invecchia nei config")
+    ril.add_argument("--mesi", type=int, default=6)
     cit = sub.add_parser("citazioni", help="le citazioni di una bozza")
     cit.add_argument("codice")
     cit.add_argument("numero", type=int, help="il numero della bozza")
@@ -741,6 +782,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.comando == "domande":
         stampa_domande(carica_domande())
         return 0
+    if args.comando == "riletture":
+        stampa_riletture(args.mesi)
+        return 0
     if args.comando == "calcola-termine":
         try:
             calcolo = calcola(args.termine, args.partenza, carica_regole())
@@ -768,6 +812,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.comando == "certificatori":
             scarica_elenco(settings)
             return 0
+        if args.comando in ("copia", "verifica-copia", "ripristina"):
+            return copie_dalla_riga(settings, args)
         if args.comando == "leggi":
             for percorso in file_da(args.percorsi):
                 lettura = motore.leggi(
@@ -813,6 +859,21 @@ def main(argv: list[str] | None = None) -> int:
                 apri_dalla_riga(db, args)
             elif args.comando == "materie":
                 materie_dalla_riga(db, args)
+            elif args.comando == "stato":
+                fascicolo, utente = fascicolo_e_utente(
+                    db, args.codice, args.da
+                )
+                prima = passa_di_stato(db, utente, fascicolo, args.nuovo)
+                print(
+                    f"{fascicolo.codice}: da «{ETICHETTE_STATI[prima]}» a "
+                    f"«{ETICHETTE_STATI[args.nuovo]}»."
+                )
+            elif args.comando == "conservazione":
+                stampa_conservazione(db)
+            elif args.comando == "cancella":
+                cancella_dalla_riga(db, settings, args)
+            elif args.comando == "residui":
+                stampa_residui(db, settings)
             elif args.comando == "carica":
                 return carica_file(db, settings, args)
             elif args.comando == "testo":
@@ -907,6 +968,8 @@ def main(argv: list[str] | None = None) -> int:
     except (
         AddestramentoRifiutato,
         ArchivioRifiutato,
+        ConservazioneRifiutata,
+        CopiaRifiutata,
         GlossarioRifiutato,
         MuroRifiutato,
         BozzaRifiutata,
@@ -1862,6 +1925,145 @@ def apri_dalla_riga(db: Session, args) -> None:
         f"Aperto il fascicolo {fascicolo.codice}: {fascicolo.cliente}, "
         f"{fascicolo.materia}, avvocato {avvocato.nome}."
     )
+
+
+def copie_dalla_riga(settings, args) -> int:
+    regola = carica_regola()
+    if args.comando == "copia":
+        giorni = regola["copie"]["giorni"]
+        copia = fai_copia(settings, giorni, adesso().date())
+        print(
+            f"Copia {copia.percorso.as_posix()}: il database e "
+            f"{copia.file} file di dati, {len(copia.fascicoli)} fascicoli."
+        )
+        tolte = ", ".join(copia.tolte) or "nessuna"
+        print(f"Copie più vecchie di {giorni} giorni, tolte: {tolte}.")
+        return 0
+    if args.comando == "verifica-copia":
+        if args.ultima:
+            copie = copie_della_cartella(Path(settings.copie_dir))
+            if not copie:
+                raise CommandError("Nella cartella non ci sono copie.")
+            percorso = max(copie, key=lambda p: p.stat().st_mtime)
+        elif args.copia:
+            percorso = Path(args.copia)
+        else:
+            raise CommandError("Quale copia? Il file, oppure --ultima.")
+        verifica = verifica_copia(percorso)
+        c = verifica.contenuto
+        fatta = data_in_lettere(date.fromisoformat(c["fatta_il"]))
+        print(
+            f"Copia {percorso.name}, fatta il {fatta} con Minuta "
+            f"{c['minuta']}."
+        )
+        if verifica.problemi:
+            for problema in verifica.problemi:
+                print(f"  {problema}")
+            print("La copia non si ripristina.")
+            return 1
+        print(
+            f"Impronte: {len(c['impronte'])} file, tutte uguali. Database: "
+            f"integro, {verifica.fascicoli} fascicoli, "
+            f"{verifica.persone} persone."
+        )
+        print("La copia si ripristina.")
+        return 0
+    verifica = ripristina(settings, Path(args.copia))
+    c = verifica.contenuto
+    print(
+        f"Ripristinata la copia {Path(args.copia).name}: "
+        f"{verifica.fascicoli} fascicoli, {verifica.persone} persone, "
+        f"{len(c['impronte']) - 1} file di dati."
+    )
+    print("Ora lo schema: python -m app.manage migra")
+    return 0
+
+
+def quante_copie(n: int) -> str:
+    return "1 copia" if n == 1 else f"{n} copie"
+
+
+def stampa_conservazione(db: Session) -> None:
+    regola = carica_regola()
+    f, c = regola["fascicoli"], regola["copie"]
+    if not isinstance(f["anni"], int):
+        print(
+            "Lo studio non ha deciso quanto conservare i fascicoli: "
+            "Minuta non cancella niente."
+        )
+    else:
+        deciso = data_in_lettere(date.fromisoformat(f["deciso_il"]))
+        testo = (
+            f"I fascicoli chiusi si conservano {f['anni']} anni dalla "
+            f"chiusura: {f['motivo']} ({f['deciso_da']}, {deciso})."
+        )
+        print("\n".join(a_capo(testo, "", "")))
+    for chiuso in fascicoli_chiusi(db, regola):
+        quando = data_in_lettere(chiuso.chiuso_il)
+        print(f"{chiuso.codice}  {chiuso.cliente}, chiuso il {quando}")
+        if chiuso.fino_al:
+            print(
+                f"          si cancella dal {data_in_lettere(chiuso.fino_al)}"
+            )
+    print(f"Le copie di sicurezza si tolgono dopo {c['giorni']} giorni.")
+
+
+def cancella_dalla_riga(db: Session, settings, args) -> None:
+    fascicolo, utente = fascicolo_e_utente(db, args.codice, args.da)
+    regola = carica_regola()
+    tolti = cancella_fascicolo(
+        db, settings, utente, fascicolo, regola, adesso().date()
+    )
+    print(
+        f"Cancellato il fascicolo {args.codice}: {len(tolti)} originali tolti."
+    )
+    copie = fascicoli_nelle_copie(
+        Path(settings.copie_dir), regola["copie"]["giorni"]
+    ).get(args.codice)
+    if copie:
+        print(
+            f"Resta nelle copie di sicurezza ({quante_copie(len(copie))}) "
+            f"fino al {data_in_lettere(max(copie))}."
+        )
+
+
+def stampa_residui(db: Session, settings) -> None:
+    trovati = residui(db, settings, carica_regola())
+    for titolo, elenco in (
+        ("Originali senza documento", trovati.file_senza_documento),
+        ("Documenti senza originale", trovati.documenti_senza_file),
+    ):
+        print(f"{titolo}: {len(elenco) or 'nessuno'}.")
+        for impronta in elenco:
+            print(f"  {impronta[:16]}…")
+    if not trovati.nelle_copie:
+        print("Fascicoli cancellati ancora nelle copie: nessuno.")
+    for codice, quante, fino in trovati.nelle_copie:
+        print(
+            f"{codice}, cancellato, resta nelle copie di sicurezza "
+            f"({quante_copie(quante)}) fino al {data_in_lettere(fino)}."
+        )
+
+
+def stampa_riletture(mesi: int) -> None:
+    voci = della_cartella(
+        Path(__file__).resolve().parents[1] / "config", adesso().date(), mesi
+    )
+    if not voci:
+        print(f"Nei file di config, entro {mesi} mesi: niente da rileggere.")
+        return
+    print(f"Nei file di config, entro {mesi} mesi:")
+    for v in voci:
+        giorno = data_in_lettere(v.quando)
+        quando = {
+            "letta": f"letta il {giorno}, da rileggere",
+            "dal": f"vale dal {giorno}",
+            "fino_al": f"vale fino al {giorno}",
+        }[v.che_cosa]
+        testo = f"{v.file}: {v.nome}. {quando.capitalize()}"
+        if v.da_verificare:
+            testo += f"; da verificare: {', '.join(v.da_verificare)}"
+        print("\n".join(a_capo(testo + ".", "", "  ")))
 
 
 # [libro:diagnosi]

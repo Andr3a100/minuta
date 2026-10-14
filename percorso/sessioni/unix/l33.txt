@@ -1,0 +1,28 @@
+: '### [esito:l33-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v1.2.4
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l33-versione]'
+: '### [esito:l33-copia]'
+python -m app.manage copia
+python -m app.manage verifica-copia --ultima
+: '### [/esito:l33-copia]'
+: '### [esito:l33-chiusura]'
+python -m app.manage stato 2026-074 in_studio --da sarti
+python -m app.manage stato 2026-074 deciso --da sarti
+python -m app.manage stato 2026-074 chiuso --da sarti
+python -m app.manage conservazione
+: '### [/esito:l33-chiusura]'
+: '### [esito:l33-cancella]'
+python -m app.manage cancella 2026-074 --da sarti
+: '### [/esito:l33-cancella]'
+: '### [esito:l33-errore]'
+python percorso/cancella_le_righe.py 2026-074
+: '### [/esito:l33-errore]'
+: '### [esito:l33-residui]'
+python -m app.manage residui
+: '### [/esito:l33-residui]'
+: '### [esito:l33-riletture]'
+python -m app.manage riletture
+: '### [/esito:l33-riletture]'

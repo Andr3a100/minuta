@@ -181,6 +181,8 @@ Sessione 'l29'
 Sessione 'l31'
 # Lezione 32: Minuta 1.2.3, i muri.
 Sessione 'l32'
+# Lezione 33: Minuta 1.2.4, copie, conservazione, cancellazione.
+Sessione 'l33'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)

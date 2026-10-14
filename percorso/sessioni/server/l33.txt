@@ -1,0 +1,25 @@
+: '### [esito:l33-server-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v1.2.4
+source .venv/bin/activate
+python -m app.manage migra
+export APP_ENV=production
+export APP_ORIGIN=https://minuta.studio-meridiana.esempio.it
+export ALLOWED_HOSTS=minuta.studio-meridiana.esempio.it
+: '### [/esito:l33-server-versione]'
+: '### [esito:l33-arrivata]'
+ls ~/arrivate
+c=$(ls ~/arrivate/minuta-*.tar.gz)
+python -m app.manage verifica-copia "$c"
+python -m app.manage ripristina "$c"
+python -m app.manage migra
+python -m app.manage utenti
+: '### [/esito:l33-arrivata]'
+: '### [esito:l33-server-copia]'
+python -m app.manage copia
+ls -l copie
+: '### [/esito:l33-server-copia]'
+: '### [esito:l33-pianifica]'
+crontab docs/pianificazione.cron
+crontab -l | grep minuta.sh
+: '### [/esito:l33-pianifica]'

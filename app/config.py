@@ -62,6 +62,8 @@ class Settings:
     # Il tetto della spesa del mese, in dollari (lezione 31): nessuno, se
     # non è impostato; zero ferma ogni richiesta.
     tetto_mensile: float | None = None
+    # Dove stanno le copie di sicurezza (lezione 33).
+    copie_dir: str = "copie"
 
     @property
     def production(self) -> bool:
@@ -131,4 +133,5 @@ def load_settings(file_env: str | os.PathLike[str] = ".env") -> Settings:
         modello=valori.get("MINUTA_MODELLO", "finto"),
         modello_nome=valori.get("MINUTA_MODELLO_NOME", ""),
         tetto_mensile=tetto,
+        copie_dir=valori.get("COPIE_DIR", "copie"),
     ).validate()

@@ -1,0 +1,18 @@
+# Le attività pianificate di Minuta sul server dello studio (lezione 33).
+# Si installano con  crontab docs/pianificazione.cron  dall'utente che fa
+# girare Minuta. Per queste righe le impostazioni di produzione stanno nel
+# file .env del server: cron non conosce le variabili della shell.
+# minuto ora giorno-del-mese mese giorno-della-settimana comando
+
+# Ogni notte, la copia di sicurezza; un quarto d'ora dopo, la sua verifica.
+30 2 * * * ~/minuta/laboratorio/strumenti/minuta.sh copia
+45 2 * * * ~/minuta/laboratorio/strumenti/minuta.sh verifica-copia --ultima
+
+# Il primo del mese: ciò che invecchia, la suite, ciò che resta fuori posto.
+0 7 1 * * ~/minuta/laboratorio/strumenti/minuta.sh riletture
+10 7 1 * * ~/minuta/laboratorio/strumenti/minuta.sh valuta
+20 7 1 * * ~/minuta/laboratorio/strumenti/minuta.sh residui
+
+# La seconda copia, fuori dal server e cifrata, la porta via lo strumento
+# scelto da chi amministra il server; il file del mese, in log/, lo legge
+# una persona.

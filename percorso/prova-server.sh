@@ -52,10 +52,16 @@ git clone -q "$lab" "$studio/laboratorio"
     .venv/bin/python -m app.manage carica-archivio archivio/pdf --da sarti
     .venv/bin/python -m app.manage addestramento --da sarti
     .venv/bin/python -m app.manage addestramento --da dini
+    # La copia di sicurezza del computer dello studio (lezione 33).
+    .venv/bin/python -m app.manage prova
+    .venv/bin/python -m app.manage copia
 ) >/dev/null
 mkdir -p ~/minuta/laboratorio/dati/addestramento
 cp "$studio/laboratorio/dati/addestramento/"*.jsonl \
     ~/minuta/laboratorio/dati/addestramento/
+# La copia arriva sul server: nella prova, in una cartella della macchina.
+mkdir -p ~/arrivate
+cp "$studio/laboratorio/copie/"minuta-*.tar.gz ~/arrivate/
 
 export COLUMNS=79 PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_COLOR=1
 # Il server non chiama nessun modello in cloud.
@@ -82,6 +88,8 @@ sessione() {
     sessione l30
     # Lezione 31: la chiave e il tetto sul server.
     sessione l31
+    # Lezione 33: la copia dello studio arriva sul server.
+    sessione l33
     echo "== Fine"
 } >"$verbale"
 cp ~/minuta/laboratorio/addestramento.json "$(dirname "$verbale")/" || true
