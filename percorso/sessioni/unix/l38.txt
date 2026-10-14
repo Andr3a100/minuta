@@ -1,0 +1,22 @@
+: '### [esito:l38-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v1.3
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l38-versione]'
+: '### [esito:l38-sostituto]'
+python -m app.manage approva-bozza 2026-071 7 --da dini
+: '### [/esito:l38-sostituto]'
+: '### [esito:l38-assegna]'
+python -m app.manage assegna 2026-071 dini --da sarti
+python -m app.manage approva-bozza 2026-071 7 --da dini
+: '### [/esito:l38-assegna]'
+: '### [esito:l38-tempi]'
+python -m app.manage tempo 2026-071 studio 70 --da irene
+python -m app.manage tempo 2026-071 rilettura 15 --da sarti
+python -m app.manage tempo 2026-072 studio 95 --da righi
+python -m app.manage tempo 2026-073 studio 140 --da valli
+: '### [/esito:l38-tempi]'
+: '### [esito:l38-misura]'
+python -m app.manage misura
+: '### [/esito:l38-misura]'

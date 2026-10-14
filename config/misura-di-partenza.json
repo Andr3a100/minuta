@@ -1,0 +1,14 @@
+{
+  "periodo": "settembre 2026",
+  "metodo": "cinque fascicoli ricostruiti dai documenti, minuti stimati",
+  "fonte": "lezione 2, simulato",
+  "studio": [95, 140, 210, 60, 125],
+  "stesura": [120, 90, 150, 80, 110],
+  "scadenze_documentate": [false, true, false, true, false],
+  "errori_in_revisione": [1, 0, 2, 0, 1],
+  "obiettivo": {
+    "studio_mediana_sotto": 90,
+    "scadenze_documentate": 100,
+    "settimane": 4
+  }
+}

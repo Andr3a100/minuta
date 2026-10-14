@@ -191,6 +191,8 @@ Sessione 'l35'
 Sessione 'l36'
 # Lezione 37: la storia del laboratorio come documentazione.
 Sessione 'l37'
+# Lezione 38: Minuta 1.3, il sostituto e la misura dopo l'avvio.
+Sessione 'l38'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)

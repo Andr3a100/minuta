@@ -150,3 +150,37 @@ def ferma_se_conflitto(
         dove=trovati,
         valutazione=valutazione,
     )
+
+
+def assegna(
+    db: Session, chi: Utente, fascicolo: Fascicolo, persona: Utente
+) -> None:
+    """Una persona entra nel fascicolo, per esempio il sostituto della
+    matrice delle decisioni (lezione 38). La assegna un avvocato che ci
+    lavora, e il muro delle materie vale anche per il sostituto."""
+    lavora = db.scalar(
+        select(Assegnazione).where(
+            Assegnazione.fascicolo_id == fascicolo.id,
+            Assegnazione.utente_id == chi.id,
+        )
+    )
+    if chi.ruolo != "avvocato" or lavora is None:
+        raise MuroRifiutato(
+            "Una persona la assegna un avvocato del fascicolo."
+        )
+    controlla_materia(persona, fascicolo.materia)
+    gia = db.scalar(
+        select(Assegnazione).where(
+            Assegnazione.fascicolo_id == fascicolo.id,
+            Assegnazione.utente_id == persona.id,
+        )
+    )
+    if gia is not None:
+        raise MuroRifiutato(
+            f"{persona.nome} lavora già al fascicolo {fascicolo.codice}."
+        )
+    db.add(Assegnazione(fascicolo_id=fascicolo.id, utente_id=persona.id))
+    registra_evento(
+        db, chi, fascicolo, "assegnazione", persona=persona.nome_utente
+    )
+    db.commit()

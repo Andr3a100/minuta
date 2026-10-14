@@ -44,6 +44,7 @@ from minuta.archivio import leggi_indice
 from minuta.bozza import TipoDiBozza
 from minuta.domande import RispostaIlleggibile
 from minuta.invio import SISTEMA
+from minuta.misure import quota, riassunto
 from minuta.riletture import della_cartella
 from minuta.scadenze import (
     TermineSconosciuto,
@@ -54,7 +55,7 @@ from minuta.scadenze import (
 from minuta.scheda import Riga, SchedaIlleggibile
 from minuta.verifiche import TipoSconosciuto, carica_domande
 
-from . import conto, impatto
+from . import conto, impatto, misura
 from .addestramento import AddestramentoRifiutato, prepara_insieme
 from .archivio import (
     ArchivioRifiutato,
@@ -146,8 +147,10 @@ from .invio import (
     prepara_domanda,
 )
 from .migrations import MigrationError, migra, ultima, versione_attuale
+from .misura import MisuraRifiutata, registra_tempo
 from .muri import (
     MuroRifiutato,
+    assegna,
     controlla_materia,
     ferma_se_conflitto,
     imposta_materie,
@@ -608,6 +611,16 @@ def costruisci_parser() -> argparse.ArgumentParser:
     inf.add_argument("--da", help="chi registra la consegna")
     sub.add_parser("impatto", help="le misure della valutazione d'impatto")
     sub.add_parser("conto", help="il conto dello studio, con le misure")
+    ass = sub.add_parser("assegna", help="una persona entra nel fascicolo")
+    ass.add_argument("codice")
+    ass.add_argument("nome_utente", help="chi entra")
+    ass.add_argument("--da", required=True, help="un avvocato del fascicolo")
+    tem = sub.add_parser("tempo", help="i minuti cronometrati su un fascicolo")
+    tem.add_argument("codice")
+    tem.add_argument("attivita", choices=["studio", "stesura", "rilettura"])
+    tem.add_argument("minuti", type=int)
+    tem.add_argument("--da", required=True, help="chi ha lavorato")
+    sub.add_parser("misura", help="la misura di oggi e quella di partenza")
     seg = sub.add_parser("segno-ia", help="il segno di un file generato")
     seg.add_argument("file")
     sub.add_parser("copia", help="la copia di sicurezza di oggi")
@@ -903,6 +916,20 @@ def main(argv: list[str] | None = None) -> int:
                 return impatto_dalla_riga(db, settings)
             elif args.comando == "conto":
                 return conto_dalla_riga(db)
+            elif args.comando == "assegna":
+                fascicolo, chi = fascicolo_e_utente(db, args.codice, args.da)
+                persona = utente_attivo(db, args.nome_utente)
+                assegna(db, chi, fascicolo, persona)
+                print(f"{persona.nome} lavora ora al fascicolo {args.codice}.")
+            elif args.comando == "tempo":
+                fascicolo, chi = fascicolo_e_utente(db, args.codice, args.da)
+                registra_tempo(db, chi, fascicolo, args.attivita, args.minuti)
+                print(
+                    f"{args.codice}, {args.attivita}: {args.minuti} minuti "
+                    f"di {chi.nome}."
+                )
+            elif args.comando == "misura":
+                misura_dalla_riga(db)
             elif args.comando == "carica":
                 return carica_file(db, settings, args)
             elif args.comando == "testo":
@@ -999,6 +1026,7 @@ def main(argv: list[str] | None = None) -> int:
         ArchivioRifiutato,
         ConservazioneRifiutata,
         CopiaRifiutata,
+        MisuraRifiutata,
         GlossarioRifiutato,
         MuroRifiutato,
         BozzaRifiutata,
@@ -2044,6 +2072,46 @@ def informativa_dalla_riga(db: Session, args) -> None:
             vecchia = "" if f.informativa_impronta == oggi else ", superata"
             stato = f"consegnata il {giorno} ({f.informativa_modo}){vecchia}"
         print(f"{f.codice}  {stato}")
+
+
+def media_e_mediana(valori: list[int]) -> str:
+    if not valori:
+        return "non misurata"
+    media, mediana = riassunto(valori)
+    return f"{media:g} / {mediana:g}".replace(".", ",")
+
+
+def misura_dalla_riga(db: Session) -> None:
+    partenza = misura.carica_partenza()
+    oggi = misura.misura_di_oggi(db)
+    testa = (
+        f"La misura di partenza: {partenza['periodo']}, "
+        f"{partenza['metodo']} ({partenza['fonte']})."
+    )
+    print("\n".join(a_capo(testa, "", "")))
+    n_prima, n_oggi = len(partenza["studio"]), len(oggi.fascicoli)
+    righe = [
+        ("minuti di studio", partenza["studio"], oggi.minuti["studio"]),
+        ("minuti di stesura", partenza["stesura"], oggi.minuti["stesura"]),
+        ("minuti di rilettura", [], oggi.minuti["rilettura"]),
+    ]
+    print(f"{'media / mediana':<28}{'partenza':<16}oggi")
+    for nome, prima, dopo in righe:
+        print(
+            f"  {nome:<26}{media_e_mediana(prima):<16}{media_e_mediana(dopo)}"
+        )
+    documentate = sum(partenza["scadenze_documentate"])
+    errori = sum(1 for e in partenza["errori_in_revisione"] if e)
+    for nome, prima, dopo in (
+        ("scadenze documentate", documentate, oggi.documentate),
+        ("errori in revisione", errori, oggi.con_errori),
+    ):
+        oggi_quota = f"{quota(dopo, n_oggi)}%" if n_oggi else "-"
+        print(f"  {nome:<26}{quota(prima, n_prima)}%{'':<13}{oggi_quota}")
+    elenco = ", ".join(oggi.fascicoli) or "nessuno"
+    print(f"Con i minuti di studio: {elenco}.")
+    for riga in misura.verdetto(partenza, oggi):
+        print("\n".join(a_capo(riga, "", "  ")))
 
 
 def dollari(cifra: float, cifre: int = 4) -> str:
