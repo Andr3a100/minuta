@@ -1,0 +1,17 @@
+### [esito:l39-versione]
+cd ~\minuta\laboratorio
+git switch --detach v1.3.1
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l39-versione]
+### [esito:l39-installazione]
+.\.venv\Scripts\python.exe -m app.manage per-un-altro-studio
+### [/esito:l39-installazione]
+### [esito:l39-clone]
+cd ~\minuta
+git clone -q laboratorio nuovo-studio
+cd nuovo-studio
+git switch -q --detach v1.3.1
+..\laboratorio\.venv\Scripts\python.exe strumenti\configura_locale.py
+..\laboratorio\.venv\Scripts\python.exe -m app.manage migra
+..\laboratorio\.venv\Scripts\python.exe -m app.manage per-un-altro-studio
+### [/esito:l39-clone]

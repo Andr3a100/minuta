@@ -80,7 +80,7 @@ Remove-Item Env:OPENAI_API_KEY, Env:MINUTA_API_KEY, Env:ANTHROPIC_API_KEY `
 
 # I programmi esterni passano da cmd, che unisce output ed errori come li
 # vedrebbe il lettore; i comandi di PowerShell restano in PowerShell.
-$nativi = '^(py|git|curl\.exe|\.\\\.venv\\Scripts\\python\.exe)(\s|$)'
+$nativi = '^(py|git|curl\.exe|(\.\.\\laboratorio\\|\.\\)\.venv\\Scripts\\python\.exe)(\s|$)'
 # Le sessioni girano senza le variabili con cui la CI si annuncia: pytest,
 # quando le trova, non accorcia i messaggi, e sul computer del lettore li
 # accorcia.
@@ -193,6 +193,8 @@ Sessione 'l36'
 Sessione 'l37'
 # Lezione 38: Minuta 1.3, il sostituto e la misura dopo l'avvio.
 Sessione 'l38'
+# Lezione 39: Minuta 1.3.1, che cosa non si consegna a un altro studio.
+Sessione 'l39'
 Scrivi '== Fine'
 
 [IO.File]::WriteAllText($Verbale, $verbaleTesto.ToString(), $utf8)

@@ -55,7 +55,7 @@ from minuta.scadenze import (
 from minuta.scheda import Riga, SchedaIlleggibile
 from minuta.verifiche import TipoSconosciuto, carica_domande
 
-from . import conto, impatto, misura
+from . import consegna, conto, impatto, misura
 from .addestramento import AddestramentoRifiutato, prepara_insieme
 from .archivio import (
     ArchivioRifiutato,
@@ -621,6 +621,10 @@ def costruisci_parser() -> argparse.ArgumentParser:
     tem.add_argument("minuti", type=int)
     tem.add_argument("--da", required=True, help="chi ha lavorato")
     sub.add_parser("misura", help="la misura di oggi e quella di partenza")
+    sub.add_parser(
+        "per-un-altro-studio",
+        help="che cosa non si consegna a un altro studio",
+    )
     seg = sub.add_parser("segno-ia", help="il segno di un file generato")
     seg.add_argument("file")
     sub.add_parser("copia", help="la copia di sicurezza di oggi")
@@ -930,6 +934,8 @@ def main(argv: list[str] | None = None) -> int:
                 )
             elif args.comando == "misura":
                 misura_dalla_riga(db)
+            elif args.comando == "per-un-altro-studio":
+                return consegna_dalla_riga(db, settings)
             elif args.comando == "carica":
                 return carica_file(db, settings, args)
             elif args.comando == "testo":
@@ -2072,6 +2078,29 @@ def informativa_dalla_riga(db: Session, args) -> None:
             vecchia = "" if f.informativa_impronta == oggi else ", superata"
             stato = f"consegnata il {giorno} ({f.informativa_modo}){vecchia}"
         print(f"{f.codice}  {stato}")
+
+
+def consegna_dalla_riga(db: Session, settings) -> int:
+    esame = consegna.esamina(db, settings)
+    print("Questa installazione, per un altro studio:")
+    for nome, quanti in esame.dati.items():
+        print(f"  {nome:<36}{quanti:>4}")
+    print(f"  {'copie di sicurezza':<36}{esame.copie:>4}")
+    chiave = "sì" if esame.env else "no"
+    print(f"  {'chiave del fornitore nel .env':<36}{chiave:>4}")
+    if esame.si_consegna:
+        print("Nessun dato dello studio: si può consegnare il codice.")
+    else:
+        print(
+            "Non si consegna: contiene ciò che è dello studio. Si consegna "
+            "il codice, da un clone del laboratorio."
+        )
+    print("I file che nominano lo studio, da riscrivere per il nuovo studio:")
+    for percorso, nomi in esame.file:
+        print(
+            "\n".join(a_capo(f"{percorso}: {', '.join(nomi)}", "  ", "    "))
+        )
+    return 0 if esame.si_consegna else 1
 
 
 def media_e_mediana(valori: list[int]) -> str:

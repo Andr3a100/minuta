@@ -153,5 +153,7 @@ sessione() {
     sessione l37
     # Lezione 38: Minuta 1.3, il sostituto e la misura dopo l'avvio.
     sessione l38
+    # Lezione 39: Minuta 1.3.1, che cosa non si consegna a un altro studio.
+    sessione l39
     echo "== Fine"
 } >"$verbale"

@@ -1,0 +1,18 @@
+: '### [esito:l39-versione]'
+cd ~/minuta/laboratorio
+git switch --detach v1.3.1
+source .venv/bin/activate
+python -m app.manage migra
+: '### [/esito:l39-versione]'
+: '### [esito:l39-installazione]'
+python -m app.manage per-un-altro-studio
+: '### [/esito:l39-installazione]'
+: '### [esito:l39-clone]'
+cd ~/minuta
+git clone -q laboratorio nuovo-studio
+cd nuovo-studio
+git switch -q --detach v1.3.1
+python strumenti/configura_locale.py
+python -m app.manage migra
+python -m app.manage per-un-altro-studio
+: '### [/esito:l39-clone]'
