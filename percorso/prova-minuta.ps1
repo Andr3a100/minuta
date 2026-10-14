@@ -85,6 +85,9 @@ $nativi = '^(py|git|curl\.exe|(\.\.\\laboratorio\\|\.\\)\.venv\\Scripts\\python\
 # quando le trova, non accorcia i messaggi, e sul computer del lettore li
 # accorcia.
 Remove-Item Env:CI, Env:BUILD_NUMBER -ErrorAction SilentlyContinue
+# Git su Windows avvisa del «detached HEAD» anche con -q, in un clone
+# nuovo (lezione 39); su macOS e su Linux no. Le uscite restano uguali.
+$env:GIT_CONFIG_PARAMETERS = "'advice.detachedHead=false'"
 $verbaleTesto = New-Object System.Text.StringBuilder
 
 function Scrivi([string] $Testo) { [void]$verbaleTesto.AppendLine($Testo) }
