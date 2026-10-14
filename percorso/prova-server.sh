@@ -40,7 +40,10 @@ studio="$(mktemp -d)"
 git clone -q "$lab" "$studio/laboratorio"
 (
     cd "$studio/laboratorio"
-    git switch -q -C main
+    # Il computer dello studio ha la versione della lezione 33, la stessa
+    # che la sessione installa sul server: una versione più nuova farebbe
+    # una copia che il server non sa ancora leggere.
+    git switch -q --detach v1.2.4
     python3 -m venv .venv
     .venv/bin/python -m pip install -q -r requirements.txt
     .venv/bin/python strumenti/configura_locale.py
