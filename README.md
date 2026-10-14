@@ -34,6 +34,7 @@ tuo computer (`.env`, il database, l'ambiente virtuale) restano dove sono.
 | 1.2 | 29 | la prima modifica con un agente: il glossario del fascicolo, deciso dall'avvocato, fa partire le pagine con le parole equivalenti (il forno passa); `glossario`; il cancello di una modifica (`cancello --da`), che ferma chi cambia la misura invece di Minuta; la richiesta in docs/richieste/ |
 | 1.2.1 | 30 | l'addestramento in locale, sul server dello studio: un adattatore LoRA su Qwen2.5-0.5B (Apache 2.0, revisione fissata) con l'insieme della lezione 28, misurato su un atto tenuto fuori (`python -m minuta.addestra`, dipendenze in requirements-addestramento.txt); la prova del server, percorso/prova-server.sh |
 | 1.2.2 | 31 | chiavi, limiti e costi: il contratto in config/contratto.json (la regione europea costa il 10% in più su gpt-6.1-sol, altrimenti non si stima), il tetto della spesa del mese (`MINUTA_TETTO_MENSILE`, zero ferma tutto, un modello senza prezzo non parte), il comando `costi`, la regione, il tetto e i permessi di .env nella diagnosi |
+| 1.2.3 | 32 | i muri: le materie di ogni persona (comando `materie`; chi è fuori dal muro perde le assegnazioni), il fascicolo che non si apre per chi non lavora nella sua materia, il possibile conflitto d'interessi (art. 24 del codice deontologico forense) che ferma l'apertura o l'aggiunta di una persona finché un avvocato non lo valuta (`--conflitto-valutato`) |
 
 ## Che cosa fa
 

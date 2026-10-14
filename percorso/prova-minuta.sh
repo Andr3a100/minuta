@@ -139,5 +139,7 @@ sessione() {
     sessione l29
     # Lezione 31: Minuta 1.2.2, chiavi, limiti e costi.
     sessione l31
+    # Lezione 32: Minuta 1.2.3, i muri.
+    sessione l32
     echo "== Fine"
 } >"$verbale"

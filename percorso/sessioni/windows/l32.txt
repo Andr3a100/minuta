@@ -1,0 +1,19 @@
+### [esito:l32-versione]
+cd ~\minuta\laboratorio
+git switch --detach v1.2.3
+.\.venv\Scripts\python.exe -m app.manage migra
+### [/esito:l32-versione]
+### [esito:l32-materie]
+.\.venv\Scripts\python.exe -m app.manage materie irene civile --da sarti
+.\.venv\Scripts\python.exe -m app.manage materie valli penale --da sarti
+### [/esito:l32-materie]
+### [esito:l32-penale]
+$c = "Bruno Ferretti"
+$o = "Indagine per un incidente stradale"
+.\.venv\Scripts\python.exe -m app.manage apri 2026-076 "$c" penale "$o" --avvocato valli --praticante irene --da rosa
+### [/esito:l32-penale]
+### [esito:l32-conflitto]
+$c = "Termocucine Secchia S.r.l."
+$o = "Recupero di un credito verso un ristorante"
+.\.venv\Scripts\python.exe -m app.manage apri 2026-075 "$c" civile "$o" --avvocato dini --da rosa
+### [/esito:l32-conflitto]

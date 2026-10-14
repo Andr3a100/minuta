@@ -71,6 +71,7 @@ from .invio import (
     prepara_domanda,
 )
 from .migrations import ultima, versione_attuale
+from .muri import MuroRifiutato, controlla_materia, ferma_se_conflitto
 from .registro import RichiestaNonAmmessa
 from .risposte import domanda_all_archivio, domanda_sul_fascicolo
 from .rules import (
@@ -331,6 +332,19 @@ def apri_fascicolo(
             raise HTTPException(
                 409, "Esiste già un fascicolo con quel codice."
             )
+        # I muri (lezione 32): la valutazione di un conflitto si scrive
+        # dal terminale, con il nome dell'avvocato che la fa.
+        try:
+            for persona_id in (campi["avvocato_id"], campi["praticante_id"]):
+                if persona_id:
+                    controlla_materia(
+                        db.get(Utente, persona_id), campi["materia"]
+                    )
+            ferma_se_conflitto(
+                db, utente, None, campi["cliente"], "cliente", None
+            )
+        except MuroRifiutato as exc:
+            raise HTTPException(409, str(exc)) from None
         praticante = campi.pop("praticante_id")
         # Chi apre viene dalla sessione, mai da un campo del modulo.
         fascicolo = Fascicolo(**campi, creato_da_id=utente.id)

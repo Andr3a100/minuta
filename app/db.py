@@ -79,6 +79,8 @@ class Utente(Base):
     ruolo: Mapped[str] = mapped_column(String(20))
     attivo: Mapped[bool] = mapped_column(Boolean, default=True)
     creato_il: Mapped[datetime] = mapped_column(OrarioUTC, default=adesso)
+    # Le materie in cui lavora, separate da spazi; vuoto, tutte (lezione 32).
+    materie: Mapped[str] = mapped_column(Text, server_default="")
 
 
 class Fascicolo(Base):

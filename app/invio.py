@@ -82,9 +82,12 @@ def aggiungi_persona(
     nome: str,
     ruolo: str,
     soggetto: bool = False,
+    valutazione: str | None = None,
 ) -> PersonaFascicolo:
     """Aggiunge una persona all'elenco, con la sua riga nel registro delle
-    attività. Chi chiama ha già controllato chi aggiunge."""
+    attività. Chi chiama ha già controllato chi aggiunge. Un possibile
+    conflitto d'interessi ferma l'aggiunta, salvo la valutazione di un
+    avvocato (lezione 32)."""
     nome, ruolo = " ".join(nome.split()), " ".join(ruolo.split())
     # Una forma societaria nel nome basta a dire che è un soggetto (L18).
     soggetto = soggetto or bool(SOCIETA.search(nome))
@@ -100,6 +103,9 @@ def aggiungi_persona(
     )
     if gia is not None:
         raise PersonaRifiutata(f"{nome} è già nell'elenco.")
+    from .muri import ferma_se_conflitto  # evita l'import circolare
+
+    ferma_se_conflitto(db, utente, fascicolo, nome, ruolo, valutazione)
     persona = PersonaFascicolo(
         fascicolo_id=fascicolo.id,
         nome=nome,

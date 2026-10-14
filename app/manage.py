@@ -122,6 +122,13 @@ from .invio import (
     prepara_domanda,
 )
 from .migrations import MigrationError, migra, ultima, versione_attuale
+from .muri import (
+    MuroRifiutato,
+    controlla_materia,
+    ferma_se_conflitto,
+    imposta_materie,
+    materie_di,
+)
 from .registro import CONTRATTO, RichiestaNonAmmessa
 from .risposte import domanda_all_archivio, domanda_sul_fascicolo
 from .rules import APRONO, ValidationErrors, campi_fascicolo
@@ -363,6 +370,15 @@ def costruisci_parser() -> argparse.ArgumentParser:
     apri.add_argument("--avvocato", required=True, help="il nome utente")
     apri.add_argument("--praticante", help="il nome utente, se c'è")
     apri.add_argument("--da", required=True, help="chi apre")
+    apri.add_argument(
+        "--conflitto-valutato",
+        help="la valutazione scritta dell'avvocato che apre, se c'è un "
+        "possibile conflitto d'interessi",
+    )
+    mat = sub.add_parser("materie", help="le materie di una persona")
+    mat.add_argument("nome_utente")
+    mat.add_argument("materie", nargs="*", help="niente: le mostra")
+    mat.add_argument("--da", required=True, help="l'avvocato")
     sub.add_parser("diagnosi", help="mostra la configurazione senza segreti")
     sub.add_parser(
         "certificatori", help="scarica l'elenco dei certificatori di AgID"
@@ -394,6 +410,11 @@ def costruisci_parser() -> argparse.ArgumentParser:
         "--soggetto", action="store_true", help="una società o un ente"
     )
     persona.add_argument("--da", required=True, help="chi la aggiunge")
+    persona.add_argument(
+        "--conflitto-valutato",
+        help="la valutazione scritta di un avvocato, se c'è un possibile "
+        "conflitto d'interessi",
+    )
     anteprima = sub.add_parser(
         "anteprima", help="che cosa partirebbe verso il modello, e i controlli"
     )
@@ -790,6 +811,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Creati {quanti} fascicoli di prova.")
             elif args.comando == "apri":
                 apri_dalla_riga(db, args)
+            elif args.comando == "materie":
+                materie_dalla_riga(db, args)
             elif args.comando == "carica":
                 return carica_file(db, settings, args)
             elif args.comando == "testo":
@@ -801,7 +824,13 @@ def main(argv: list[str] | None = None) -> int:
                     db, args.codice, args.da
                 )
                 persona = aggiungi_persona(
-                    db, utente, fascicolo, args.nome, args.ruolo, args.soggetto
+                    db,
+                    utente,
+                    fascicolo,
+                    args.nome,
+                    args.ruolo,
+                    args.soggetto,
+                    args.conflitto_valutato,
                 )
                 print(
                     f"Aggiunta all'elenco di {fascicolo.codice}: "
@@ -879,6 +908,7 @@ def main(argv: list[str] | None = None) -> int:
         AddestramentoRifiutato,
         ArchivioRifiutato,
         GlossarioRifiutato,
+        MuroRifiutato,
         BozzaRifiutata,
         CorrezioneRifiutata,
         TipoDiBozza,
@@ -1762,6 +1792,18 @@ def correzioni_dalla_riga(db: Session, args) -> None:
         print("\n".join(a_capo(learning.come_regola(voce), "- ", "  ")))
 
 
+def materie_dalla_riga(db: Session, args) -> None:
+    chi = utente_attivo(db, args.da)
+    utente = utente_attivo(db, args.nome_utente)
+    if args.materie:
+        tolti = imposta_materie(db, chi, utente, args.materie)
+        if tolti:
+            print(f"Tolto dai fascicoli fuori dal muro: {', '.join(tolti)}.")
+    materie = materie_di(utente)
+    elenco = ", ".join(sorted(materie)) if materie else "tutte"
+    print(f"Le materie di {utente.nome}: {elenco}.")
+
+
 def apri_dalla_riga(db: Session, args) -> None:
     """Apre un fascicolo dal terminale, con le regole della pagina del
     browser: chi apre, i campi controllati, le persone assegnate, il
@@ -1792,6 +1834,18 @@ def apri_dalla_riga(db: Session, args) -> None:
         raise CommandError(" ".join(exc.errori.values())) from None
     if db.scalar(select(Fascicolo).where(Fascicolo.codice == args.codice)):
         raise CommandError(f"Esiste già il fascicolo {args.codice}.")
+    # I muri (lezione 32): le materie di chi ci lavorerà, e il conflitto.
+    for persona in (avvocato, praticante):
+        if persona is not None:
+            controlla_materia(persona, args.materia)
+    ferma_se_conflitto(
+        db,
+        utente,
+        None,
+        args.cliente,
+        "cliente",
+        getattr(args, "conflitto_valutato", None),
+    )
     campi.pop("praticante_id")
     fascicolo = Fascicolo(**campi, creato_da_id=utente.id)
     db.add(fascicolo)
