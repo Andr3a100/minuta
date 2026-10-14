@@ -1,6 +1,6 @@
 ### [esito:l37-storia]
 cd ~\minuta\laboratorio
-git tag --list "v*" --sort=creatordate --format="%(creatordate:short) %(refname:short)"
+git tag --list "v*" --merged v1.2.7 --sort=creatordate --format="%(creatordate:short) %(refname:short)"
 git rev-list --count v1.2.7
 ### [/esito:l37-storia]
 ### [esito:l37-lezione]
