@@ -1,6 +1,7 @@
 : '### [esito:l31-server]'
 cd ~/minuta/laboratorio
 git switch --detach v1.2.2
+source .venv/bin/activate
 python -m app.manage migra
 export MINUTA_TETTO_MENSILE=50
 python -m app.manage diagnosi
